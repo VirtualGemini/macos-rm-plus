@@ -143,6 +143,11 @@ directly. Those capabilities cross explicit interfaces implemented in `RMPPlatfo
 - Unit tests collect coverage and CI publishes an `llvm-cov` summary, but no global percentage
   substitutes for requirement and branch coverage. Coverage must not decrease without an approved
   explanation.
+- `.coverage-baseline` records the minimum line coverage. PR CI reads that file from the trusted
+  target SHA, so a PR cannot lower its own threshold. A deliberate reduction requires a separately
+  reviewed baseline change on the target branch before the implementation PR.
+- Coverage includes production executables as additional `llvm-cov` objects; test-only coverage
+  cannot hide newly added untested CLI code.
 - SafetyPolicy, option parsing, and test-whitelist branches may not remain untested.
 
 ### 6.2 Safe default commands
@@ -291,7 +296,7 @@ is an ancestor of every breaking implementation commit, forcing the implementati
 from or rebase onto the approved history. The implementation commit also contains:
 
 ```text
-BREAKING CHANGE: Describe the user-visible break and migration.
+BREAKING-CHANGE: Describe the user-visible break and migration.
 Breaking-Approval: .scratch/<feature>/issues/<ticket>.md
 ```
 
@@ -373,7 +378,7 @@ Examples:
 - domain terminology affects `CONTEXT.md`.
 
 `Docs-Impact: none` requires a reason and an independently named reviewer. Breaking changes can
-never claim no documentation impact, whether declared with `!` or a `BREAKING CHANGE:` trailer. CI
+never claim no documentation impact, whether declared with `!` or a `BREAKING-CHANGE:` trailer. CI
 validates additions, copies, modifications, renames, and deletions in every commit, then validates
 the aggregate base-to-head pull-request diff so documentation may be synchronized anywhere in the
 same pull request without falling behind the resulting code version.
@@ -381,6 +386,14 @@ same pull request without falling behind the resulting code version.
 For aggregate validation, files changed exclusively by independently approved `Docs-Impact: none`
 commits do not trigger matrix rules; documents changed anywhere in the PR may satisfy rules triggered
 by non-exempt commits. This preserves both a real exemption path and version-level synchronization.
+The aggregate file set is calculated from the merge base to the PR head, preventing unrelated target
+branch documentation changes from satisfying the PR. Deleted documents and tests never count as
+updated evidence. All RMPCore and RMPPlatform changes trigger the safety evidence rule rather than
+relying on filenames to guess whether code is safety-sensitive.
+
+Commit metadata is parsed with `git interpret-trailers`; trailer-like text in the message body is not
+accepted. A documentation exemption approval must target a commit that contains the exempt commit,
+so approvals from an earlier PR revision cannot be reused after new exempt changes are pushed.
 
 ## 15. CI workflows
 

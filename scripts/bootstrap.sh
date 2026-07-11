@@ -30,9 +30,10 @@ if [ "$missing" -ne 0 ]; then
   exit 1
 fi
 
+expected_swift=$(tool_value swift-language-mode)
 swift_version=$(swift --version | sed -n '1s/.*Swift version \([0-9][0-9]*\).*/\1/p')
-if [ "$swift_version" != "6" ]; then
-  echo "error: Swift 6 language support is required" >&2
+if [ "$swift_version" != "$expected_swift" ]; then
+  echo "error: Swift $expected_swift language support is required" >&2
   swift --version >&2
   exit 1
 fi

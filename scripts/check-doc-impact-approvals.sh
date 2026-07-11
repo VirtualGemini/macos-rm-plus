@@ -30,9 +30,9 @@ if [ -z "$required_reviews" ]; then
   exit 0
 fi
 
-if [ -n "${DOCS_IMPACT_PR_AUTHOR-}" ] && [ -n "${DOCS_IMPACT_APPROVED_REVIEWERS-}" ]; then
+if [ -n "${DOCS_IMPACT_PR_AUTHOR-}" ] && [ -n "${DOCS_IMPACT_APPROVED_REVIEWS-}" ]; then
   pr_author=$DOCS_IMPACT_PR_AUTHOR
-  approved_reviewers=$DOCS_IMPACT_APPROVED_REVIEWERS
+  approved_reviews=$DOCS_IMPACT_APPROVED_REVIEWS
 else
   : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
   : "${PR_NUMBER:?PR_NUMBER is required}"
@@ -42,8 +42,8 @@ else
   trap 'rm -f "$reviews"' EXIT HUP INT TERM
   pr_author=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.user.login')
   gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" \
-    --jq '.[] | [.user.login, .state] | @tsv' >"$reviews"
-  approved_reviewers=$(awk '{ state[$1] = $2 } END { for (user in state) if (state[user] == "APPROVED") print user }' \
+    --jq '.[] | [.user.login, .state, .commit_id] | @tsv' >"$reviews"
+  approved_reviews=$(awk '{ state[$1] = $2; commit[$1] = $3 } END { for (user in state) if (state[user] == "APPROVED") print user "|" commit[user] }' \
     "$reviews")
 fi
 
@@ -67,9 +67,12 @@ while IFS='|' read -r reviewer commit; do
   elif [ "$reviewer" = "$commit_author" ]; then
     echo "error: commit author @$reviewer cannot approve their own Docs-Impact: none" >&2
     failed=1
-  elif ! printf '%s\n' "$approved_reviewers" | grep -Fxq "$reviewer"; then
+  else
+    review_commit=$(printf '%s\n' "$approved_reviews" | sed -n "s/^$reviewer|//p" | tail -1)
+    if [ -z "$review_commit" ] || ! git merge-base --is-ancestor "$commit" "$review_commit"; then
     echo "error: Docs-Impact: none requires an active APPROVED review from @$reviewer" >&2
     failed=1
+    fi
   fi
 done <<EOF
 $required_reviews

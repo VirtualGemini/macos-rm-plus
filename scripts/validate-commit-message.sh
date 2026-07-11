@@ -21,7 +21,8 @@ if ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
   exit 1
 fi
 
-if ! grep -Eq '^Signed-off-by: .+ <[^>]+>$' "$message_file"; then
+signoff=$(message_trailer "$message" Signed-off-by)
+if ! printf '%s\n' "$signoff" | grep -Eq '^.+ <[^>]+>$'; then
   echo "error: commit message requires a Signed-off-by trailer" >&2
   exit 1
 fi
@@ -31,7 +32,7 @@ case "$docs_impact" in
   updated)
     ;;
   none)
-    if ! grep -Eq '^Docs-Impact-Reason: .+' "$message_file"; then
+    if [ -z "$(message_trailer "$message" Docs-Impact-Reason)" ]; then
       echo "error: Docs-Impact: none requires Docs-Impact-Reason" >&2
       exit 1
     fi
@@ -54,8 +55,8 @@ if message_is_breaking "$message"; then
     exit 1
   fi
 
-  if ! grep -Eq '^BREAKING CHANGE: .+' "$message_file"; then
-    echo "error: breaking changes require a BREAKING CHANGE trailer" >&2
+  if [ -z "$(message_trailer "$message" BREAKING-CHANGE)" ]; then
+    echo "error: breaking changes require a BREAKING-CHANGE trailer" >&2
     exit 1
   fi
 

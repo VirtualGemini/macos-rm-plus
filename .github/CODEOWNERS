@@ -5,6 +5,8 @@ Sources/RMPPlatform/** @VirtualGemini
 TestSupport/** @VirtualGemini
 .github/workflows/** @VirtualGemini
 .githooks/** @VirtualGemini
+.githooks/commit-msg @VirtualGemini
+.github/workflows/ci.yml @VirtualGemini
 scripts/run-release.sh @VirtualGemini
 scripts/check-breaking-change-approvals.sh @VirtualGemini
 scripts/check-doc-impact*.sh @VirtualGemini
@@ -16,3 +18,7 @@ scripts/validate-commit-message.sh @VirtualGemini
 docs/development.md @VirtualGemini
 docs/adr/** @VirtualGemini
 .docs-impact.yml @VirtualGemini
+.coverage-baseline @VirtualGemini
+.policy-files @VirtualGemini
+scripts/check-policy-ownership.sh @VirtualGemini
+scripts/report-coverage.sh @VirtualGemini

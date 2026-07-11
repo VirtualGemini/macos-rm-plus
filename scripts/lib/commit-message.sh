@@ -8,14 +8,16 @@ message_subject() {
 message_trailer() {
   message=$1
   key=$2
-  printf '%s\n' "$message" | sed -n "s/^$key: //p" | tail -1
+  printf '%s\n' "$message" | git interpret-trailers --parse \
+    | sed -n "s/^$key: //p" \
+    | tail -1
 }
 
 message_is_breaking() {
   message=$1
   subject=$(message_subject "$message")
   printf '%s\n' "$subject" | grep -Eq '^.+!:' \
-    || printf '%s\n' "$message" | grep -Eq '^BREAKING CHANGE: .+'
+    || [ -n "$(message_trailer "$message" BREAKING-CHANGE)" ]
 }
 
 validate_breaking_ticket_fields() {

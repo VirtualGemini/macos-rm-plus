@@ -9,12 +9,15 @@ cd "$ROOT"
 
 configuration_file=.docs-impact.yml
 temporary_configuration=
+policy_file=.policy-files
+temporary_policy=
 
 # shellcheck disable=SC2329 # Invoked by trap.
 cleanup() {
   if [ -n "$temporary_configuration" ]; then
     rm -f "$temporary_configuration"
   fi
+  if [ -n "$temporary_policy" ]; then rm -f "$temporary_policy"; fi
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -25,6 +28,11 @@ use_configuration_from_ref() {
     git show "$ref:.docs-impact.yml" >"$temporary_configuration"
     configuration_file=$temporary_configuration
   fi
+  if git cat-file -e "$ref:.policy-files" 2>/dev/null; then
+    temporary_policy=$(mktemp)
+    git show "$ref:.policy-files" >"$temporary_policy"
+    policy_file=$temporary_policy
+  fi
 }
 
 usage() {
@@ -34,18 +42,25 @@ usage() {
 
 message=
 trigger_files=
+document_files=
+
+matches_pattern() {
+  candidate=$1
+  pattern=$2
+  # shellcheck disable=SC2254 # Configuration entries are intentional glob patterns.
+  case "$candidate" in
+    $pattern) return 0 ;;
+  esac
+  return 1
+}
 
 contains_documentation_policy_file() {
   files=$1
   while IFS= read -r candidate; do
-    case "$candidate" in
-      .docs-impact.yml | .githooks/commit-msg | .github/maintainers.txt \
-        | .github/workflows/ci.yml | scripts/check-commits.sh \
-        | scripts/check-breaking-change-approvals.sh | scripts/check-doc-impact*.sh \
-        | scripts/lib/commit-message.sh | scripts/validate-commit-message.sh)
-        return 0
-        ;;
-    esac
+    while IFS= read -r pattern; do
+      case "$pattern" in '' | \#*) continue ;; esac
+      if matches_pattern "$candidate" "$pattern"; then return 0; fi
+    done <"$policy_file"
   done <<EOF
 $files
 EOF
@@ -68,6 +83,7 @@ case "${1-}" in
       usage
     fi
     changed_files=$(git diff --cached --name-only --diff-filter=ACMRD)
+    document_files=$(git diff --cached --name-only --diff-filter=ACMR)
     trigger_files=$changed_files
     message=$(cat "$3")
     use_configuration_from_ref HEAD
@@ -77,6 +93,12 @@ case "${1-}" in
       usage
     fi
     changed_files=$(commit_changed_files "$2")
+    parent_for_docs=$(git rev-parse "$2^1" 2>/dev/null || true)
+    if [ -n "$parent_for_docs" ]; then
+      document_files=$(git diff --name-only --diff-filter=ACMR "$parent_for_docs" "$2")
+    else
+      document_files=$(git diff-tree --root --no-commit-id --name-only --diff-filter=ACMR -r "$2")
+    fi
     trigger_files=$changed_files
     message=$(git show -s --format=%B "$2")
     parent=$(git rev-parse "$2^" 2>/dev/null || true)
@@ -88,8 +110,10 @@ case "${1-}" in
     if [ "$#" -ne 3 ]; then
       usage
     fi
-    changed_files=$(git diff --name-only --diff-filter=ACMRD "$2" "$3")
-    for commit in $(git rev-list --reverse "$2..$3"); do
+    merge_base=$(git merge-base "$2" "$3")
+    changed_files=$(git diff --name-only --diff-filter=ACMRD "$merge_base" "$3")
+    document_files=$(git diff --name-only --diff-filter=ACMR "$merge_base" "$3")
+    for commit in $(git rev-list --reverse "$merge_base..$3"); do
       commit_message=$(git show -s --format=%B "$commit")
       commit_impact=$(message_trailer "$commit_message" Docs-Impact)
       commit_files=$(commit_changed_files "$commit")
@@ -108,18 +132,6 @@ case "${1-}" in
     ;;
 esac
 
-matches_pattern() {
-  candidate=$1
-  pattern=$2
-
-  # shellcheck disable=SC2254 # Configuration entries are intentional glob patterns.
-  case "$candidate" in
-    $pattern) return 0 ;;
-  esac
-
-  return 1
-}
-
 contains_changed_document() {
   pattern=$1
   while IFS= read -r candidate; do
@@ -127,7 +139,7 @@ contains_changed_document() {
       return 0
     fi
   done <<EOF
-$changed_files
+$document_files
 EOF
   return 1
 }

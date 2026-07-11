@@ -40,7 +40,7 @@ for commit in $(git rev-list --reverse "$base..$head"); do
     exit 1
   fi
 
-  approver=$(message_trailer "$ticket" "Approved by")
+  approver=$(printf '%s\n' "$ticket" | sed -n 's/^Approved by: //p' | tail -1)
   maintainers=$(git show "$base:.github/maintainers.txt")
   if ! printf '%s\n' "$maintainers" | grep -Fxq "$approver"; then
     echo "error: breaking approval is not from a trusted maintainer: $approver" >&2

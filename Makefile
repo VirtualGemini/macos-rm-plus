@@ -13,7 +13,7 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
 	build build-release test test-unit test-integration check-spdx check-dangerous \
-	test-policy coverage-report check-tool-versions check ci clean
+	test-policy coverage-report check-tool-versions check-policy-ownership check ci clean
 
 bootstrap:
 	./scripts/bootstrap.sh
@@ -38,10 +38,13 @@ lint-actions:
 	$(TOOLS_BIN)/actionlint
 
 build:
-	swift build $(SWIFT_WARNING_FLAGS)
+	swift build --build-tests $(SWIFT_WARNING_FLAGS) \
+		-Xswiftc -F -Xswiftc "$(DEVELOPER_FRAMEWORKS)"
 
 build-release:
-	swift build $(SWIFT_WARNING_FLAGS) -c release
+	swift build --build-tests $(SWIFT_WARNING_FLAGS) -c release \
+		-Xswiftc -enable-testing \
+		-Xswiftc -F -Xswiftc "$(DEVELOPER_FRAMEWORKS)"
 
 test: test-unit
 
@@ -71,8 +74,11 @@ check-dangerous:
 check-tool-versions:
 	./scripts/check-tool-versions.sh
 
-check: format-check lint lint-scripts lint-actions check-spdx check-dangerous check-tool-versions build \
-	build-release test-unit coverage-report test-policy
+check-policy-ownership:
+	./scripts/check-policy-ownership.sh
+
+check: format-check lint lint-scripts lint-actions check-spdx check-dangerous check-tool-versions \
+	check-policy-ownership build build-release test-unit coverage-report test-policy
 
 ci: check
 

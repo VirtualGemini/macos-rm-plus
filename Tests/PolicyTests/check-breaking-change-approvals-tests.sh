@@ -32,7 +32,7 @@ printf '%s\n' 'breaking implementation' >"$repo/implementation.txt"
 git -C "$repo" add implementation.txt
 GIT_AUTHOR_DATE='2026-07-12T01:00:00Z' GIT_COMMITTER_DATE='2026-07-12T01:00:00Z' \
   git -C "$repo" commit -qm "feat!: change contract" \
-  -m "BREAKING CHANGE: update callers" \
+  -m "BREAKING-CHANGE: update callers" \
   -m "Breaking-Approval: .scratch/change/issues/01-approved.md"
 head=$(git -C "$repo" rev-parse HEAD)
 
@@ -45,7 +45,7 @@ untrusted_base=$(git -C "$repo" rev-parse HEAD)
 printf '%s\n' 'second break' >>"$repo/implementation.txt"
 git -C "$repo" add implementation.txt
 git -C "$repo" commit -qm "feat!: change contract again" \
-  -m "BREAKING CHANGE: update callers again" \
+  -m "BREAKING-CHANGE: update callers again" \
   -m "Breaking-Approval: .scratch/change/issues/01-approved.md"
 untrusted_head=$(git -C "$repo" rev-parse HEAD)
 

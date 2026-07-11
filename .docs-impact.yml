@@ -31,12 +31,7 @@
     },
     {
       "name": "safety-policy",
-      "paths": [
-        "Sources/RMPCore/*Safety*.swift",
-        "Sources/RMPCore/*ProtectedPath*.swift",
-        "Sources/RMPCore/Safety/**",
-        "Sources/RMPPlatform/*Trash*.swift"
-      ],
+      "paths": ["Sources/RMPCore/**", "Sources/RMPPlatform/**"],
       "documents": [".scratch/rmp-core/spec.md", "Tests/**", "CHANGELOG.md"],
       "require": "all"
     },
@@ -57,6 +52,7 @@
         ".github/workflows/**",
         ".github/CODEOWNERS",
         ".github/maintainers.txt",
+        ".policy-files",
         ".github/pull_request_template.md",
         ".docs-impact.yml"
       ],

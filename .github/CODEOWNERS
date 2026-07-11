@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+
+Sources/RMPCore/*Safety* @VirtualGemini
+Sources/RMPPlatform/** @VirtualGemini
+TestSupport/** @VirtualGemini
+.github/workflows/** @VirtualGemini
+.githooks/** @VirtualGemini
+docs/development.md @VirtualGemini
+docs/adr/** @VirtualGemini
+.docs-impact.yml @VirtualGemini

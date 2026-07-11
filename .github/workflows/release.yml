@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    name: Confirm release is enabled
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check release repository variable
+        env:
+          RELEASE_ENABLED: ${{ vars.RELEASE_ENABLED }}
+        run: |
+          if [ "$RELEASE_ENABLED" != "true" ]; then
+            echo "Release publication is disabled. Set RELEASE_ENABLED=true after signing is configured." >&2
+            exit 1
+          fi
+
+  integration:
+    name: Required integration tests
+    needs: release-gate
+    uses: ./.github/workflows/integration.yml
+
+  publish:
+    name: Build, sign, notarize, and publish
+    needs: integration
+    runs-on: macos-latest
+    timeout-minutes: 45
+    environment: release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Bootstrap pinned tools
+        run: make bootstrap
+
+      - name: Run release pipeline
+        run: ./scripts/run-release.sh "${GITHUB_REF_NAME}"

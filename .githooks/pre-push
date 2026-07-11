@@ -1,0 +1,16 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+
+set -eu
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+if [ ! -d .build/checkouts/SwiftLint ]; then
+  echo "error: development dependencies are not resolved; run 'make bootstrap'" >&2
+  exit 1
+fi
+
+make build
+make build-release
+make test-unit

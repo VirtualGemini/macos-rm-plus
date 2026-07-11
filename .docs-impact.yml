@@ -1,0 +1,79 @@
+{
+  "rules": [
+    {
+      "name": "cli-contract",
+      "paths": ["Sources/rmp/**"],
+      "documents": [
+        "README.md",
+        "docs/help.md",
+        ".scratch/rmp-core/spec.md",
+        "CONTEXT.md",
+        "CHANGELOG.md"
+      ],
+      "require": "all"
+    },
+    {
+      "name": "core-behavior",
+      "paths": ["Sources/RMPCore/**"],
+      "documents": [
+        ".scratch/rmp-core/spec.md",
+        "CONTEXT.md",
+        "docs/development.md",
+        "CHANGELOG.md"
+      ],
+      "require": "all"
+    },
+    {
+      "name": "platform-behavior",
+      "paths": ["Sources/RMPPlatform/**"],
+      "documents": [".scratch/rmp-core/spec.md", "docs/development.md", "CHANGELOG.md"],
+      "require": "all"
+    },
+    {
+      "name": "test-infrastructure",
+      "paths": ["TestSupport/**", "Tests/**"],
+      "documents": ["docs/development.md"],
+      "require": "all"
+    },
+    {
+      "name": "development-infrastructure",
+      "paths": [
+        "Makefile",
+        ".swift-format",
+        ".swiftlint.yml",
+        ".githooks/**",
+        "scripts/**",
+        ".github/workflows/**",
+        ".github/CODEOWNERS",
+        ".github/pull_request_template.md",
+        ".docs-impact.yml"
+      ],
+      "documents": ["docs/development.md"],
+      "require": "all"
+    },
+    {
+      "name": "module-boundaries",
+      "paths": ["Package.swift"],
+      "documents": [
+        "docs/development.md",
+        "docs/adr/0001-separate-core-platform-and-cli.md"
+      ],
+      "require": "all"
+    },
+    {
+      "name": "toolchain-and-dependencies",
+      "paths": ["Package.swift", "Package.resolved", ".tool-versions.lock"],
+      "documents": ["docs/development.md", "Package.resolved"],
+      "require": "all"
+    },
+    {
+      "name": "release-and-installation",
+      "paths": [
+        ".github/workflows/release.yml",
+        "scripts/run-release.sh"
+      ],
+      "documents": ["README.md", "docs/development.md", "CHANGELOG.md"],
+      "require": "all"
+    }
+  ]
+}

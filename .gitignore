@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+*.xcresult/
+.DS_Store
+.env
+.env.*
+!.env.example

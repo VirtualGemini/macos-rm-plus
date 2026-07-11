@@ -5,8 +5,11 @@ import Testing
 
 @testable import RMPPlatform
 
-@Test("RMPPlatform and RMPTestKit targets are available")
-func platformTargetsAreAvailable() {
-  #expect(RMPPlatformModule.name == "RMPPlatform")
-  #expect(RMPTestKitModule.name == "RMPTestKit")
+@Suite("RMPPlatform scaffold", .serialized)
+struct RMPPlatformScaffoldTests {
+  @Test("RMPPlatform and RMPTestKit targets are available")
+  func platformTargetsAreAvailable() {
+    #expect(RMPPlatformModule.name == "RMPPlatform")
+    #expect(RMPTestKitModule.name == "RMPTestKit")
+  }
 }

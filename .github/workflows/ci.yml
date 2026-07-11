@@ -35,6 +35,9 @@ jobs:
       - name: Bootstrap pinned tools
         run: make bootstrap
 
+      - name: Reject dependency-resolution drift
+        run: git diff --exit-code -- Package.resolved
+
       - name: Validate pull-request commits
         if: github.event_name != 'push'
         env:

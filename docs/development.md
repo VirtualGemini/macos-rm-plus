@@ -25,6 +25,10 @@ Pinned development-tool versions are recorded in `.tool-versions.lock`:
 `swift-format` comes from the active Swift toolchain so that its SwiftSyntax version remains aligned
 with the compiler.
 
+`.tool-versions.lock` is the authoritative source for development-tool versions and checksums.
+Shell tooling reads it through `scripts/lib/tool-versions.sh`; the consistency gate verifies the
+SwiftLint version duplicated by necessity in the SwiftPM manifest.
+
 The unit-test command explicitly supplies the active developer directory's Testing framework and
 interop-library paths at compile and runtime. This keeps Swift Testing discoverable in both full
 Xcode and Command Line Tools installations without adding a third-party testing dependency.
@@ -129,14 +133,16 @@ directly. Those capabilities cross explicit interfaces implemented in `RMPPlatfo
 ### 6.1 Framework and coverage
 
 - Swift Testing is the only test framework.
-- `RMPCoreTests` may run in parallel.
-- Platform and real-filesystem suites run serially.
+- The safe pure-test command currently runs the complete suite with `--no-parallel`, guaranteeing
+  platform-test serialization. Parallel core-only execution may be introduced later through a
+  separate command that cannot include platform or real-filesystem suites.
 - Every `FR-SAFE-*` and `FR-TEST-*` requirement has at least one corresponding test.
 - Every safety rejection proves the expected error, no filesystem change, and zero TrashClient calls.
 - Parameter parsing uses a behavior matrix rather than isolated happy-path tests.
 - Bug fixes begin with a failing regression test.
-- CI publishes coverage information, but no global percentage substitutes for requirement and branch
-  coverage. Coverage must not decrease without an approved explanation.
+- Unit tests collect coverage and CI publishes an `llvm-cov` summary, but no global percentage
+  substitutes for requirement and branch coverage. Coverage must not decrease without an approved
+  explanation.
 - SafetyPolicy, option parsing, and test-whitelist branches may not remain untested.
 
 ### 6.2 Safe default commands
@@ -188,10 +194,11 @@ make format-check       Check Swift formatting
 make lint               Run SwiftLint
 make lint-scripts       Run ShellCheck
 make lint-actions       Run actionlint
-make build              Build Debug
-make build-release      Build Release
+make build              Build every package target in Debug
+make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
+make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint
 make check              Run all non-destructive local gates
@@ -199,7 +206,9 @@ make ci                 Run the CI-equivalent non-destructive gates
 make clean              Clean SwiftPM build products only
 ```
 
-Hooks and scripts never download dependencies. Run `make bootstrap` explicitly after cloning.
+Hooks and validation scripts never download dependencies. The explicitly invoked `make bootstrap`
+command may download only the pinned, checksum-verified development tools recorded in
+`.tool-versions.lock` and resolve the exact SwiftPM development dependency.
 
 ## 8. Git hooks and quality gates
 
@@ -275,7 +284,11 @@ or dismissing a review reruns CI, so an author or Agent cannot create an exempti
 alone.
 
 Breaking changes use `type!:` or `type(scope)!:` and require approval before implementation starts.
-The ticket must record approval, approver, date, and migration plan. The commit also contains:
+The approval ticket must already exist on the trusted target-branch base before the first breaking
+implementation commit, recording approval, a handle listed in the CODEOWNED
+`.github/maintainers.txt`, date, and migration plan. CI verifies that the ticket's introducing commit
+is an ancestor of every breaking implementation commit, forcing the implementation branch to begin
+from or rebase onto the approved history. The implementation commit also contains:
 
 ```text
 BREAKING CHANGE: Describe the user-visible break and migration.
@@ -283,6 +296,8 @@ Breaking-Approval: .scratch/<feature>/issues/<ticket>.md
 ```
 
 Breaking commits may not use `Docs-Impact: none`.
+CI reads the approval ticket from the base SHA rather than the pull-request head, preventing a change
+author from creating or editing their own approval as part of the implementation.
 
 Temporary `fixup!` and `squash!` commits, debug artifacts, and unexplained binaries may not be pushed
 for review.
@@ -343,6 +358,10 @@ Documentation must change with the behavior or process it describes. `.docs-impa
 paths to documents that must be reviewed or updated. The `commit-msg` hook checks staged changes, and
 CI checks the complete pull-request diff.
 
+The staged checker reads the committed `HEAD` matrix, commit checks read the parent matrix, and PR
+range checks read the base SHA matrix. A change therefore cannot weaken or delete the rules used to
+judge itself. Documentation-policy files cannot use `Docs-Impact: none`.
+
 Examples:
 
 - CLI flags, output, and exit codes affect README, help, PRD, and changelog.
@@ -358,6 +377,10 @@ never claim no documentation impact, whether declared with `!` or a `BREAKING CH
 validates additions, copies, modifications, renames, and deletions in every commit, then validates
 the aggregate base-to-head pull-request diff so documentation may be synchronized anywhere in the
 same pull request without falling behind the resulting code version.
+
+For aggregate validation, files changed exclusively by independently approved `Docs-Impact: none`
+commits do not trigger matrix rules; documents changed anywhere in the PR may satisfy rules triggered
+by non-exempt commits. This preserves both a real exemption path and version-level synchronization.
 
 ## 15. CI workflows
 

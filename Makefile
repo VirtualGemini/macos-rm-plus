@@ -13,7 +13,7 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
 	build build-release test test-unit test-integration check-spdx check-dangerous \
-	test-policy check ci clean
+	test-policy coverage-report check-tool-versions check ci clean
 
 bootstrap:
 	./scripts/bootstrap.sh
@@ -31,27 +31,33 @@ lint:
 	./scripts/run-swiftlint.sh
 
 lint-scripts:
-	$(TOOLS_BIN)/shellcheck scripts/*.sh .githooks/* Tests/DocumentationImpactTests/*.sh
+	$(TOOLS_BIN)/shellcheck scripts/*.sh scripts/lib/*.sh .githooks/* \
+		Tests/DocumentationImpactTests/*.sh Tests/PolicyTests/*.sh
 
 lint-actions:
 	$(TOOLS_BIN)/actionlint
 
 build:
-	swift build $(SWIFT_WARNING_FLAGS) --product rmp
+	swift build $(SWIFT_WARNING_FLAGS)
 
 build-release:
-	swift build $(SWIFT_WARNING_FLAGS) -c release --product rmp
+	swift build $(SWIFT_WARNING_FLAGS) -c release
 
 test: test-unit
 
 test-unit:
 	DYLD_FRAMEWORK_PATH="$(DEVELOPER_FRAMEWORKS)" \
-		swift test $(SWIFT_WARNING_FLAGS) -Xswiftc -F -Xswiftc "$(DEVELOPER_FRAMEWORKS)" \
+		swift test --enable-code-coverage --no-parallel $(SWIFT_WARNING_FLAGS) \
+		-Xswiftc -F -Xswiftc "$(DEVELOPER_FRAMEWORKS)" \
 		-Xlinker -rpath -Xlinker "$(DEVELOPER_FRAMEWORKS)" \
 		-Xlinker -rpath -Xlinker "$(DEVELOPER_LIB)"
 
+coverage-report:
+	./scripts/report-coverage.sh
+
 test-policy:
 	Tests/DocumentationImpactTests/check-doc-impact-tests.sh
+	Tests/PolicyTests/check-breaking-change-approvals-tests.sh
 
 test-integration:
 	./scripts/run-integration-tests.sh
@@ -62,8 +68,11 @@ check-spdx:
 check-dangerous:
 	./scripts/check-dangerous-test-commands.sh
 
-check: format-check lint lint-scripts lint-actions check-spdx check-dangerous build \
-	build-release test-unit test-policy
+check-tool-versions:
+	./scripts/check-tool-versions.sh
+
+check: format-check lint lint-scripts lint-actions check-spdx check-dangerous check-tool-versions build \
+	build-release test-unit coverage-report test-policy
 
 ci: check
 

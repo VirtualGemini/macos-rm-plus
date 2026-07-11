@@ -30,6 +30,17 @@
       "require": "all"
     },
     {
+      "name": "safety-policy",
+      "paths": [
+        "Sources/RMPCore/*Safety*.swift",
+        "Sources/RMPCore/*ProtectedPath*.swift",
+        "Sources/RMPCore/Safety/**",
+        "Sources/RMPPlatform/*Trash*.swift"
+      ],
+      "documents": [".scratch/rmp-core/spec.md", "Tests/**", "CHANGELOG.md"],
+      "require": "all"
+    },
+    {
       "name": "test-infrastructure",
       "paths": ["TestSupport/**", "Tests/**"],
       "documents": ["docs/development.md"],
@@ -45,6 +56,7 @@
         "scripts/**",
         ".github/workflows/**",
         ".github/CODEOWNERS",
+        ".github/maintainers.txt",
         ".github/pull_request_template.md",
         ".docs-impact.yml"
       ],

@@ -5,6 +5,27 @@ set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
+. "$ROOT/scripts/lib/commit-message.sh"
+
+configuration_file=.docs-impact.yml
+temporary_configuration=
+
+# shellcheck disable=SC2329 # Invoked by trap.
+cleanup() {
+  if [ -n "$temporary_configuration" ]; then
+    rm -f "$temporary_configuration"
+  fi
+}
+trap cleanup EXIT HUP INT TERM
+
+use_configuration_from_ref() {
+  ref=$1
+  if git cat-file -e "$ref:.docs-impact.yml" 2>/dev/null; then
+    temporary_configuration=$(mktemp)
+    git show "$ref:.docs-impact.yml" >"$temporary_configuration"
+    configuration_file=$temporary_configuration
+  fi
+}
 
 usage() {
   echo "usage: $0 --staged --message-file <path> | --commit <sha> | --range <base-sha> <head-sha>" >&2
@@ -12,6 +33,34 @@ usage() {
 }
 
 message=
+trigger_files=
+
+contains_documentation_policy_file() {
+  files=$1
+  while IFS= read -r candidate; do
+    case "$candidate" in
+      .docs-impact.yml | .githooks/commit-msg | .github/maintainers.txt \
+        | .github/workflows/ci.yml | scripts/check-commits.sh \
+        | scripts/check-breaking-change-approvals.sh | scripts/check-doc-impact*.sh \
+        | scripts/lib/commit-message.sh | scripts/validate-commit-message.sh)
+        return 0
+        ;;
+    esac
+  done <<EOF
+$files
+EOF
+  return 1
+}
+
+commit_changed_files() {
+  commit=$1
+  parent=$(git rev-parse "$commit^1" 2>/dev/null || true)
+  if [ -n "$parent" ]; then
+    git diff --name-only --diff-filter=ACMRD "$parent" "$commit"
+  else
+    git diff-tree --root --no-commit-id --name-only --diff-filter=ACMRD -r "$commit"
+  fi
+}
 
 case "${1-}" in
   --staged)
@@ -19,64 +68,84 @@ case "${1-}" in
       usage
     fi
     changed_files=$(git diff --cached --name-only --diff-filter=ACMRD)
+    trigger_files=$changed_files
     message=$(cat "$3")
+    use_configuration_from_ref HEAD
     ;;
   --commit)
     if [ "$#" -ne 2 ]; then
       usage
     fi
-    changed_files=$(git diff-tree --root --no-commit-id --name-only --diff-filter=ACMRD -r "$2")
+    changed_files=$(commit_changed_files "$2")
+    trigger_files=$changed_files
     message=$(git show -s --format=%B "$2")
+    parent=$(git rev-parse "$2^" 2>/dev/null || true)
+    if [ -n "$parent" ]; then
+      use_configuration_from_ref "$parent"
+    fi
     ;;
   --range)
     if [ "$#" -ne 3 ]; then
       usage
     fi
     changed_files=$(git diff --name-only --diff-filter=ACMRD "$2" "$3")
+    for commit in $(git rev-list --reverse "$2..$3"); do
+      commit_message=$(git show -s --format=%B "$commit")
+      commit_impact=$(message_trailer "$commit_message" Docs-Impact)
+      commit_files=$(commit_changed_files "$commit")
+      if [ "$commit_impact" = "none" ] && contains_documentation_policy_file "$commit_files"; then
+        echo "error: documentation policy changes cannot use Docs-Impact: none" >&2
+        exit 1
+      fi
+      if [ "$commit_impact" != "none" ]; then
+        trigger_files=$(printf '%s\n%s\n' "$trigger_files" "$commit_files")
+      fi
+    done
+    use_configuration_from_ref "$2"
     ;;
   *)
     usage
     ;;
 esac
 
-contains_changed_file() {
-  candidate=$1
-  printf '%s\n' "$changed_files" | grep -Fqx "$candidate"
-}
-
 matches_pattern() {
   candidate=$1
   pattern=$2
 
-  case "$pattern" in
-    */\*\*)
-      prefix=${pattern%/**}
-      case "$candidate" in
-        "$prefix"/*) return 0 ;;
-      esac
-      ;;
-    *)
-      [ "$candidate" = "$pattern" ] && return 0
-      ;;
+  # shellcheck disable=SC2254 # Configuration entries are intentional glob patterns.
+  case "$candidate" in
+    $pattern) return 0 ;;
   esac
 
   return 1
 }
 
+contains_changed_document() {
+  pattern=$1
+  while IFS= read -r candidate; do
+    if matches_pattern "$candidate" "$pattern"; then
+      return 0
+    fi
+  done <<EOF
+$changed_files
+EOF
+  return 1
+}
+
 rule_matches_changes() {
   rule_index=$1
-  path_count=$(/usr/bin/plutil -extract "rules.$rule_index.paths" raw -o - .docs-impact.yml)
+  path_count=$(/usr/bin/plutil -extract "rules.$rule_index.paths" raw -o - "$configuration_file")
   path_index=0
 
   while [ "$path_index" -lt "$path_count" ]; do
     pattern=$(/usr/bin/plutil -extract "rules.$rule_index.paths.$path_index" raw -o - \
-      .docs-impact.yml)
+      "$configuration_file")
     while IFS= read -r changed_file; do
       if matches_pattern "$changed_file" "$pattern"; then
         return 0
       fi
     done <<EOF
-$changed_files
+$trigger_files
 EOF
     path_index=$((path_index + 1))
   done
@@ -84,7 +153,7 @@ EOF
   return 1
 }
 
-rule_count=$(/usr/bin/plutil -extract rules raw -o - .docs-impact.yml)
+rule_count=$(/usr/bin/plutil -extract rules raw -o - "$configuration_file")
 matching_rules=
 rule_index=0
 
@@ -100,9 +169,15 @@ if [ -z "$matching_rules" ]; then
 fi
 
 if [ -n "$message" ]; then
-  docs_impact=$(printf '%s\n' "$message" | sed -n 's/^Docs-Impact: //p' | tail -1)
+  docs_impact=$(message_trailer "$message" Docs-Impact)
   case "$docs_impact" in
-    none) exit 0 ;;
+    none)
+      if contains_documentation_policy_file "$changed_files"; then
+        echo "error: documentation policy changes cannot use Docs-Impact: none" >&2
+        exit 1
+      fi
+      exit 0
+      ;;
     updated) ;;
     *)
       echo "error: commit message is missing a valid Docs-Impact trailer" >&2
@@ -114,18 +189,18 @@ fi
 failed=0
 
 for rule_index in $matching_rules; do
-  name=$(/usr/bin/plutil -extract "rules.$rule_index.name" raw -o - .docs-impact.yml)
-  requirement=$(/usr/bin/plutil -extract "rules.$rule_index.require" raw -o - .docs-impact.yml)
+  name=$(/usr/bin/plutil -extract "rules.$rule_index.name" raw -o - "$configuration_file")
+  requirement=$(/usr/bin/plutil -extract "rules.$rule_index.require" raw -o - "$configuration_file")
   document_count=$(/usr/bin/plutil -extract "rules.$rule_index.documents" raw -o - \
-    .docs-impact.yml)
+    "$configuration_file")
   document_index=0
   changed_document_count=0
   missing_documents=
 
   while [ "$document_index" -lt "$document_count" ]; do
     document=$(/usr/bin/plutil -extract "rules.$rule_index.documents.$document_index" raw -o - \
-      .docs-impact.yml)
-    if contains_changed_file "$document"; then
+      "$configuration_file")
+    if contains_changed_document "$document"; then
       changed_document_count=$((changed_document_count + 1))
     else
       if [ -z "$missing_documents" ]; then

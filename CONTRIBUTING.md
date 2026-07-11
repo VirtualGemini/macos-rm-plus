@@ -16,5 +16,7 @@ make check
 
 Work from a ticket under `.scratch/<feature>/issues/`, use one branch per ticket, and open a pull
 request. Breaking changes require maintainer approval in the ticket before implementation begins.
+That approval ticket must already be present on the target branch before the implementation branch
+is created; approval added by the breaking-change pull request itself is invalid.
 
 Security vulnerabilities must follow [`SECURITY.md`](SECURITY.md) instead of a public issue.

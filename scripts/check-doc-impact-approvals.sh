@@ -5,6 +5,7 @@ set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
+. "$ROOT/scripts/lib/commit-message.sh"
 
 if [ "$#" -ne 2 ]; then
   echo "usage: $0 <base-sha> <head-sha>" >&2
@@ -13,20 +14,19 @@ fi
 
 base=$1
 head=$2
-required_reviewers=
+required_reviews=
 
 for commit in $(git rev-list --reverse "$base..$head"); do
   message=$(git show -s --format=%B "$commit")
-  impact=$(printf '%s\n' "$message" | sed -n 's/^Docs-Impact: //p' | tail -1)
+  impact=$(message_trailer "$message" Docs-Impact)
   if [ "$impact" = "none" ]; then
-    reviewer=$(printf '%s\n' "$message" \
-      | sed -n 's/^Docs-Impact-Approved-By: @//p' \
-      | tail -1)
-    required_reviewers="$required_reviewers $reviewer"
+    reviewer=$(message_trailer "$message" Docs-Impact-Approved-By)
+    reviewer=${reviewer#@}
+    required_reviews=$(printf '%s\n%s|%s\n' "$required_reviews" "$reviewer" "$commit")
   fi
 done
 
-if [ -z "$required_reviewers" ]; then
+if [ -z "$required_reviews" ]; then
   exit 0
 fi
 
@@ -49,14 +49,30 @@ fi
 
 failed=0
 
-for reviewer in $required_reviewers; do
-  if [ "$reviewer" = "$pr_author" ]; then
+while IFS='|' read -r reviewer commit; do
+  if [ -z "$reviewer" ]; then
+    continue
+  fi
+  if [ -n "${DOCS_IMPACT_COMMIT_AUTHOR-}" ]; then
+    commit_author=$DOCS_IMPACT_COMMIT_AUTHOR
+  else
+    commit_author=$(gh api "repos/$GITHUB_REPOSITORY/commits/$commit" --jq '.author.login // empty')
+  fi
+  if [ -z "$commit_author" ]; then
+    echo "error: cannot verify GitHub author for exempt commit $commit" >&2
+    failed=1
+  elif [ "$reviewer" = "$pr_author" ]; then
     echo "error: PR author @$reviewer cannot approve Docs-Impact: none" >&2
+    failed=1
+  elif [ "$reviewer" = "$commit_author" ]; then
+    echo "error: commit author @$reviewer cannot approve their own Docs-Impact: none" >&2
     failed=1
   elif ! printf '%s\n' "$approved_reviewers" | grep -Fxq "$reviewer"; then
     echo "error: Docs-Impact: none requires an active APPROVED review from @$reviewer" >&2
     failed=1
   fi
-done
+done <<EOF
+$required_reviews
+EOF
 
 exit "$failed"

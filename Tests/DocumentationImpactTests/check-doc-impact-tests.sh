@@ -26,11 +26,12 @@ assert_contains() {
 }
 
 repo="$TEMP_DIR/repo"
-mkdir -p "$repo/scripts" "$repo/Sources/rmp"
+mkdir -p "$repo/scripts/lib" "$repo/Sources/rmp"
 cp "$ROOT/.docs-impact.yml" "$repo/.docs-impact.yml"
 cp "$ROOT/scripts/check-doc-impact.sh" "$repo/scripts/check-doc-impact.sh"
 cp "$ROOT/scripts/check-doc-impact-approvals.sh" "$repo/scripts/check-doc-impact-approvals.sh"
 cp "$ROOT/scripts/validate-commit-message.sh" "$repo/scripts/validate-commit-message.sh"
+cp "$ROOT/scripts/lib/commit-message.sh" "$repo/scripts/lib/commit-message.sh"
 
 git -C "$repo" init -q
 git -C "$repo" config user.name "Documentation Impact Tests"
@@ -127,14 +128,85 @@ git -C "$repo" commit -qm "refactor: add internal fixture" \
   -m "Docs-Impact-Approved-By: @example-reviewer"
 approval_head=$(git -C "$repo" rev-parse HEAD)
 
-if DOCS_IMPACT_PR_AUTHOR=example-author DOCS_IMPACT_APPROVED_REVIEWERS=another-reviewer \
+if DOCS_IMPACT_PR_AUTHOR=example-author DOCS_IMPACT_COMMIT_AUTHOR=example-author \
+  DOCS_IMPACT_APPROVED_REVIEWERS=another-reviewer \
   "$repo/scripts/check-doc-impact-approvals.sh" "$approval_base" "$approval_head" \
   >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
   fail "PR validation accepted a documentation exemption without the named approving review"
 fi
 assert_contains "$TEMP_DIR/stderr" "active APPROVED review from @example-reviewer"
 
-DOCS_IMPACT_PR_AUTHOR=example-author DOCS_IMPACT_APPROVED_REVIEWERS=example-reviewer \
+DOCS_IMPACT_PR_AUTHOR=example-author DOCS_IMPACT_COMMIT_AUTHOR=example-author \
+  DOCS_IMPACT_APPROVED_REVIEWERS=example-reviewer \
   "$repo/scripts/check-doc-impact-approvals.sh" "$approval_base" "$approval_head"
+
+trusted_base=$(git -C "$repo" rev-parse HEAD)
+mkdir -p "$repo/Sources/rmp"
+printf '%s\n' '// restored CLI' >"$repo/Sources/rmp/main.swift"
+printf '%s\n' '{"rules":[]}' >"$repo/.docs-impact.yml"
+git -C "$repo" add .docs-impact.yml Sources/rmp/main.swift
+git -C "$repo" commit -qm "ci: weaken documentation policy" \
+  -m "Docs-Impact: updated"
+untrusted_head=$(git -C "$repo" rev-parse HEAD)
+
+if "$repo/scripts/check-doc-impact.sh" --range "$trusted_base" "$untrusted_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "PR validation trusted a documentation matrix weakened by the PR itself"
+fi
+assert_contains "$TEMP_DIR/stderr" "documentation rule 'cli-contract'"
+
+none_repo="$TEMP_DIR/none-repo"
+mkdir -p "$none_repo/scripts/lib" "$none_repo/Sources/rmp"
+cp "$repo/scripts/check-doc-impact.sh" "$none_repo/scripts/check-doc-impact.sh"
+cp "$repo/scripts/lib/commit-message.sh" "$none_repo/scripts/lib/commit-message.sh"
+cp "$repo/.docs-impact.yml" "$none_repo/.docs-impact.yml"
+cat >"$none_repo/.docs-impact.yml" <<'EOF'
+{
+  "rules": [
+    {
+      "name": "cli-contract",
+      "paths": ["Sources/rmp/**"],
+      "documents": ["README.md"],
+      "require": "all"
+    }
+  ]
+}
+EOF
+printf '%s\n' '# README' >"$none_repo/README.md"
+printf '%s\n' '// initial' >"$none_repo/Sources/rmp/main.swift"
+git -C "$none_repo" init -q
+git -C "$none_repo" config user.name "Documentation Impact Tests"
+git -C "$none_repo" config user.email "docs-impact-tests@example.invalid"
+git -C "$none_repo" add .
+git -C "$none_repo" commit -qm "chore: create none fixture"
+none_base=$(git -C "$none_repo" rev-parse HEAD)
+printf '%s\n' '// internal refactor' >"$none_repo/Sources/rmp/main.swift"
+git -C "$none_repo" add Sources/rmp/main.swift
+git -C "$none_repo" commit -qm "refactor: preserve CLI behavior" \
+  -m "Docs-Impact: none" \
+  -m "Docs-Impact-Reason: public behavior is unchanged" \
+  -m "Docs-Impact-Approved-By: @example-reviewer"
+none_head=$(git -C "$none_repo" rev-parse HEAD)
+
+if ! "$none_repo/scripts/check-doc-impact.sh" --range "$none_base" "$none_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "aggregate PR validation rejected an approved Docs-Impact: none change"
+fi
+
+policy_base=$none_head
+printf '%s\n' '{"rules":[]}' >"$none_repo/.docs-impact.yml"
+git -C "$none_repo" add .docs-impact.yml
+git -C "$none_repo" commit -qm "ci: remove documentation rules" \
+  -m "Docs-Impact: none" \
+  -m "Docs-Impact-Reason: incorrectly claimed policy exemption" \
+  -m "Docs-Impact-Approved-By: @example-reviewer"
+policy_head=$(git -C "$none_repo" rev-parse HEAD)
+
+if "$none_repo/scripts/check-doc-impact.sh" --range "$policy_base" "$policy_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "aggregate PR validation allowed Docs-Impact: none to weaken its own policy"
+fi
+assert_contains "$TEMP_DIR/stderr" "cannot use Docs-Impact: none"
 
 echo "Documentation impact tests passed."

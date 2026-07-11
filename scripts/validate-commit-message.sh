@@ -3,13 +3,17 @@
 
 set -eu
 
+ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+. "$ROOT/scripts/lib/commit-message.sh"
+
 if [ "$#" -ne 1 ]; then
   echo "usage: $0 <commit-message-file>" >&2
   exit 2
 fi
 
 message_file=$1
-subject=$(sed -n '1p' "$message_file")
+message=$(cat "$message_file")
+subject=$(message_subject "$message")
 pattern='^(feat|fix|build|refactor|style|chore|test|docs|perf|ci|revert)(\([a-z0-9][a-z0-9._/-]*\))?(!)?: .+'
 
 if ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
@@ -22,7 +26,7 @@ if ! grep -Eq '^Signed-off-by: .+ <[^>]+>$' "$message_file"; then
   exit 1
 fi
 
-docs_impact=$(sed -n 's/^Docs-Impact: //p' "$message_file" | tail -1)
+docs_impact=$(message_trailer "$message" Docs-Impact)
 case "$docs_impact" in
   updated)
     ;;
@@ -32,7 +36,7 @@ case "$docs_impact" in
       exit 1
     fi
 
-    docs_approver=$(sed -n 's/^Docs-Impact-Approved-By: //p' "$message_file" | tail -1)
+    docs_approver=$(message_trailer "$message" Docs-Impact-Approved-By)
     if ! printf '%s\n' "$docs_approver" | grep -Eq '^@[A-Za-z0-9-]+$'; then
       echo "error: Docs-Impact: none requires Docs-Impact-Approved-By" >&2
       exit 1
@@ -44,8 +48,7 @@ case "$docs_impact" in
     ;;
 esac
 
-if printf '%s\n' "$subject" | grep -Eq '^.+!:' \
-  || grep -Eq '^BREAKING CHANGE: .+' "$message_file"; then
+if message_is_breaking "$message"; then
   if [ "$docs_impact" = "none" ]; then
     echo "error: breaking changes cannot declare Docs-Impact: none" >&2
     exit 1
@@ -56,7 +59,7 @@ if printf '%s\n' "$subject" | grep -Eq '^.+!:' \
     exit 1
   fi
 
-  approval=$(sed -n 's/^Breaking-Approval: //p' "$message_file" | tail -1)
+  approval=$(message_trailer "$message" Breaking-Approval)
   case "$approval" in
     .scratch/*/issues/*.md)
       ;;
@@ -71,15 +74,11 @@ if printf '%s\n' "$subject" | grep -Eq '^.+!:' \
     exit 1
   fi
 
-  for field in \
-    '^Breaking change: yes$' \
-    '^Approval: approved$' \
-    '^Approved by: .+' \
-    '^Approved at: .+' \
-    '^Migration plan: .+'; do
-    if ! grep -Eq "$field" "$approval"; then
-      echo "error: breaking approval ticket is missing required field: $field" >&2
-      exit 1
-    fi
-  done
+  ticket=$(cat "$approval")
+  if missing_field=$(validate_breaking_ticket_fields "$ticket"); then
+    :
+  else
+    echo "error: breaking approval ticket is missing required field: $missing_field" >&2
+    exit 1
+  fi
 fi

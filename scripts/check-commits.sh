@@ -25,3 +25,6 @@ done
 
 echo "Validating documentation impact across $base..$head"
 ./scripts/check-doc-impact.sh --range "$base" "$head"
+
+echo "Validating breaking-change approvals on trusted base $base"
+./scripts/check-breaking-change-approvals.sh "$base" "$head"

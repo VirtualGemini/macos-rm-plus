@@ -5,6 +5,7 @@ set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
+. "$ROOT/scripts/lib/tool-versions.sh"
 
 missing=0
 
@@ -45,15 +46,17 @@ fi
 PATH="$ROOT/.build/tools/bin:$PATH"
 export PATH
 
+expected_shellcheck=$(tool_value shellcheck)
 shellcheck_version=$(shellcheck --version | sed -n 's/^version: //p')
-if [ "$shellcheck_version" != "0.11.0" ]; then
-  echo "error: ShellCheck 0.11.0 is required; found $shellcheck_version" >&2
+if [ "$shellcheck_version" != "$expected_shellcheck" ]; then
+  echo "error: ShellCheck $expected_shellcheck is required; found $shellcheck_version" >&2
   exit 1
 fi
 
+expected_actionlint=$(tool_value actionlint)
 actionlint_version=$(actionlint -version 2>&1 | sed -n '1p')
-if [ "$actionlint_version" != "1.7.12" ]; then
-  echo "error: actionlint 1.7.12 is required; found $actionlint_version" >&2
+if [ "$actionlint_version" != "$expected_actionlint" ]; then
+  echo "error: actionlint $expected_actionlint is required; found $actionlint_version" >&2
   exit 1
 fi
 

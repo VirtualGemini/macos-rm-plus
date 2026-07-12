@@ -4,7 +4,7 @@ import Darwin
 import Foundation
 import Testing
 
-@_spi(RMPTestingEntrypoint) @testable import RMPTestKit
+@testable import rmp_test
 
 @Suite("Test Safety Context system failures", .serialized)
 struct TestSafetySystemFailureTests {
@@ -63,6 +63,37 @@ struct TestSafetySystemFailureTests {
     #expect(try fixture.snapshot() == before)
   }
 
+  @Test("oversized safety markers are rejected before unbounded reads")
+  func oversizedMarkerIsRejected() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    try fixture.createDirectory(at: fixture.containerURL, permissions: 0o700)
+    let container = try DirectoryHandle.createOrValidate(
+      path: fixture.containerURL.path,
+      owner: fixture.trustedUser.userID,
+      role: .container
+    ).handle
+    #expect(FileManager.default.createFile(atPath: fixture.containerMarkerURL.path, contents: nil))
+    let markerHandle = try FileHandle(forWritingTo: fixture.containerMarkerURL)
+    try markerHandle.truncate(atOffset: 16_385)
+    try markerHandle.close()
+    try FileManager.default.setAttributes(
+      [.posixPermissions: 0o600],
+      ofItemAtPath: fixture.containerMarkerURL.path
+    )
+
+    let diagnostic = captureDiagnostic {
+      try validateExistingMarker(
+        parent: container,
+        name: ".rmp-test-container",
+        expected: TestSafetyMarker(role: .container, directoryIdentity: container.identity),
+        owner: fixture.trustedUser.userID
+      )
+    }
+
+    #expect(diagnostic?.code == .markerTooLarge)
+  }
+
   @Test("unexpected downstream errors map to a stable driver diagnostic")
   func unexpectedDriverFailureIsStable() throws {
     let fixture = try SafetyHomeFixture()
@@ -112,6 +143,139 @@ struct TestSafetySystemFailureTests {
 
     #expect(diagnostic?.code == .directoryCreateFailed)
     #expect(try fixture.snapshot() == before)
+  }
+
+  @Test("failed staged-directory rollback reports that residue may remain")
+  func failedStagedDirectoryRollbackIsReported() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+
+    let diagnostic = captureDiagnostic {
+      _ = try DirectoryHandle.createOrValidate(
+        path: fixture.containerURL.path,
+        owner: fixture.trustedUser.userID,
+        role: .container,
+        preparation: DirectoryPreparation(
+          apply: { handle in
+            let descriptor = openat(
+              handle.fileDescriptor,
+              "residue",
+              O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC,
+              mode_t(0o600)
+            )
+            #expect(descriptor >= 0)
+            if descriptor >= 0 { close(descriptor) }
+            throw TestSafetyDiagnostic(
+              code: .markerWriteFailed,
+              message: "Injected preparation failure."
+            )
+          },
+          rollback: { _ in }
+        )
+      )
+    }
+
+    let residue = try #require(
+      fixture.snapshot().keys.first { $0.contains(".rmp-create-") }
+    )
+    let residueName = try #require(
+      residue.split(separator: "/").first { $0.contains(".rmp-create-") }
+    )
+    #expect(diagnostic?.code == .rollbackFailed)
+    #expect(diagnostic?.message.contains(residueName) == true)
+  }
+
+  @Test("marker unlink failure reports the staged directory residue")
+  func markerRollbackFailureReportsStagingEntry() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+
+    let diagnostic = captureDiagnostic {
+      _ = try DirectoryHandle.createOrValidate(
+        path: fixture.containerURL.path,
+        owner: fixture.trustedUser.userID,
+        role: .container,
+        preparation: DirectoryPreparation(
+          apply: { handle in
+            try createMarkerExclusive(
+              parent: handle,
+              name: ".rmp-test-container",
+              marker: TestSafetyMarker(role: .container, directoryIdentity: handle.identity)
+            )
+            throw InjectedFailure()
+          },
+          rollback: { _ in
+            throw TestSafetyDiagnostic(
+              code: .rollbackFailed,
+              message: "Injected marker unlink failure."
+            )
+          }
+        )
+      )
+    }
+
+    let residue = try #require(
+      fixture.snapshot().keys.first { $0.contains(".rmp-create-") }
+    )
+    let stagingName = try #require(
+      residue.split(separator: "/").first { $0.contains(".rmp-create-") }
+    )
+    #expect(diagnostic?.code == .rollbackFailed)
+    #expect(diagnostic?.message.contains(stagingName) == true)
+  }
+
+  @Test("staged rmdir failure is reported and EINTR is retried")
+  func stagedDirectoryRemovalFailuresAreStable() throws {
+    let failedFixture = try SafetyHomeFixture()
+    defer { failedFixture.remove() }
+    let failedDiagnostic = captureDiagnostic {
+      _ = try DirectoryHandle.createOrValidate(
+        path: failedFixture.containerURL.path,
+        owner: failedFixture.trustedUser.userID,
+        role: .container,
+        preparation: DirectoryPreparation(
+          apply: { _ in throw InjectedFailure() },
+          removeStagedDirectory: { _, _, _ in
+            errno = EPERM
+            return -1
+          }
+        )
+      )
+    }
+    #expect(failedDiagnostic?.code == .rollbackFailed)
+    #expect(try failedFixture.snapshot().keys.contains { $0.contains(".rmp-create-") })
+
+    let interruptedFixture = try SafetyHomeFixture()
+    defer { interruptedFixture.remove() }
+    let before = try interruptedFixture.snapshot()
+    var removalAttempts = 0
+    let interruptedDiagnostic = captureDiagnostic {
+      _ = try DirectoryHandle.createOrValidate(
+        path: interruptedFixture.containerURL.path,
+        owner: interruptedFixture.trustedUser.userID,
+        role: .container,
+        preparation: DirectoryPreparation(
+          apply: { _ in
+            throw TestSafetyDiagnostic(
+              code: .markerWriteFailed,
+              message: "Injected preparation failure."
+            )
+          },
+          removeStagedDirectory: { descriptor, name, flags in
+            removalAttempts += 1
+            if removalAttempts == 1 {
+              errno = EINTR
+              return -1
+            }
+            return unlinkat(descriptor, name, flags)
+          }
+        )
+      )
+    }
+
+    #expect(interruptedDiagnostic?.code == .markerWriteFailed)
+    #expect(removalAttempts == 2)
+    #expect(try interruptedFixture.snapshot() == before)
   }
 }
 

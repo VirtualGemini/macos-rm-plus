@@ -3,10 +3,8 @@
 import Darwin
 import Foundation
 
-@_spi(RMPTestingEntrypoint)
-public final class TestSafetyContext {
-  @_spi(RMPTestingEntrypoint)
-  public let runID: UUID
+final class TestSafetyContext {
+  let runID: UUID
   let containerURL: URL
   let authorizedRootURL: URL
   let runDirectoryURL: URL
@@ -114,7 +112,9 @@ public final class TestSafetyContext {
     )
   }
 
-  func cleanupRunDirectory() throws {
+  func cleanupRunDirectory(
+    remove: (Int32, String, Int32) -> Int32 = { unlinkat($0, $1, $2) }
+  ) throws {
     try revalidate()
     guard try runDirectoryHandle.entryNames() == [Self.runMarkerName] else {
       throw TestSafetyDiagnostic(
@@ -122,9 +122,13 @@ public final class TestSafetyContext {
         message: "The Run Directory contains Test Fixtures and was preserved for inspection."
       )
     }
-    guard unlinkat(runDirectoryHandle.fileDescriptor, Self.runMarkerName, 0) == 0 else {
-      throw posixDiagnostic(code: .cleanupFailed, operation: "remove the run marker")
-    }
+    try removeCleanupEntry(
+      parentDescriptor: runDirectoryHandle.fileDescriptor,
+      name: Self.runMarkerName,
+      flags: 0,
+      operation: "remove the run marker",
+      remove: remove
+    )
     try validateDirectoryEntry(
       parent: authorizedRootHandle,
       name: runID.uuidString.lowercased(),
@@ -134,15 +138,13 @@ public final class TestSafetyContext {
         role: .run
       )
     )
-    guard
-      unlinkat(authorizedRootHandle.fileDescriptor, runID.uuidString.lowercased(), AT_REMOVEDIR)
-        == 0
-    else {
-      throw posixDiagnostic(
-        code: .cleanupFailed,
-        operation: "remove the Run Directory"
-      )
-    }
+    try removeCleanupEntry(
+      parentDescriptor: authorizedRootHandle.fileDescriptor,
+      name: runID.uuidString.lowercased(),
+      flags: AT_REMOVEDIR,
+      operation: "remove the Run Directory",
+      remove: remove
+    )
   }
 
   private var runMarker: TestSafetyMarker {
@@ -252,6 +254,19 @@ public final class TestSafetyContext {
       }
     )
     return runDirectory
+  }
+}
+
+private func removeCleanupEntry(
+  parentDescriptor: Int32,
+  name: String,
+  flags: Int32,
+  operation: String,
+  remove: (Int32, String, Int32) -> Int32
+) throws {
+  while remove(parentDescriptor, name, flags) != 0 {
+    if errno == EINTR { continue }
+    throw posixDiagnostic(code: .cleanupFailed, operation: operation)
   }
 }
 

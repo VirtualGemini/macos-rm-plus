@@ -47,7 +47,9 @@ struct TrustedUserAccount: Equatable, Sendable {
   let userID: uid_t
   let homeDirectory: String
 
-  static func current(effectiveUserID: uid_t = geteuid()) throws -> TrustedUserAccount {
+  static func current(
+    effectiveUserID: uid_t = geteuid()
+  ) throws -> TrustedUserAccount {
     let configuredSize = sysconf(_SC_GETPW_R_SIZE_MAX)
     let bufferSize = configuredSize > 0 ? Int(configuredSize) : 16_384
     var passwordEntry = passwd()
@@ -69,8 +71,7 @@ struct TrustedUserAccount: Equatable, Sendable {
   }
 }
 
-@_spi(RMPTestingEntrypoint)
-public enum TestSafetyDiagnosticCode: String, Sendable {
+enum TestSafetyDiagnosticCode: String, Sendable {
   case accountIdentityMismatch = "test-safety.account-identity-mismatch"
   case accountLookupFailed = "test-safety.account-lookup-failed"
   case cleanupFailed = "test-safety.cleanup-failed"
@@ -96,28 +97,28 @@ public enum TestSafetyDiagnosticCode: String, Sendable {
   case markerOwnerMismatch = "test-safety.marker-owner-mismatch"
   case markerPermissions = "test-safety.marker-permissions"
   case markerReadFailed = "test-safety.marker-read-failed"
+  case markerTooLarge = "test-safety.marker-too-large"
   case markerWriteFailed = "test-safety.marker-write-failed"
   case markerWrongType = "test-safety.marker-wrong-type"
   case missingRunID = "test-safety.missing-run-id"
   case rootExecution = "test-safety.root-execution"
+  case rollbackFailed = "test-safety.rollback-failed"
   case runDirectoryExists = "test-safety.run-directory-exists"
   case runDirectoryNotEmpty = "test-safety.run-directory-not-empty"
-  case testingBuildRequired = "test-safety.testing-build-required"
   case unexpectedError = "test-safety.unexpected-error"
   case wrongExecutable = "test-safety.wrong-executable"
 }
 
-@_spi(RMPTestingEntrypoint)
-public struct TestSafetyDiagnostic: Error, Equatable, CustomStringConvertible, Sendable {
-  public let code: TestSafetyDiagnosticCode
-  public let message: String
+struct TestSafetyDiagnostic: Error, Equatable, CustomStringConvertible, Sendable {
+  let code: TestSafetyDiagnosticCode
+  let message: String
 
-  public init(code: TestSafetyDiagnosticCode, message: String) {
+  init(code: TestSafetyDiagnosticCode, message: String) {
     self.code = code
     self.message = message
   }
 
-  public var description: String { "\(code.rawValue): \(message)" }
+  var description: String { "\(code.rawValue): \(message)" }
 }
 
 func validateTestUserIdentity(

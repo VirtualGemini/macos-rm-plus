@@ -79,8 +79,8 @@ final class DirectoryHandle {
     }
   }
 
-  func entryNames() throws -> [String] {
-    let copiedDescriptor = dup(fileDescriptor)
+  func entryNames(duplicate: (Int32) -> Int32 = { dup($0) }) throws -> [String] {
+    let copiedDescriptor = duplicate(fileDescriptor)
     guard copiedDescriptor >= 0, let directory = fdopendir(copiedDescriptor) else {
       if copiedDescriptor >= 0 { close(copiedDescriptor) }
       throw posixDiagnostic(
@@ -179,61 +179,61 @@ final class DirectoryHandle {
     role: TestSafetyDirectoryRole,
     preparation: DirectoryPreparation
   ) throws -> DirectoryHandle {
-    let stagingName = ".rmp-create-\(UUID().uuidString.lowercased())"
-    guard mkdirat(parentDescriptor, stagingName, 0o700) == 0 else {
-      throw posixDiagnostic(
-        code: .directoryCreateFailed,
-        operation: "create a staged \(role.rawValue) directory"
-      )
-    }
+    let stagingName = try createStagedDirectory(parentDescriptor: parentDescriptor, role: role)
     var stagingInstalled = true
     var stagedHandle: DirectoryHandle?
-    defer {
-      if stagingInstalled {
-        if let stagedHandle {
-          preparation.rollback(stagedHandle)
+    do {
+      guard fchmodat(parentDescriptor, stagingName, 0o700, AT_SYMLINK_NOFOLLOW) == 0 else {
+        throw posixDiagnostic(
+          code: .directoryCreateFailed,
+          operation: "secure a staged \(role.rawValue) directory"
+        )
+      }
+      let handle = try openValidated(
+        parentDescriptor: parentDescriptor,
+        name: stagingName,
+        owner: owner,
+        role: role
+      )
+      stagedHandle = handle
+      try preparation.apply(handle)
+      guard
+        renameatx_np(
+          parentDescriptor,
+          stagingName,
+          parentDescriptor,
+          name,
+          UInt32(RENAME_EXCL)
+        ) == 0
+      else {
+        if errno == EEXIST {
+          throw StagedDirectoryError.destinationExists
         }
-        _ = unlinkat(parentDescriptor, stagingName, AT_REMOVEDIR)
+        throw posixDiagnostic(
+          code: .directoryCreateFailed,
+          operation: "install the \(role.rawValue) directory"
+        )
       }
-    }
-    guard fchmodat(parentDescriptor, stagingName, 0o700, AT_SYMLINK_NOFOLLOW) == 0 else {
-      throw posixDiagnostic(
-        code: .directoryCreateFailed,
-        operation: "secure a staged \(role.rawValue) directory"
+      stagingInstalled = false
+      try validateDirectoryEntry(
+        parentDescriptor: parentDescriptor,
+        name: name,
+        expectation: DirectoryExpectation(identity: handle.identity, owner: owner, role: role)
+      )
+      return handle
+    } catch {
+      guard stagingInstalled else { throw error }
+      try rollbackStagedDirectory(
+        StagedDirectoryRollback(
+          parentDescriptor: parentDescriptor,
+          stagingName: stagingName,
+          role: role
+        ),
+        stagedHandle: stagedHandle,
+        preparation: preparation,
+        originalError: error
       )
     }
-    let handle = try openValidated(
-      parentDescriptor: parentDescriptor,
-      name: stagingName,
-      owner: owner,
-      role: role
-    )
-    stagedHandle = handle
-    try preparation.apply(handle)
-    guard
-      renameatx_np(
-        parentDescriptor,
-        stagingName,
-        parentDescriptor,
-        name,
-        UInt32(RENAME_EXCL)
-      ) == 0
-    else {
-      if errno == EEXIST {
-        throw StagedDirectoryError.destinationExists
-      }
-      throw posixDiagnostic(
-        code: .directoryCreateFailed,
-        operation: "install the \(role.rawValue) directory"
-      )
-    }
-    stagingInstalled = false
-    try validateDirectoryEntry(
-      parentDescriptor: parentDescriptor,
-      name: name,
-      expectation: DirectoryExpectation(identity: handle.identity, owner: owner, role: role)
-    )
-    return handle
   }
 
   private static func openValidated(
@@ -270,9 +270,10 @@ final class DirectoryHandle {
     return try finishOpening(descriptor, expectation: expectation)
   }
 
-  private static func finishOpening(
+  static func finishOpening(
     _ descriptor: Int32,
-    expectation: DirectoryExpectation
+    expectation: DirectoryExpectation,
+    identify: (Int32, UnsafeMutablePointer<stat>) -> Int32 = { fstat($0, $1) }
   ) throws -> DirectoryHandle {
     guard descriptor >= 0 else {
       throw TestSafetyDiagnostic(
@@ -283,7 +284,7 @@ final class DirectoryHandle {
       )
     }
     var openedStatus = stat()
-    guard fstat(descriptor, &openedStatus) == 0 else {
+    guard identify(descriptor, &openedStatus) == 0 else {
       close(descriptor)
       throw posixDiagnostic(
         code: .directoryIdentityUnavailable,
@@ -306,14 +307,19 @@ private enum StagedDirectoryError: Error {
 
 struct DirectoryPreparation {
   let apply: (DirectoryHandle) throws -> Void
-  let rollback: (DirectoryHandle) -> Void
+  let rollback: (DirectoryHandle) throws -> Void
+  let removeStagedDirectory: (Int32, String, Int32) -> Int32
 
   init(
     apply: @escaping (DirectoryHandle) throws -> Void = { _ in },
-    rollback: @escaping (DirectoryHandle) -> Void = { _ in }
+    rollback: @escaping (DirectoryHandle) throws -> Void = { _ in },
+    removeStagedDirectory: @escaping (Int32, String, Int32) -> Int32 = {
+      unlinkat($0, $1, $2)
+    }
   ) {
     self.apply = apply
     self.rollback = rollback
+    self.removeStagedDirectory = removeStagedDirectory
   }
 }
 
@@ -378,6 +384,25 @@ private func validateDirectoryEntry(
 
 func posixDiagnostic(code: TestSafetyDiagnosticCode, operation: String) -> TestSafetyDiagnostic {
   TestSafetyDiagnostic(code: code, message: "Unable to \(operation) (errno \(errno)).")
+}
+
+func removeEntryIfPresent(
+  parentDescriptor: Int32,
+  name: String,
+  flags: Int32,
+  operation: String,
+  remove: (Int32, String, Int32) -> Int32 = { unlinkat($0, $1, $2) }
+) throws {
+  while remove(parentDescriptor, name, flags) != 0 {
+    if errno == EINTR { continue }
+    if errno == ENOENT { return }
+    throw TestSafetyDiagnostic(
+      code: .rollbackFailed,
+      message:
+        "Unable to \(operation); filesystem residue may remain at entry \(name) "
+        + "(errno \(errno))."
+    )
+  }
 }
 
 private func validateDirectoryStatus(

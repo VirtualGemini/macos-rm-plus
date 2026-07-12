@@ -4,11 +4,10 @@ import Darwin
 import Foundation
 import Testing
 
-@_spi(RMPTestingEntrypoint) @testable import RMPTestKit
+@testable import rmp_test
 
 enum UnsafeRuntimeCase: CaseIterable, CustomTestStringConvertible {
   case root
-  case missingTestingBuild
   case wrongExecutable
   case missingRunID
   case invalidRunID
@@ -25,12 +24,6 @@ enum UnsafeRuntimeCase: CaseIterable, CustomTestStringConvertible {
         arguments: validArguments,
         expectedCode: .rootExecution,
         runtimeKind: .root
-      )
-    case .missingTestingBuild:
-      UnsafeRuntimeConfiguration(
-        arguments: validArguments,
-        expectedCode: .testingBuildRequired,
-        runtimeKind: .missingTestingBuild
       )
     case .wrongExecutable:
       UnsafeRuntimeConfiguration(
@@ -96,7 +89,6 @@ private struct UnsafeRuntimeConfiguration {
 private enum UnsafeRuntimeKind {
   case standard
   case root
-  case missingTestingBuild
   case wrongExecutable
   case accountIdentityMismatch
 
@@ -108,29 +100,19 @@ private enum UnsafeRuntimeKind {
       TestSafetyRuntime(
         effectiveUserID: 0,
         trustedUser: TrustedUserAccount(userID: 0, homeDirectory: trustedUser.homeDirectory),
-        executableName: "rmp-test",
-        testingBuildEnabled: true
-      )
-    case .missingTestingBuild:
-      TestSafetyRuntime(
-        effectiveUserID: trustedUser.userID,
-        trustedUser: trustedUser,
-        executableName: "rmp-test",
-        testingBuildEnabled: false
+        executableName: "rmp-test"
       )
     case .wrongExecutable:
       TestSafetyRuntime(
         effectiveUserID: trustedUser.userID,
         trustedUser: trustedUser,
-        executableName: "rmp",
-        testingBuildEnabled: true
+        executableName: "rmp"
       )
     case .accountIdentityMismatch:
       TestSafetyRuntime(
         effectiveUserID: trustedUser.userID + 1,
         trustedUser: trustedUser,
-        executableName: "rmp-test",
-        testingBuildEnabled: true
+        executableName: "rmp-test"
       )
     }
   }

@@ -55,7 +55,8 @@ Sources/
 └── rmp/              Production command-line entrypoint
 
 TestSupport/
-├── RMPTestKit/       Fakes, spies, and test safety support
+├── RMPTestKit/       Fakes, spies, and pure test support
+├── RMPTestSafety/    Safety logic compiled only into the test executable
 └── rmp-test/         Compile-time-isolated real-filesystem test entrypoint
 
 Tests/
@@ -202,10 +203,11 @@ Real-filesystem tests:
 Assertions should expose mistakes early, but every assertion has a non-optional `guard` or typed
 error enforcing the same boundary in optimized builds.
 
-The compile-time-isolated `rmp-test` target embeds a process symbol only when `RMP_TESTING` is enabled;
-the driver verifies that symbol without accepting a caller-provided build flag. Production targets do
-not embed it. The driver establishes the Test Safety Context before exposing path arguments to
-downstream test work. It derives the loaded executable path from macOS rather than
+The compile-time-isolated `rmp-test` target fails compilation unless `RMP_TESTING` is enabled and is
+the only package product and module containing the real Test Safety Context implementation. The
+separate `RMPTestKit` module exposes no real safety entry for an unflagged target to call or forge
+with a matching runtime symbol. The driver establishes the Test Safety Context before
+exposing path arguments to downstream test work. It derives the loaded executable path from macOS rather than
 trusting `argv[0]`, obtains the effective user's home from the system account database, rejects root or the wrong executable identity,
 exclusively creates UUID Run Directories, and retains open
 descriptors for all three safety directories. Versioned JSON markers record their directory role and
@@ -223,7 +225,10 @@ the Run Directory has no Test Fixtures. The two fixed directories and their long
 never removed automatically after they have been atomically published. New safety directories and
 their markers are prepared under random staging names and become fixed boundaries only when an
 exclusive rename publishes the complete directory. A failed preparation removes its unpublished
-staging directory and marker so that a safety rejection leaves no filesystem change.
+staging directory and marker so that a safety rejection normally leaves no filesystem change. If a
+filesystem error prevents that rollback, the operation fails with `test-safety.rollback-failed`,
+reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
+succeeded.
 
 The project still contains no real Trash integration. `make test-integration` must fail closed until
 the WhitelistedTrashClient ticket is complete.

@@ -7,7 +7,6 @@ struct TestSafetyRuntime: Sendable {
   let effectiveUserID: uid_t
   let trustedUser: TrustedUserAccount
   let executableName: String
-  let testingBuildEnabled: Bool
 
   static func testing(
     executableName: String,
@@ -16,34 +15,24 @@ struct TestSafetyRuntime: Sendable {
     TestSafetyRuntime(
       effectiveUserID: trustedUser.userID,
       trustedUser: trustedUser,
-      executableName: executableName,
-      testingBuildEnabled: true
+      executableName: executableName
     )
   }
 }
 
-@_spi(RMPTestingEntrypoint)
-public struct TestSafetyDriverResult: Sendable {
-  public let exitCode: Int32
-  public let diagnostic: TestSafetyDiagnostic?
+struct TestSafetyDriverResult: Sendable {
+  let exitCode: Int32
+  let diagnostic: TestSafetyDiagnostic?
 }
 
-@_spi(RMPTestingEntrypoint)
-public enum TestSafetyDriver {
-  @_spi(RMPTestingEntrypoint)
-  public static func run(
+enum TestSafetyDriver {
+  static func runWithInjectedRuntime(
     arguments: [String],
+    runtime: () throws -> TestSafetyRuntime,
     operation: (TestSafetyContext, [String]) throws -> Int32
   ) -> TestSafetyDriverResult {
     do {
-      let effectiveUserID = geteuid()
-      let runtime = TestSafetyRuntime(
-        effectiveUserID: effectiveUserID,
-        trustedUser: try TrustedUserAccount.current(effectiveUserID: effectiveUserID),
-        executableName: try LoadedExecutableIdentity.currentName(),
-        testingBuildEnabled: TestingBuildIdentity.isEnabled
-      )
-      return run(arguments: arguments, runtime: runtime, operation: operation)
+      return run(arguments: arguments, runtime: try runtime(), operation: operation)
     } catch let diagnostic as TestSafetyDiagnostic {
       return TestSafetyDriverResult(exitCode: 2, diagnostic: diagnostic)
     } catch {
@@ -54,17 +43,28 @@ public enum TestSafetyDriver {
   static func run(
     arguments: [String],
     runtime: TestSafetyRuntime,
+    establishContext: (
+      _ runID: UUID,
+      _ trustedUser: TrustedUserAccount,
+      _ effectiveUserID: uid_t
+    ) throws -> TestSafetyContext = { runID, trustedUser, effectiveUserID in
+      try TestSafetyContext.establish(
+        runID: runID,
+        trustedUser: trustedUser,
+        effectiveUserID: effectiveUserID
+      )
+    },
     operation: (TestSafetyContext, [String]) throws -> Int32
   ) -> TestSafetyDriverResult {
     do {
       try validateRuntime(runtime)
-      let runID = try parseRunID(arguments)
-      let context = try TestSafetyContext.establish(
-        runID: runID,
-        trustedUser: runtime.trustedUser,
-        effectiveUserID: runtime.effectiveUserID
+      let parsedArguments = try parseArguments(arguments)
+      let context = try establishContext(
+        parsedArguments.runID,
+        runtime.trustedUser,
+        runtime.effectiveUserID
       )
-      let exitCode = try operation(context, pathArguments(from: arguments))
+      let exitCode = try operation(context, parsedArguments.paths)
       try context.cleanupRunDirectory()
       return TestSafetyDriverResult(exitCode: exitCode, diagnostic: nil)
     } catch let diagnostic as TestSafetyDiagnostic {
@@ -75,12 +75,6 @@ public enum TestSafetyDriver {
   }
 
   private static func validateRuntime(_ runtime: TestSafetyRuntime) throws {
-    guard runtime.testingBuildEnabled else {
-      throw TestSafetyDiagnostic(
-        code: .testingBuildRequired,
-        message: "The rmp-test driver requires the compile-time RMP_TESTING build flag."
-      )
-    }
     guard runtime.executableName == "rmp-test" else {
       throw TestSafetyDiagnostic(
         code: .wrongExecutable,
@@ -90,13 +84,18 @@ public enum TestSafetyDriver {
     try validateTestUserIdentity(runtime.trustedUser, effectiveUserID: runtime.effectiveUserID)
   }
 
-  private static func parseRunID(_ arguments: [String]) throws -> UUID {
+  private static func parseArguments(_ arguments: [String]) throws -> ParsedTestArguments {
     var runIDText: String?
+    var paths: [String] = []
     var index = arguments.startIndex
+    var optionsEnded = false
 
     while index < arguments.endIndex {
       let argument = arguments[index]
-      if argument == "--test-run-id" {
+      if !optionsEnded, argument == "--" {
+        optionsEnded = true
+        index = arguments.index(after: index)
+      } else if !optionsEnded, argument == "--test-run-id" {
         guard runIDText == nil else {
           throw TestSafetyDiagnostic(
             code: .duplicateRunID,
@@ -113,6 +112,7 @@ public enum TestSafetyDriver {
         runIDText = arguments[valueIndex]
         index = arguments.index(after: valueIndex)
       } else {
+        paths.append(argument)
         index = arguments.index(after: index)
       }
     }
@@ -129,21 +129,7 @@ public enum TestSafetyDriver {
         message: "--test-run-id must be a canonical lowercase UUID."
       )
     }
-    return runID
-  }
-
-  private static func pathArguments(from arguments: [String]) -> [String] {
-    var paths: [String] = []
-    var index = arguments.startIndex
-    while index < arguments.endIndex {
-      if arguments[index] == "--test-run-id" {
-        index = arguments.index(index, offsetBy: 2)
-      } else {
-        paths.append(arguments[index])
-        index = arguments.index(after: index)
-      }
-    }
-    return paths
+    return ParsedTestArguments(runID: runID, paths: paths)
   }
 
   private static func unexpectedFailure() -> TestSafetyDriverResult {
@@ -157,34 +143,7 @@ public enum TestSafetyDriver {
   }
 }
 
-private enum TestingBuildIdentity {
-  static var isEnabled: Bool {
-    guard let processHandle = dlopen(nil, RTLD_LAZY) else { return false }
-    defer { dlclose(processHandle) }
-    return dlsym(processHandle, "rmp_testing_build_identity") != nil
-  }
-}
-
-private enum LoadedExecutableIdentity {
-  static func currentName() throws -> String {
-    var requiredSize: UInt32 = 0
-    _ = _NSGetExecutablePath(nil, &requiredSize)
-    guard requiredSize > 0 else { throw executableIdentityUnavailable() }
-    var buffer = [CChar](repeating: 0, count: Int(requiredSize))
-    guard _NSGetExecutablePath(&buffer, &requiredSize) == 0 else {
-      throw executableIdentityUnavailable()
-    }
-    let pathBytes = buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }
-    guard let path = String(bytes: pathBytes, encoding: .utf8), !path.isEmpty else {
-      throw executableIdentityUnavailable()
-    }
-    return URL(fileURLWithPath: path).lastPathComponent
-  }
-
-  private static func executableIdentityUnavailable() -> TestSafetyDiagnostic {
-    TestSafetyDiagnostic(
-      code: .executableIdentityUnavailable,
-      message: "The loaded executable identity could not be obtained from macOS."
-    )
-  }
+private struct ParsedTestArguments {
+  let runID: UUID
+  let paths: [String]
 }

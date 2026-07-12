@@ -24,14 +24,16 @@ let package = Package(
     ),
     .executableTarget(
       name: "rmp-test",
-      dependencies: ["RMPCore", "RMPPlatform", "RMPTestKit"],
-      path: "TestSupport/rmp-test",
+      dependencies: ["RMPCore", "RMPPlatform"],
+      path: "TestSupport",
+      exclude: ["RMPTestKit"],
+      sources: ["RMPTestSafety", "rmp-test"],
       swiftSettings: [.define("RMP_TESTING")]
     ),
     .testTarget(name: "RMPCoreTests", dependencies: ["RMPCore"]),
     .testTarget(
       name: "RMPPlatformTests",
-      dependencies: ["RMPPlatform", "RMPTestKit"]
+      dependencies: ["RMPPlatform", "RMPTestKit", "rmp-test"]
     ),
   ],
   swiftLanguageModes: [.v6]

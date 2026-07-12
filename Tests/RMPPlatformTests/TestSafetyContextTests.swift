@@ -4,7 +4,7 @@ import Darwin
 import Foundation
 import Testing
 
-@_spi(RMPTestingEntrypoint) @testable import RMPTestKit
+@testable import rmp_test
 
 @Suite("Test Safety Context", .serialized)
 struct TestSafetyContextTests {
@@ -79,7 +79,6 @@ struct TestSafetyContextTests {
     "rejects unsafe runtime identity before invoking downstream Trash work",
     arguments: [
       UnsafeRuntimeCase.root,
-      .missingTestingBuild,
       .wrongExecutable,
       .missingRunID,
       .invalidRunID,
@@ -162,6 +161,32 @@ struct TestSafetyContextTests {
     #expect(result.diagnostic == nil)
     #expect(receivedArguments == ["fixture with spaces", "-leading-option-like-path"])
     #expect(!FileManager.default.fileExists(atPath: fixture.runDirectoryURL(for: runID).path))
+  }
+
+  @Test("treats test-run-id text after the option terminator as a path")
+  func optionTerminatorPreservesTestRunIDPath() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let runID = UUID()
+    var receivedArguments: [String] = []
+
+    let result = TestSafetyDriver.run(
+      arguments: [
+        "--test-run-id",
+        runID.uuidString.lowercased(),
+        "--",
+        "--test-run-id",
+      ],
+      runtime: .testing(executableName: "rmp-test", trustedUser: fixture.trustedUser),
+      operation: { _, arguments in
+        receivedArguments = arguments
+        return 0
+      }
+    )
+
+    #expect(result.exitCode == 0)
+    #expect(result.diagnostic == nil)
+    #expect(receivedArguments == ["--test-run-id"])
   }
 }
 

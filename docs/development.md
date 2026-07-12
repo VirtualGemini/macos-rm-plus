@@ -213,7 +213,10 @@ never repaired automatically.
 Test-safety failures use stable `test-safety.*` diagnostic codes. Local cleanup revalidates the full
 hierarchy, removes only the matching run marker, and uses non-recursive `rmdir` semantics only when
 the Run Directory has no Test Fixtures. The two fixed directories and their long-lived markers are
-never removed automatically.
+never removed automatically after they have been atomically published. New safety directories and
+their markers are prepared under random staging names and become fixed boundaries only when an
+exclusive rename publishes the complete directory. A failed preparation removes its unpublished
+staging directory and marker so that a safety rejection leaves no filesystem change.
 
 The project still contains no real Trash integration. `make test-integration` must fail closed until
 the WhitelistedTrashClient ticket is complete.

@@ -17,7 +17,8 @@ final class DirectoryHandle {
   static func createOrValidate(
     path: String,
     owner: uid_t,
-    role: TestSafetyDirectoryRole
+    role: TestSafetyDirectoryRole,
+    preparation: DirectoryPreparation = DirectoryPreparation()
   ) throws -> DirectoryCreation {
     let url = URL(fileURLWithPath: path, isDirectory: true)
     let parentDescriptor = open(
@@ -35,7 +36,8 @@ final class DirectoryHandle {
       parentDescriptor: parentDescriptor,
       name: url.lastPathComponent,
       owner: owner,
-      role: role
+      role: role,
+      preparation: preparation
     )
   }
 
@@ -43,27 +45,31 @@ final class DirectoryHandle {
     parent: DirectoryHandle,
     name: String,
     owner: uid_t,
-    role: TestSafetyDirectoryRole
+    role: TestSafetyDirectoryRole,
+    preparation: DirectoryPreparation = DirectoryPreparation()
   ) throws -> DirectoryCreation {
     try createOrValidate(
       parentDescriptor: parent.fileDescriptor,
       name: name,
       owner: owner,
-      role: role
+      role: role,
+      preparation: preparation
     )
   }
 
   static func createExclusive(
     parent: DirectoryHandle,
     name: String,
-    owner: uid_t
+    owner: uid_t,
+    preparation: DirectoryPreparation = DirectoryPreparation()
   ) throws -> DirectoryHandle {
     do {
       return try installCreatedDirectory(
         parentDescriptor: parent.fileDescriptor,
         name: name,
         owner: owner,
-        role: .run
+        role: .run,
+        preparation: preparation
       )
     } catch StagedDirectoryError.destinationExists {
       throw TestSafetyDiagnostic(
@@ -120,7 +126,8 @@ final class DirectoryHandle {
     parentDescriptor: Int32,
     name: String,
     owner: uid_t,
-    role: TestSafetyDirectoryRole
+    role: TestSafetyDirectoryRole,
+    preparation: DirectoryPreparation
   ) throws -> DirectoryCreation {
     var status = stat()
     if fstatat(parentDescriptor, name, &status, AT_SYMLINK_NOFOLLOW) == 0 {
@@ -146,7 +153,8 @@ final class DirectoryHandle {
           parentDescriptor: parentDescriptor,
           name: name,
           owner: owner,
-          role: role
+          role: role,
+          preparation: preparation
         ),
         created: true
       )
@@ -167,7 +175,8 @@ final class DirectoryHandle {
     parentDescriptor: Int32,
     name: String,
     owner: uid_t,
-    role: TestSafetyDirectoryRole
+    role: TestSafetyDirectoryRole,
+    preparation: DirectoryPreparation
   ) throws -> DirectoryHandle {
     let stagingName = ".rmp-create-\(UUID().uuidString.lowercased())"
     guard mkdirat(parentDescriptor, stagingName, 0o700) == 0 else {
@@ -177,8 +186,12 @@ final class DirectoryHandle {
       )
     }
     var stagingInstalled = true
+    var stagedHandle: DirectoryHandle?
     defer {
       if stagingInstalled {
+        if let stagedHandle {
+          preparation.rollback(stagedHandle)
+        }
         _ = unlinkat(parentDescriptor, stagingName, AT_REMOVEDIR)
       }
     }
@@ -194,6 +207,8 @@ final class DirectoryHandle {
       owner: owner,
       role: role
     )
+    stagedHandle = handle
+    try preparation.apply(handle)
     guard
       renameatx_np(
         parentDescriptor,
@@ -295,6 +310,19 @@ final class DirectoryHandle {
 
 private enum StagedDirectoryError: Error {
   case destinationExists
+}
+
+struct DirectoryPreparation {
+  let apply: (DirectoryHandle) throws -> Void
+  let rollback: (DirectoryHandle) -> Void
+
+  init(
+    apply: @escaping (DirectoryHandle) throws -> Void = { _ in },
+    rollback: @escaping (DirectoryHandle) -> Void = { _ in }
+  ) {
+    self.apply = apply
+    self.rollback = rollback
+  }
 }
 
 struct DirectoryCreation {

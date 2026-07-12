@@ -76,6 +76,43 @@ struct TestSafetySystemFailureTests {
 
     #expect(result.diagnostic?.code == "test-safety.unexpected-error")
   }
+
+  @Test("failed fixed container preparation leaves no published directory or staging residue")
+  func fixedContainerPreparationFailureLeavesNoResidue() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let before = try fixture.snapshot()
+
+    let diagnostic = captureDiagnostic {
+      _ = try DirectoryHandle.createOrValidate(
+        path: fixture.containerURL.path,
+        owner: fixture.trustedUser.userID,
+        role: .container,
+        preparation: DirectoryPreparation(
+          apply: { handle in
+            try createMarkerExclusive(
+              parent: handle,
+              name: ".rmp-test-container",
+              marker: TestSafetyMarker(
+                role: .container,
+                directoryIdentity: handle.identity
+              )
+            )
+            throw TestSafetyDiagnostic(
+              code: "test-safety.injected-preparation-failure",
+              message: "Injected preparation failure."
+            )
+          },
+          rollback: { handle in
+            _ = unlinkat(handle.fileDescriptor, ".rmp-test-container", 0)
+          }
+        )
+      )
+    }
+
+    #expect(diagnostic?.code == "test-safety.injected-preparation-failure")
+    #expect(try fixture.snapshot() == before)
+  }
 }
 
 private struct InjectedFailure: Error {}

@@ -3,18 +3,18 @@
 import Darwin
 import Foundation
 
-func validateOrCreateMarker(
-  parent: DirectoryHandle,
+func markerPreparation(
   name: String,
-  expected: TestSafetyMarker,
-  owner: uid_t,
-  directoryWasCreated: Bool
-) throws {
-  if directoryWasCreated {
-    try createMarkerExclusive(parent: parent, name: name, marker: expected)
-  } else {
-    try validateExistingMarker(parent: parent, name: name, expected: expected, owner: owner)
-  }
+  marker: @escaping (DirectoryHandle) -> TestSafetyMarker
+) -> DirectoryPreparation {
+  DirectoryPreparation(
+    apply: { handle in
+      try createMarkerExclusive(parent: handle, name: name, marker: marker(handle))
+    },
+    rollback: { handle in
+      _ = unlinkat(handle.fileDescriptor, name, 0)
+    }
+  )
 }
 
 func createMarkerExclusive(
@@ -40,7 +40,13 @@ func createMarkerExclusive(
       operation: "create a safety marker"
     )
   }
-  defer { close(descriptor) }
+  var completed = false
+  defer {
+    close(descriptor)
+    if !completed {
+      _ = unlinkat(parent.fileDescriptor, name, 0)
+    }
+  }
   guard fchmod(descriptor, 0o600) == 0 else {
     throw posixDiagnostic(
       code: "test-safety.marker-create-failed",
@@ -56,6 +62,7 @@ func createMarkerExclusive(
       operation: "sync a safety marker"
     )
   }
+  completed = true
 }
 
 func validateExistingMarker(

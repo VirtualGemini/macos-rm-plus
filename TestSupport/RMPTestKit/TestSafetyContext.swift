@@ -181,34 +181,42 @@ public final class TestSafetyContext {
     let containerCreation = try DirectoryHandle.createOrValidate(
       path: urls.container.path,
       owner: owner,
-      role: .container
+      role: .container,
+      preparation: markerPreparation(name: containerMarkerName) { handle in
+        TestSafetyMarker(role: .container, directoryIdentity: handle.identity)
+      }
     )
-    try validateOrCreateMarker(
-      parent: containerCreation.handle,
-      name: containerMarkerName,
-      expected: TestSafetyMarker(
-        role: .container,
-        directoryIdentity: containerCreation.handle.identity
-      ),
-      owner: owner,
-      directoryWasCreated: containerCreation.created
-    )
+    if !containerCreation.created {
+      try validateExistingMarker(
+        parent: containerCreation.handle,
+        name: containerMarkerName,
+        expected: TestSafetyMarker(
+          role: .container,
+          directoryIdentity: containerCreation.handle.identity
+        ),
+        owner: owner
+      )
+    }
     let rootCreation = try DirectoryHandle.createOrValidate(
       parent: containerCreation.handle,
       name: authorizedRootName,
       owner: owner,
-      role: .authorizedRoot
+      role: .authorizedRoot,
+      preparation: markerPreparation(name: rootMarkerName) { handle in
+        TestSafetyMarker(role: .authorizedRoot, directoryIdentity: handle.identity)
+      }
     )
-    try validateOrCreateMarker(
-      parent: rootCreation.handle,
-      name: rootMarkerName,
-      expected: TestSafetyMarker(
-        role: .authorizedRoot,
-        directoryIdentity: rootCreation.handle.identity
-      ),
-      owner: owner,
-      directoryWasCreated: rootCreation.created
-    )
+    if !rootCreation.created {
+      try validateExistingMarker(
+        parent: rootCreation.handle,
+        name: rootMarkerName,
+        expected: TestSafetyMarker(
+          role: .authorizedRoot,
+          directoryIdentity: rootCreation.handle.identity
+        ),
+        owner: owner
+      )
+    }
     return FixedDirectoryHandles(
       container: containerCreation.handle,
       authorizedRoot: rootCreation.handle
@@ -224,18 +232,16 @@ public final class TestSafetyContext {
     let runDirectory = try DirectoryHandle.createExclusive(
       parent: fixedHandles.authorizedRoot,
       name: runName,
-      owner: owner
-    )
-    try createMarkerExclusive(
-      parent: runDirectory,
-      name: runMarkerName,
-      marker: TestSafetyMarker(
-        role: .run,
-        runID: runID,
-        directoryIdentity: runDirectory.identity,
-        containerIdentity: fixedHandles.container.identity,
-        authorizedRootIdentity: fixedHandles.authorizedRoot.identity
-      )
+      owner: owner,
+      preparation: markerPreparation(name: runMarkerName) { handle in
+        TestSafetyMarker(
+          role: .run,
+          runID: runID,
+          directoryIdentity: handle.identity,
+          containerIdentity: fixedHandles.container.identity,
+          authorizedRootIdentity: fixedHandles.authorizedRoot.identity
+        )
+      }
     )
     return runDirectory
   }

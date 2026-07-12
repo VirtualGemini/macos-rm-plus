@@ -2,7 +2,13 @@
 
 import Darwin
 import Foundation
+import RMPCore
+import RMPPlatform
 
-let message = "rmp has not been implemented yet.\n"
-FileHandle.standardError.write(Data(message.utf8))
-exit(2)
+let arguments = Array(CommandLine.arguments.dropFirst())
+let result = DryRunApplication(fileSystem: FoundationTrashPlanningFileSystem()).run(
+  arguments: arguments
+)
+FileHandle.standardOutput.write(Data(result.standardOutput.utf8))
+FileHandle.standardError.write(Data(result.standardError.utf8))
+exit(result.exitCode)

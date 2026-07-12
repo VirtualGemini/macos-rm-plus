@@ -13,7 +13,9 @@ The immutable description of the top-level work rmp intends to perform before an
 _Avoid_: Removal plan, delete plan
 
 **Trash Input**:
-One top-level path supplied by the user for consideration in a Trash Operation.
+One top-level path supplied by the user for consideration in a Trash Operation. It retains the
+user-supplied path text and records the inspected kind of that directory entry without recursively
+describing directory contents.
 _Avoid_: Delete target, removal target
 
 **Protected Path**:

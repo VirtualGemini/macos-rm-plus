@@ -69,6 +69,10 @@ The architectural decision is recorded in
 `RMPCore` must not invoke the filesystem, terminal, clock, environment, or Foundation Trash API
 directly. Those capabilities cross explicit interfaces implemented in `RMPPlatform`.
 
+Trash Plan previews follow the same boundary: `RMPCore` receives only injected top-level entry and
+directory-identity inspection capabilities, while `RMPPlatform` supplies the read-only Foundation
+adapter. The production dry-run path has no Trash, move, overwrite, or deletion capability.
+
 ## 4. Canonical language
 
 - Code identifiers, code comments, commit messages, pull-request titles, CLI text, JSON contracts,
@@ -155,6 +159,8 @@ directly. Those capabilities cross explicit interfaces implemented in `RMPPlatfo
 - Coverage includes production executables as additional `llvm-cov` objects; test-only coverage
   cannot hide newly added untested CLI code.
 - SafetyPolicy, option parsing, and test-whitelist branches may not remain untested.
+- Protected Path planning tests use fake filesystem identities. They must not launch `rmp` with a
+  system path, a real home directory, or user-data path merely to prove a safety rejection.
 
 ### 6.2 Safe default commands
 

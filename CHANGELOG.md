@@ -8,6 +8,8 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
+- Add `rmp --dry-run` for ordered, kind-aware top-level Trash Plan previews with missing-path and
+  Protected Path safety failures, without exposing any filesystem mutation capability.
 - Initial SwiftPM, development-policy, test-safety, and CI scaffold.
 - Harden documentation and breaking-change approvals against pull-request self-modification, and add
   complete target builds, serialized platform tests, dependency-drift checks, and coverage reporting.

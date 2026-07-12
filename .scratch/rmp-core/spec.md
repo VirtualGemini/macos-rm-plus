@@ -137,9 +137,13 @@ rmp --dry-run build report.txt
 
 ```text
 Would move 2 items to Trash:
-  build/
-  report.txt
+  [directory] "build"
+  [file] "report.txt"
 ```
+
+Paths are rendered as quoted strings. Control characters such as newlines are escaped so every
+top-level Trash Input remains a single unambiguous output line, while ordinary Unicode and spaces
+are preserved.
 
 ### 7.4 批量确认
 

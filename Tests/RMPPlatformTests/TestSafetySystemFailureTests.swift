@@ -14,7 +14,7 @@ struct TestSafetySystemFailureTests {
       _ = try TrustedUserAccount.current(effectiveUserID: uid_t.max)
     }
 
-    #expect(diagnostic?.code == "test-safety.account-lookup-failed")
+    #expect(diagnostic?.code == .accountLookupFailed)
   }
 
   @Test("directory creation failure is stable and leaves the trusted home unchanged")
@@ -37,7 +37,7 @@ struct TestSafetySystemFailureTests {
       )
     }
 
-    #expect(diagnostic?.code == "test-safety.directory-create-failed")
+    #expect(diagnostic?.code == .directoryCreateFailed)
     #expect(try fixture.snapshot() == before)
   }
 
@@ -59,7 +59,7 @@ struct TestSafetySystemFailureTests {
       try createMarkerExclusive(parent: container, name: ".rmp-test-container", marker: marker)
     }
 
-    #expect(diagnostic?.code == "test-safety.marker-exists")
+    #expect(diagnostic?.code == .markerExists)
     #expect(try fixture.snapshot() == before)
   }
 
@@ -74,7 +74,7 @@ struct TestSafetySystemFailureTests {
       operation: { _, _ in throw InjectedFailure() }
     )
 
-    #expect(result.diagnostic?.code == "test-safety.unexpected-error")
+    #expect(result.diagnostic?.code == .unexpectedError)
   }
 
   @Test("failed fixed container preparation leaves no published directory or staging residue")
@@ -99,7 +99,7 @@ struct TestSafetySystemFailureTests {
               )
             )
             throw TestSafetyDiagnostic(
-              code: "test-safety.injected-preparation-failure",
+              code: .directoryCreateFailed,
               message: "Injected preparation failure."
             )
           },
@@ -110,7 +110,7 @@ struct TestSafetySystemFailureTests {
       )
     }
 
-    #expect(diagnostic?.code == "test-safety.injected-preparation-failure")
+    #expect(diagnostic?.code == .directoryCreateFailed)
     #expect(try fixture.snapshot() == before)
   }
 }

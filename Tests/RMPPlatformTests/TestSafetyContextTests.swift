@@ -130,7 +130,7 @@ struct TestSafetyContextTests {
       }
     )
 
-    #expect(result.diagnostic?.code == "test-safety.run-directory-exists")
+    #expect(result.diagnostic?.code == .runDirectoryExists)
     #expect(invocationCount == 0)
     #expect(try fixture.snapshot() == before)
     _ = firstContext
@@ -179,7 +179,7 @@ struct TestSafetyValidationTests {
 
     let result = fixture.runDriver()
 
-    #expect(result.diagnostic?.code == "test-safety.directory-symlink")
+    #expect(result.diagnostic?.code == .directorySymlink)
     #expect(fixture.downstreamInvocationCount == 0)
     #expect(try fixture.snapshot() == before)
   }
@@ -193,7 +193,7 @@ struct TestSafetyValidationTests {
 
     let result = fixture.runDriver()
 
-    #expect(result.diagnostic?.code == "test-safety.directory-wrong-type")
+    #expect(result.diagnostic?.code == .directoryWrongType)
     #expect(fixture.downstreamInvocationCount == 0)
     #expect(try fixture.snapshot() == before)
   }
@@ -212,7 +212,7 @@ struct TestSafetyValidationTests {
 
     let result = fixture.runDriver()
 
-    #expect(result.diagnostic?.code == "test-safety.directory-permissions")
+    #expect(result.diagnostic?.code == .directoryPermissions)
     #expect(fixture.downstreamInvocationCount == 0)
     #expect(try fixture.snapshot() == before)
   }
@@ -237,7 +237,7 @@ struct TestSafetyValidationTests {
       }
     )
 
-    #expect(result.diagnostic?.code == "test-safety.directory-owner-mismatch")
+    #expect(result.diagnostic?.code == .directoryOwnerMismatch)
     #expect(try fixture.snapshot() == before)
   }
 
@@ -256,7 +256,7 @@ struct TestSafetyValidationTests {
 
     let result = fixture.runDriver()
 
-    #expect(result.diagnostic?.code == "test-safety.marker-invalid")
+    #expect(result.diagnostic?.code == .markerInvalid)
     #expect(try Data(contentsOf: fixture.containerMarkerURL) == corruptData)
     #expect(fixture.downstreamInvocationCount == 0)
     #expect(try fixture.snapshot() == before)
@@ -277,7 +277,7 @@ struct TestSafetyValidationTests {
 
     let symlinkResult = symlinkFixture.runDriver()
 
-    #expect(symlinkResult.diagnostic?.code == "test-safety.marker-wrong-type")
+    #expect(symlinkResult.diagnostic?.code == .markerWrongType)
     #expect(symlinkFixture.downstreamInvocationCount == 0)
     #expect(try symlinkFixture.snapshot() == symlinkBefore)
 
@@ -297,7 +297,7 @@ struct TestSafetyValidationTests {
 
     let permissionResult = permissionFixture.runDriver()
 
-    #expect(permissionResult.diagnostic?.code == "test-safety.marker-permissions")
+    #expect(permissionResult.diagnostic?.code == .markerPermissions)
     #expect(permissionFixture.downstreamInvocationCount == 0)
     #expect(try permissionFixture.snapshot() == permissionBefore)
   }
@@ -317,7 +317,7 @@ struct TestSafetyValidationTests {
 
     let result = fixture.runDriver()
 
-    #expect(result.diagnostic?.code == "test-safety.marker-invalid")
+    #expect(result.diagnostic?.code == .markerInvalid)
     #expect(fixture.downstreamInvocationCount == 0)
     #expect(try fixture.snapshot() == before)
   }
@@ -333,7 +333,7 @@ struct TestSafetyValidationTests {
 
     let result = fixture.runDriver()
 
-    #expect(result.diagnostic?.code == "test-safety.marker-missing")
+    #expect(result.diagnostic?.code == .markerMissing)
     #expect(fixture.downstreamInvocationCount == 0)
     #expect(try fixture.snapshot() == before)
   }
@@ -353,7 +353,7 @@ struct TestSafetyValidationTests {
       }
     }
 
-    #expect(diagnostic?.code == "test-safety.marker-invalid")
+    #expect(diagnostic?.code == .markerInvalid)
     #expect(invocationCount == 0)
     #expect(try fixture.snapshot() == before)
   }
@@ -387,7 +387,7 @@ struct TestSafetyValidationTests {
       )
     }
 
-    #expect(diagnostic?.code == "test-safety.marker-owner-mismatch")
+    #expect(diagnostic?.code == .markerOwnerMismatch)
     #expect(try fixture.snapshot() == before)
   }
 
@@ -407,7 +407,7 @@ struct TestSafetyValidationTests {
       }
     }
 
-    #expect(diagnostic?.code == "test-safety.directory-missing")
+    #expect(diagnostic?.code == .directoryMissing)
     #expect(invocationCount == 0)
     #expect(try fixture.snapshot() == before)
   }

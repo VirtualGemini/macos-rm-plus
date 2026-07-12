@@ -27,7 +27,7 @@ final class DirectoryHandle {
     )
     guard parentDescriptor >= 0 else {
       throw posixDiagnostic(
-        code: "test-safety.directory-create-failed",
+        code: .directoryCreateFailed,
         operation: "open the parent of the \(role.rawValue) directory"
       )
     }
@@ -73,7 +73,7 @@ final class DirectoryHandle {
       )
     } catch StagedDirectoryError.destinationExists {
       throw TestSafetyDiagnostic(
-        code: "test-safety.run-directory-exists",
+        code: .runDirectoryExists,
         message: "The UUID Run Directory already exists and cannot be reused."
       )
     }
@@ -84,7 +84,7 @@ final class DirectoryHandle {
     guard copiedDescriptor >= 0, let directory = fdopendir(copiedDescriptor) else {
       if copiedDescriptor >= 0 { close(copiedDescriptor) }
       throw posixDiagnostic(
-        code: "test-safety.directory-read-failed",
+        code: .directoryReadFailed,
         operation: "read the Run Directory"
       )
     }
@@ -103,7 +103,7 @@ final class DirectoryHandle {
     }
     guard errno == 0 else {
       throw posixDiagnostic(
-        code: "test-safety.directory-read-failed",
+        code: .directoryReadFailed,
         operation: "read the Run Directory"
       )
     }
@@ -117,9 +117,10 @@ final class DirectoryHandle {
   ) throws -> DirectoryHandle {
     var status = stat()
     guard lstat(path, &status) == 0 else { throw missingDirectory(role) }
-    try validateDirectoryStatus(status, owner: owner, role: role)
+    let expectation = DirectoryExpectation(status: status, owner: owner, role: role)
+    try expectation.validate(status)
     let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
-    return try finishOpening(descriptor, initialStatus: status, owner: owner, role: role)
+    return try finishOpening(descriptor, expectation: expectation)
   }
 
   private static func createOrValidate(
@@ -143,7 +144,7 @@ final class DirectoryHandle {
     }
     guard errno == ENOENT else {
       throw posixDiagnostic(
-        code: "test-safety.directory-create-failed",
+        code: .directoryCreateFailed,
         operation: "inspect the \(role.rawValue) directory"
       )
     }
@@ -181,7 +182,7 @@ final class DirectoryHandle {
     let stagingName = ".rmp-create-\(UUID().uuidString.lowercased())"
     guard mkdirat(parentDescriptor, stagingName, 0o700) == 0 else {
       throw posixDiagnostic(
-        code: "test-safety.directory-create-failed",
+        code: .directoryCreateFailed,
         operation: "create a staged \(role.rawValue) directory"
       )
     }
@@ -197,7 +198,7 @@ final class DirectoryHandle {
     }
     guard fchmodat(parentDescriptor, stagingName, 0o700, AT_SYMLINK_NOFOLLOW) == 0 else {
       throw posixDiagnostic(
-        code: "test-safety.directory-create-failed",
+        code: .directoryCreateFailed,
         operation: "secure a staged \(role.rawValue) directory"
       )
     }
@@ -222,7 +223,7 @@ final class DirectoryHandle {
         throw StagedDirectoryError.destinationExists
       }
       throw posixDiagnostic(
-        code: "test-safety.directory-create-failed",
+        code: .directoryCreateFailed,
         operation: "install the \(role.rawValue) directory"
       )
     }
@@ -230,9 +231,7 @@ final class DirectoryHandle {
     try validateDirectoryEntry(
       parentDescriptor: parentDescriptor,
       name: name,
-      expectedIdentity: handle.identity,
-      owner: owner,
-      role: role
+      expectation: DirectoryExpectation(identity: handle.identity, owner: owner, role: role)
     )
     return handle
   }
@@ -261,48 +260,41 @@ final class DirectoryHandle {
     guard fstatat(parentDescriptor, name, &status, AT_SYMLINK_NOFOLLOW) == 0 else {
       throw missingDirectory(role)
     }
-    try validateDirectoryStatus(status, owner: owner, role: role)
+    let expectation = DirectoryExpectation(status: status, owner: owner, role: role)
+    try expectation.validate(status)
     let descriptor = openat(
       parentDescriptor,
       name,
       O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
     )
-    return try finishOpening(descriptor, initialStatus: status, owner: owner, role: role)
+    return try finishOpening(descriptor, expectation: expectation)
   }
 
   private static func finishOpening(
     _ descriptor: Int32,
-    initialStatus: stat,
-    owner: uid_t,
-    role: TestSafetyDirectoryRole
+    expectation: DirectoryExpectation
   ) throws -> DirectoryHandle {
     guard descriptor >= 0 else {
       throw TestSafetyDiagnostic(
-        code: "test-safety.directory-open-failed",
+        code: .directoryOpenFailed,
         message:
-          "The \(role.rawValue) directory could not be opened without following symbolic links."
+          "The \(expectation.role.rawValue) directory could not be opened "
+          + "without following symbolic links."
       )
     }
     var openedStatus = stat()
     guard fstat(descriptor, &openedStatus) == 0 else {
       close(descriptor)
       throw posixDiagnostic(
-        code: "test-safety.directory-identity-unavailable",
-        operation: "identify the \(role.rawValue) directory"
+        code: .directoryIdentityUnavailable,
+        operation: "identify the \(expectation.role.rawValue) directory"
       )
     }
     do {
-      try validateDirectoryStatus(openedStatus, owner: owner, role: role)
+      try expectation.validate(openedStatus)
     } catch {
       close(descriptor)
       throw error
-    }
-    guard FileIdentity(status: initialStatus) == FileIdentity(status: openedStatus) else {
-      close(descriptor)
-      throw TestSafetyDiagnostic(
-        code: "test-safety.directory-identity-mismatch",
-        message: "The \(role.rawValue) directory changed identity while it was opened."
-      )
     }
     return DirectoryHandle(fileDescriptor: descriptor, identity: FileIdentity(status: openedStatus))
   }
@@ -330,50 +322,61 @@ struct DirectoryCreation {
   let created: Bool
 }
 
+struct DirectoryExpectation {
+  let identity: FileIdentity
+  let owner: uid_t
+  let role: TestSafetyDirectoryRole
+
+  init(identity: FileIdentity, owner: uid_t, role: TestSafetyDirectoryRole) {
+    self.identity = identity
+    self.owner = owner
+    self.role = role
+  }
+
+  init(status: stat, owner: uid_t, role: TestSafetyDirectoryRole) {
+    self.init(identity: FileIdentity(status: status), owner: owner, role: role)
+  }
+
+  func validate(_ status: stat) throws {
+    try validateDirectoryStatus(status, owner: owner, role: role)
+    guard FileIdentity(status: status) == identity else { throw identityMismatch(role) }
+  }
+}
+
 func validateDirectoryPath(
   _ path: String,
-  expectedIdentity: FileIdentity,
-  owner: uid_t,
-  role: TestSafetyDirectoryRole
+  expectation: DirectoryExpectation
 ) throws {
   var status = stat()
-  guard lstat(path, &status) == 0 else { throw missingDirectory(role) }
-  try validateDirectoryStatus(status, owner: owner, role: role)
-  guard FileIdentity(status: status) == expectedIdentity else { throw identityMismatch(role) }
+  guard lstat(path, &status) == 0 else { throw missingDirectory(expectation.role) }
+  try expectation.validate(status)
 }
 
 func validateDirectoryEntry(
   parent: DirectoryHandle,
   name: String,
-  expectedIdentity: FileIdentity,
-  owner: uid_t,
-  role: TestSafetyDirectoryRole
+  expectation: DirectoryExpectation
 ) throws {
   try validateDirectoryEntry(
     parentDescriptor: parent.fileDescriptor,
     name: name,
-    expectedIdentity: expectedIdentity,
-    owner: owner,
-    role: role
+    expectation: expectation
   )
 }
 
 private func validateDirectoryEntry(
   parentDescriptor: Int32,
   name: String,
-  expectedIdentity: FileIdentity,
-  owner: uid_t,
-  role: TestSafetyDirectoryRole
+  expectation: DirectoryExpectation
 ) throws {
   var status = stat()
   guard fstatat(parentDescriptor, name, &status, AT_SYMLINK_NOFOLLOW) == 0 else {
-    throw missingDirectory(role)
+    throw missingDirectory(expectation.role)
   }
-  try validateDirectoryStatus(status, owner: owner, role: role)
-  guard FileIdentity(status: status) == expectedIdentity else { throw identityMismatch(role) }
+  try expectation.validate(status)
 }
 
-func posixDiagnostic(code: String, operation: String) -> TestSafetyDiagnostic {
+func posixDiagnostic(code: TestSafetyDiagnosticCode, operation: String) -> TestSafetyDiagnostic {
   TestSafetyDiagnostic(code: code, message: "Unable to \(operation) (errno \(errno)).")
 }
 
@@ -383,22 +386,22 @@ private func validateDirectoryStatus(
   role: TestSafetyDirectoryRole
 ) throws {
   guard status.st_mode & S_IFMT == S_IFDIR else {
-    let code =
+    let code: TestSafetyDiagnosticCode =
       status.st_mode & S_IFMT == S_IFLNK
-      ? "test-safety.directory-symlink"
-      : "test-safety.directory-wrong-type"
+      ? .directorySymlink
+      : .directoryWrongType
     throw TestSafetyDiagnostic(
       code: code, message: "The \(role.rawValue) path is not a real directory.")
   }
   guard status.st_uid == owner else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.directory-owner-mismatch",
+      code: .directoryOwnerMismatch,
       message: "The \(role.rawValue) directory is not owned by the effective user."
     )
   }
   guard status.st_mode & 0o7777 == 0o700 else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.directory-permissions",
+      code: .directoryPermissions,
       message: "The \(role.rawValue) directory must have permissions 0700."
     )
   }
@@ -406,14 +409,14 @@ private func validateDirectoryStatus(
 
 private func missingDirectory(_ role: TestSafetyDirectoryRole) -> TestSafetyDiagnostic {
   TestSafetyDiagnostic(
-    code: "test-safety.directory-missing",
+    code: .directoryMissing,
     message: "The \(role.rawValue) directory is missing."
   )
 }
 
 private func identityMismatch(_ role: TestSafetyDirectoryRole) -> TestSafetyDiagnostic {
   TestSafetyDiagnostic(
-    code: "test-safety.directory-identity-mismatch",
+    code: .directoryIdentityMismatch,
     message: "The \(role.rawValue) directory identity does not match its recorded identity."
   )
 }

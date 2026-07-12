@@ -57,7 +57,7 @@ struct TrustedUserAccount: Equatable, Sendable {
 
     guard status == 0, result != nil, let homePointer = passwordEntry.pw_dir else {
       throw TestSafetyDiagnostic(
-        code: "test-safety.account-lookup-failed",
+        code: .accountLookupFailed,
         message:
           "Unable to obtain the effective user's home directory from the system account database."
       )
@@ -70,16 +70,54 @@ struct TrustedUserAccount: Equatable, Sendable {
 }
 
 @_spi(RMPTestingEntrypoint)
+public enum TestSafetyDiagnosticCode: String, Sendable {
+  case accountIdentityMismatch = "test-safety.account-identity-mismatch"
+  case accountLookupFailed = "test-safety.account-lookup-failed"
+  case cleanupFailed = "test-safety.cleanup-failed"
+  case directoryCreateFailed = "test-safety.directory-create-failed"
+  case directoryIdentityMismatch = "test-safety.directory-identity-mismatch"
+  case directoryIdentityUnavailable = "test-safety.directory-identity-unavailable"
+  case directoryMissing = "test-safety.directory-missing"
+  case directoryOpenFailed = "test-safety.directory-open-failed"
+  case directoryOwnerMismatch = "test-safety.directory-owner-mismatch"
+  case directoryPermissions = "test-safety.directory-permissions"
+  case directoryReadFailed = "test-safety.directory-read-failed"
+  case directorySymlink = "test-safety.directory-symlink"
+  case directoryWrongType = "test-safety.directory-wrong-type"
+  case duplicateRunID = "test-safety.duplicate-run-id"
+  case executableIdentityUnavailable = "test-safety.executable-identity-unavailable"
+  case invalidRunID = "test-safety.invalid-run-id"
+  case markerCreateFailed = "test-safety.marker-create-failed"
+  case markerExists = "test-safety.marker-exists"
+  case markerIdentityMismatch = "test-safety.marker-identity-mismatch"
+  case markerInvalid = "test-safety.marker-invalid"
+  case markerMissing = "test-safety.marker-missing"
+  case markerOpenFailed = "test-safety.marker-open-failed"
+  case markerOwnerMismatch = "test-safety.marker-owner-mismatch"
+  case markerPermissions = "test-safety.marker-permissions"
+  case markerReadFailed = "test-safety.marker-read-failed"
+  case markerWriteFailed = "test-safety.marker-write-failed"
+  case markerWrongType = "test-safety.marker-wrong-type"
+  case missingRunID = "test-safety.missing-run-id"
+  case rootExecution = "test-safety.root-execution"
+  case runDirectoryExists = "test-safety.run-directory-exists"
+  case runDirectoryNotEmpty = "test-safety.run-directory-not-empty"
+  case testingBuildRequired = "test-safety.testing-build-required"
+  case unexpectedError = "test-safety.unexpected-error"
+  case wrongExecutable = "test-safety.wrong-executable"
+}
+
+@_spi(RMPTestingEntrypoint)
 public struct TestSafetyDiagnostic: Error, Equatable, CustomStringConvertible, Sendable {
-  public let code: String
+  public let code: TestSafetyDiagnosticCode
   public let message: String
 
-  public init(code: String, message: String) {
+  public init(code: TestSafetyDiagnosticCode, message: String) {
     self.code = code
     self.message = message
   }
 
-  public var description: String { "\(code): \(message)" }
+  public var description: String { "\(code.rawValue): \(message)" }
 }
 
 func validateTestUserIdentity(
@@ -88,13 +126,13 @@ func validateTestUserIdentity(
 ) throws {
   guard effectiveUserID != 0 else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.root-execution",
+      code: .rootExecution,
       message: "rmp-test refuses to run as root."
     )
   }
   guard trustedUser.userID == effectiveUserID else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.account-identity-mismatch",
+      code: .accountIdentityMismatch,
       message: "The trusted account record does not match the effective user."
     )
   }

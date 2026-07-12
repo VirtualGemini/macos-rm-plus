@@ -77,13 +77,13 @@ public enum TestSafetyDriver {
   private static func validateRuntime(_ runtime: TestSafetyRuntime) throws {
     guard runtime.testingBuildEnabled else {
       throw TestSafetyDiagnostic(
-        code: "test-safety.testing-build-required",
+        code: .testingBuildRequired,
         message: "The rmp-test driver requires the compile-time RMP_TESTING build flag."
       )
     }
     guard runtime.executableName == "rmp-test" else {
       throw TestSafetyDiagnostic(
-        code: "test-safety.wrong-executable",
+        code: .wrongExecutable,
         message: "The test safety driver must run from the rmp-test executable."
       )
     }
@@ -99,14 +99,14 @@ public enum TestSafetyDriver {
       if argument == "--test-run-id" {
         guard runIDText == nil else {
           throw TestSafetyDiagnostic(
-            code: "test-safety.duplicate-run-id",
+            code: .duplicateRunID,
             message: "--test-run-id may be supplied exactly once."
           )
         }
         let valueIndex = arguments.index(after: index)
         guard valueIndex < arguments.endIndex else {
           throw TestSafetyDiagnostic(
-            code: "test-safety.missing-run-id",
+            code: .missingRunID,
             message: "--test-run-id requires a canonical UUID value."
           )
         }
@@ -119,13 +119,13 @@ public enum TestSafetyDriver {
 
     guard let runIDText else {
       throw TestSafetyDiagnostic(
-        code: "test-safety.missing-run-id",
+        code: .missingRunID,
         message: "Every path-accepting rmp-test run requires --test-run-id."
       )
     }
     guard let runID = UUID(uuidString: runIDText), runIDText == runID.uuidString.lowercased() else {
       throw TestSafetyDiagnostic(
-        code: "test-safety.invalid-run-id",
+        code: .invalidRunID,
         message: "--test-run-id must be a canonical lowercase UUID."
       )
     }
@@ -150,7 +150,7 @@ public enum TestSafetyDriver {
     TestSafetyDriverResult(
       exitCode: 2,
       diagnostic: TestSafetyDiagnostic(
-        code: "test-safety.unexpected-error",
+        code: .unexpectedError,
         message: "The test safety driver failed unexpectedly."
       )
     )
@@ -183,7 +183,7 @@ private enum LoadedExecutableIdentity {
 
   private static func executableIdentityUnavailable() -> TestSafetyDiagnostic {
     TestSafetyDiagnostic(
-      code: "test-safety.executable-identity-unavailable",
+      code: .executableIdentityUnavailable,
       message: "The loaded executable identity could not be obtained from macOS."
     )
   }

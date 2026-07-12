@@ -18,7 +18,7 @@ struct TestSafetyCleanupTests {
 
     let diagnostic = captureDiagnostic { try context.cleanupRunDirectory() }
 
-    #expect(diagnostic?.code == "test-safety.directory-identity-mismatch")
+    #expect(diagnostic?.code == .directoryIdentityMismatch)
     #expect(FileManager.default.fileExists(atPath: movedURL.path))
     #expect(FileManager.default.fileExists(atPath: context.runDirectoryURL.path))
   }
@@ -32,7 +32,7 @@ struct TestSafetyCleanupTests {
 
     let diagnostic = captureDiagnostic { try context.cleanupRunDirectory() }
 
-    #expect(diagnostic?.code == "test-safety.marker-invalid")
+    #expect(diagnostic?.code == .markerInvalid)
     #expect(FileManager.default.fileExists(atPath: context.runMarkerURL.path))
     #expect(FileManager.default.fileExists(atPath: context.runDirectoryURL.path))
   }
@@ -62,7 +62,7 @@ struct TestSafetyCleanupTests {
 
     let diagnostic = captureDiagnostic { try context.cleanupRunDirectory() }
 
-    #expect(diagnostic?.code == "test-safety.run-directory-not-empty")
+    #expect(diagnostic?.code == .runDirectoryNotEmpty)
     #expect(FileManager.default.fileExists(atPath: fixtureURL.path))
     #expect(FileManager.default.fileExists(atPath: context.runMarkerURL.path))
     #expect(FileManager.default.fileExists(atPath: context.runDirectoryURL.path))

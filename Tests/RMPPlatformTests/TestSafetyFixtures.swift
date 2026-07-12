@@ -16,38 +16,38 @@ enum UnsafeRuntimeCase: CaseIterable, CustomTestStringConvertible {
   case missingRunIDValue
   case accountIdentityMismatch
 
-  var testDescription: String { expectedCode }
+  var testDescription: String { expectedCode.rawValue }
 
   private var configuration: UnsafeRuntimeConfiguration {
     switch self {
     case .root:
       UnsafeRuntimeConfiguration(
         arguments: validArguments,
-        expectedCode: "test-safety.root-execution",
+        expectedCode: .rootExecution,
         runtimeKind: .root
       )
     case .missingTestingBuild:
       UnsafeRuntimeConfiguration(
         arguments: validArguments,
-        expectedCode: "test-safety.testing-build-required",
+        expectedCode: .testingBuildRequired,
         runtimeKind: .missingTestingBuild
       )
     case .wrongExecutable:
       UnsafeRuntimeConfiguration(
         arguments: validArguments,
-        expectedCode: "test-safety.wrong-executable",
+        expectedCode: .wrongExecutable,
         runtimeKind: .wrongExecutable
       )
     case .missingRunID:
       UnsafeRuntimeConfiguration(
         arguments: ["fixture"],
-        expectedCode: "test-safety.missing-run-id",
+        expectedCode: .missingRunID,
         runtimeKind: .standard
       )
     case .invalidRunID:
       UnsafeRuntimeConfiguration(
         arguments: ["--test-run-id", "not-a-uuid", "fixture"],
-        expectedCode: "test-safety.invalid-run-id",
+        expectedCode: .invalidRunID,
         runtimeKind: .standard
       )
     case .duplicateRunID:
@@ -56,19 +56,19 @@ enum UnsafeRuntimeCase: CaseIterable, CustomTestStringConvertible {
           "--test-run-id", UUID().uuidString.lowercased(),
           "--test-run-id", UUID().uuidString.lowercased(),
         ],
-        expectedCode: "test-safety.duplicate-run-id",
+        expectedCode: .duplicateRunID,
         runtimeKind: .standard
       )
     case .missingRunIDValue:
       UnsafeRuntimeConfiguration(
         arguments: ["fixture", "--test-run-id"],
-        expectedCode: "test-safety.missing-run-id",
+        expectedCode: .missingRunID,
         runtimeKind: .standard
       )
     case .accountIdentityMismatch:
       UnsafeRuntimeConfiguration(
         arguments: validArguments,
-        expectedCode: "test-safety.account-identity-mismatch",
+        expectedCode: .accountIdentityMismatch,
         runtimeKind: .accountIdentityMismatch
       )
     }
@@ -76,7 +76,7 @@ enum UnsafeRuntimeCase: CaseIterable, CustomTestStringConvertible {
 
   var arguments: [String] { configuration.arguments }
 
-  var expectedCode: String { configuration.expectedCode }
+  var expectedCode: TestSafetyDiagnosticCode { configuration.expectedCode }
 
   func runtime(for trustedUser: TrustedUserAccount) -> TestSafetyRuntime {
     configuration.runtimeKind.runtime(for: trustedUser)
@@ -89,7 +89,7 @@ enum UnsafeRuntimeCase: CaseIterable, CustomTestStringConvertible {
 
 private struct UnsafeRuntimeConfiguration {
   let arguments: [String]
-  let expectedCode: String
+  let expectedCode: TestSafetyDiagnosticCode
   let runtimeKind: UnsafeRuntimeKind
 }
 

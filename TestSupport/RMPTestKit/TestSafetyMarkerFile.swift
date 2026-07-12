@@ -31,12 +31,12 @@ func createMarkerExclusive(
   guard descriptor >= 0 else {
     if errno == EEXIST {
       throw TestSafetyDiagnostic(
-        code: "test-safety.marker-exists",
+        code: .markerExists,
         message: "A required safety marker already exists."
       )
     }
     throw posixDiagnostic(
-      code: "test-safety.marker-create-failed",
+      code: .markerCreateFailed,
       operation: "create a safety marker"
     )
   }
@@ -49,7 +49,7 @@ func createMarkerExclusive(
   }
   guard fchmod(descriptor, 0o600) == 0 else {
     throw posixDiagnostic(
-      code: "test-safety.marker-create-failed",
+      code: .markerCreateFailed,
       operation: "secure a safety marker"
     )
   }
@@ -58,7 +58,7 @@ func createMarkerExclusive(
   try writeAll(data, to: descriptor)
   guard fsync(descriptor) == 0 else {
     throw posixDiagnostic(
-      code: "test-safety.marker-write-failed",
+      code: .markerWriteFailed,
       operation: "sync a safety marker"
     )
   }
@@ -74,7 +74,7 @@ func validateExistingMarker(
   var status = stat()
   guard fstatat(parent.fileDescriptor, name, &status, AT_SYMLINK_NOFOLLOW) == 0 else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-missing",
+      code: .markerMissing,
       message: "A required safety marker is missing."
     )
   }
@@ -82,7 +82,7 @@ func validateExistingMarker(
   let descriptor = openat(parent.fileDescriptor, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
   guard descriptor >= 0 else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-open-failed",
+      code: .markerOpenFailed,
       message: "A required safety marker could not be opened without following symbolic links."
     )
   }
@@ -90,14 +90,14 @@ func validateExistingMarker(
   var openedStatus = stat()
   guard fstat(descriptor, &openedStatus) == 0 else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-identity-mismatch",
+      code: .markerIdentityMismatch,
       message: "A required safety marker changed identity during validation."
     )
   }
   try validateMarkerStatus(openedStatus, owner: owner)
   guard FileIdentity(status: openedStatus) == FileIdentity(status: status) else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-identity-mismatch",
+      code: .markerIdentityMismatch,
       message: "A required safety marker changed identity during validation."
     )
   }
@@ -106,7 +106,7 @@ func validateExistingMarker(
     marker == expected
   else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-invalid",
+      code: .markerInvalid,
       message: "A required safety marker has invalid or mismatched contents."
     )
   }
@@ -115,19 +115,19 @@ func validateExistingMarker(
 private func validateMarkerStatus(_ status: stat, owner: uid_t) throws {
   guard status.st_mode & S_IFMT == S_IFREG else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-wrong-type",
+      code: .markerWrongType,
       message: "A required safety marker is not a regular file."
     )
   }
   guard status.st_uid == owner else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-owner-mismatch",
+      code: .markerOwnerMismatch,
       message: "A required safety marker is not owned by the effective user."
     )
   }
   guard status.st_mode & 0o7777 == 0o600 else {
     throw TestSafetyDiagnostic(
-      code: "test-safety.marker-permissions",
+      code: .markerPermissions,
       message: "A required safety marker must have permissions 0600."
     )
   }
@@ -148,7 +148,7 @@ private func writeAll(_ data: Data, to descriptor: Int32) throws {
         descriptor, baseAddress.advanced(by: written), buffer.count - written)
       guard count > 0 else {
         throw posixDiagnostic(
-          code: "test-safety.marker-write-failed",
+          code: .markerWriteFailed,
           operation: "write a safety marker"
         )
       }
@@ -165,7 +165,7 @@ private func readAll(from descriptor: Int32) throws -> Data {
     if count == 0 { return data }
     guard count > 0 else {
       throw posixDiagnostic(
-        code: "test-safety.marker-read-failed",
+        code: .markerReadFailed,
         operation: "read a safety marker"
       )
     }

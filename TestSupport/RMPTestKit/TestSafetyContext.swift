@@ -81,23 +81,29 @@ public final class TestSafetyContext {
   func revalidate() throws {
     try validateDirectoryPath(
       containerURL.path,
-      expectedIdentity: containerIdentity,
-      owner: effectiveUserID,
-      role: .container
+      expectation: DirectoryExpectation(
+        identity: containerIdentity,
+        owner: effectiveUserID,
+        role: .container
+      )
     )
     try validateDirectoryEntry(
       parent: containerHandle,
       name: Self.authorizedRootName,
-      expectedIdentity: authorizedRootIdentity,
-      owner: effectiveUserID,
-      role: .authorizedRoot
+      expectation: DirectoryExpectation(
+        identity: authorizedRootIdentity,
+        owner: effectiveUserID,
+        role: .authorizedRoot
+      )
     )
     try validateDirectoryEntry(
       parent: authorizedRootHandle,
       name: runID.uuidString.lowercased(),
-      expectedIdentity: runDirectoryIdentity,
-      owner: effectiveUserID,
-      role: .run
+      expectation: DirectoryExpectation(
+        identity: runDirectoryIdentity,
+        owner: effectiveUserID,
+        role: .run
+      )
     )
     try validateLongLivedMarkers()
     try validateExistingMarker(
@@ -112,26 +118,28 @@ public final class TestSafetyContext {
     try revalidate()
     guard try runDirectoryHandle.entryNames() == [Self.runMarkerName] else {
       throw TestSafetyDiagnostic(
-        code: "test-safety.run-directory-not-empty",
+        code: .runDirectoryNotEmpty,
         message: "The Run Directory contains Test Fixtures and was preserved for inspection."
       )
     }
     guard unlinkat(runDirectoryHandle.fileDescriptor, Self.runMarkerName, 0) == 0 else {
-      throw posixDiagnostic(code: "test-safety.cleanup-failed", operation: "remove the run marker")
+      throw posixDiagnostic(code: .cleanupFailed, operation: "remove the run marker")
     }
     try validateDirectoryEntry(
       parent: authorizedRootHandle,
       name: runID.uuidString.lowercased(),
-      expectedIdentity: runDirectoryIdentity,
-      owner: effectiveUserID,
-      role: .run
+      expectation: DirectoryExpectation(
+        identity: runDirectoryIdentity,
+        owner: effectiveUserID,
+        role: .run
+      )
     )
     guard
       unlinkat(authorizedRootHandle.fileDescriptor, runID.uuidString.lowercased(), AT_REMOVEDIR)
         == 0
     else {
       throw posixDiagnostic(
-        code: "test-safety.cleanup-failed",
+        code: .cleanupFailed,
         operation: "remove the Run Directory"
       )
     }

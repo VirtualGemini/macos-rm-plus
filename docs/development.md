@@ -213,6 +213,10 @@ device/inode identity; the run marker additionally records the UUID and all thre
 identities. Existing directories and markers are validated without following symbolic links and are
 never repaired automatically.
 
+Directory validation packages the expected device/inode identity, owner, and directory role into one
+expectation value so path and descriptor checks apply the same invariant. Stable `test-safety.*`
+identifiers are defined as typed diagnostic codes while preserving their documented raw strings.
+
 Test-safety failures use stable `test-safety.*` diagnostic codes. Local cleanup revalidates the full
 hierarchy, removes only the matching run marker, and uses non-recursive `rmdir` semantics only when
 the Run Directory has no Test Fixtures. The two fixed directories and their long-lived markers are

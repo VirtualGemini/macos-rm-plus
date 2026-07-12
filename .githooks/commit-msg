@@ -1,0 +1,10 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+
+set -eu
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+./scripts/validate-commit-message.sh "$1"
+./scripts/check-doc-impact.sh --staged --message-file "$1"

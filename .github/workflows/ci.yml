@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: CI
+
+on:
+  pull_request:
+  pull_request_review:
+    types:
+      - submitted
+      - dismissed
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Bootstrap pinned tools
+        run: make bootstrap
+
+      - name: Reject dependency-resolution drift
+        run: git diff --exit-code -- Package.resolved
+
+      - name: Validate pull-request commits
+        if: github.event_name != 'push'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: ./scripts/check-commits.sh "$BASE_SHA" "$HEAD_SHA"
+
+      - name: Validate documentation-impact approvals
+        if: github.event_name != 'push'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: ./scripts/check-doc-impact-approvals.sh "$BASE_SHA" "$HEAD_SHA"
+
+      - name: Run non-destructive gates
+        env:
+          COVERAGE_BASELINE_REF: ${{ github.event.pull_request.base.sha }}
+        run: make ci

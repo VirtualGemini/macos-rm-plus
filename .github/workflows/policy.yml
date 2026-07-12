@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Trusted Policy
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  policy:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out trusted target policy
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Fetch pull-request head without checking it out
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: git fetch origin "pull/${PR_NUMBER}/head:refs/remotes/origin/trusted-policy-pr-head"
+
+      - name: Run trusted commit and documentation policy
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: refs/remotes/origin/trusted-policy-pr-head
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          ./scripts/check-commits.sh "$BASE_SHA" "$HEAD_SHA"
+          ./scripts/check-doc-impact-approvals.sh "$BASE_SHA" "$HEAD_SHA"
+          ./scripts/check-policy-changes.sh "$BASE_SHA" "$HEAD_SHA"

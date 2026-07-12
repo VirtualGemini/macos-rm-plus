@@ -1,6 +1,6 @@
 # Strict scaffold review remediation
 
-Status: ready-for-agent
+Status: resolved
 
 ## Outcome
 

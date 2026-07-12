@@ -1,6 +1,6 @@
 # Project foundation scaffold
 
-Status: ready-for-agent
+Status: resolved
 
 ## Outcome
 

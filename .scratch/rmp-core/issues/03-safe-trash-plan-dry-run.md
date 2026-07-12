@@ -4,7 +4,7 @@
 
 **Blocked by:** None — the completed project scaffold provides the required foundation.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] A dry run accepts one or more file, directory, symlink, broken-symlink, and other top-level path entries and presents the planned work in input order without recursively inspecting directory contents.
 - [x] A dry run performs no move, deletion, overwrite, Trash call, or other filesystem mutation.

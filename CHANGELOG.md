@@ -6,6 +6,12 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ## Unreleased
 
+### Changed
+
+- Allow trusted maintainers to ratchet coverage baselines upward with implementation changes without
+  creating a self-approval deadlock; untrusted authors, reductions, and metric changes remain
+  protected.
+
 ### Added
 
 - Add `rmp --dry-run` for ordered, kind-aware top-level Trash Plan previews with missing-path and

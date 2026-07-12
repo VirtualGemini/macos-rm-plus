@@ -8,9 +8,11 @@ trap 'rm -rf "$TEMP_DIR"' EXIT HUP INT TERM
 repo="$TEMP_DIR/repo"
 mkdir -p "$repo/scripts" "$repo/.github"
 cp "$ROOT/scripts/check-policy-changes.sh" "$repo/scripts/"
-printf '%s\n' 'Makefile' >"$repo/.policy-files"
+printf '%s\n' 'Makefile' '.coverage-baseline' '.coverage-metric-version' >"$repo/.policy-files"
 printf '%s\n' '@maintainer' >"$repo/.github/maintainers.txt"
 printf '%s\n' 'original' >"$repo/Makefile"
+printf '%s\n' '80.00' >"$repo/.coverage-baseline"
+printf '%s\n' '1' >"$repo/.coverage-metric-version"
 git -C "$repo" init -q
 git -C "$repo" config user.name Tests
 git -C "$repo" config user.email tests@example.invalid
@@ -30,6 +32,73 @@ if POLICY_REVIEWS_TSV="$reviews" "$repo/scripts/check-policy-changes.sh" "$base"
 fi
 POLICY_REVIEWS_TSV=$(printf 'maintainer\tAPPROVED\t%s\n' "$head") \
   "$repo/scripts/check-policy-changes.sh" "$base" "$head"
+
+git -C "$repo" switch -q --detach "$base"
+printf '%s\n' '82.04' >"$repo/.coverage-baseline"
+printf '%s\n' 'feature implementation' >"$repo/source.swift"
+git -C "$repo" add .
+git -C "$repo" commit -qm "test: raise coverage baseline with feature"
+ratchet_head=$(git -C "$repo" rev-parse HEAD)
+POLICY_PR_AUTHOR=maintainer \
+  POLICY_REVIEWS_TSV=$(printf 'maintainer\tCHANGES_REQUESTED\t%s\n' "$ratchet_head") \
+  "$repo/scripts/check-policy-changes.sh" "$base" "$ratchet_head"
+if POLICY_PR_AUTHOR=contributor \
+  POLICY_REVIEWS_TSV=$(printf 'maintainer\tCHANGES_REQUESTED\t%s\n' "$ratchet_head") \
+  "$repo/scripts/check-policy-changes.sh" "$base" "$ratchet_head" >/dev/null 2>&1; then
+  echo "test failure: untrusted author bypassed coverage baseline approval" >&2
+  exit 1
+fi
+
+git -C "$repo" switch -q --detach "$base"
+printf '%s\n' '82.04' >"$repo/.coverage-baseline"
+printf '%s\n' 'changed again' >"$repo/Makefile"
+git -C "$repo" add .
+git -C "$repo" commit -qm "test: raise baseline with policy executor"
+mixed_policy_head=$(git -C "$repo" rev-parse HEAD)
+if POLICY_PR_AUTHOR=maintainer \
+  POLICY_REVIEWS_TSV=$(printf 'maintainer\tCHANGES_REQUESTED\t%s\n' "$mixed_policy_head") \
+  "$repo/scripts/check-policy-changes.sh" "$base" "$mixed_policy_head" >/dev/null 2>&1; then
+  echo "test failure: another policy executor bypassed approval with a baseline ratchet" >&2
+  exit 1
+fi
+
+git -C "$repo" switch -q --detach "$base"
+printf '%s\n' 'not-a-number' >"$repo/.coverage-baseline"
+printf '%s\n' 'feature implementation' >"$repo/source.swift"
+git -C "$repo" add .
+git -C "$repo" commit -qm "test: use invalid coverage baseline"
+invalid_head=$(git -C "$repo" rev-parse HEAD)
+if POLICY_PR_AUTHOR=maintainer \
+  POLICY_REVIEWS_TSV=$(printf 'maintainer\tCHANGES_REQUESTED\t%s\n' "$invalid_head") \
+  "$repo/scripts/check-policy-changes.sh" "$base" "$invalid_head" >/dev/null 2>&1; then
+  echo "test failure: invalid coverage baseline bypassed policy approval" >&2
+  exit 1
+fi
+
+git -C "$repo" switch -q --detach "$base"
+printf '%s\n' '79.99' >"$repo/.coverage-baseline"
+printf '%s\n' 'feature implementation' >"$repo/source.swift"
+git -C "$repo" add .
+git -C "$repo" commit -qm "test: lower coverage baseline with feature"
+lowered_head=$(git -C "$repo" rev-parse HEAD)
+if POLICY_PR_AUTHOR=maintainer \
+  POLICY_REVIEWS_TSV=$(printf 'maintainer\tCHANGES_REQUESTED\t%s\n' "$lowered_head") \
+  "$repo/scripts/check-policy-changes.sh" "$base" "$lowered_head" >/dev/null 2>&1; then
+  echo "test failure: lowered coverage baseline bypassed policy approval" >&2
+  exit 1
+fi
+
+git -C "$repo" switch -q --detach "$base"
+printf '%s\n' '2' >"$repo/.coverage-metric-version"
+git -C "$repo" add .coverage-metric-version
+git -C "$repo" commit -qm "test: change coverage metric version"
+metric_only_head=$(git -C "$repo" rev-parse HEAD)
+if POLICY_PR_AUTHOR=maintainer \
+  POLICY_REVIEWS_TSV=$(printf 'maintainer\tCHANGES_REQUESTED\t%s\n' "$metric_only_head") \
+  "$repo/scripts/check-policy-changes.sh" "$base" "$metric_only_head" >/dev/null 2>&1; then
+  echo "test failure: coverage metric change bypassed policy approval" >&2
+  exit 1
+fi
 
 git -C "$repo" switch -q --detach "$base"
 printf '%s\n' '1' >"$repo/.coverage-metric-version"

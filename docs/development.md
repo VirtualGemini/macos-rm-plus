@@ -149,7 +149,11 @@ adapter. The production dry-run path has no Trash, move, overwrite, or deletion 
   explanation.
 - `.coverage-baseline` records the minimum line coverage. PR CI reads that file from the trusted
   target SHA, so a PR cannot lower its own threshold. A deliberate reduction requires a separately
-  reviewed baseline change on the target branch before the implementation PR.
+  reviewed baseline change on the target branch before the implementation PR. A PR authored by a
+  trusted maintainer may ratchet the baseline upward without a second policy-executor approval when
+  the metric version is unchanged; the coverage gate independently requires the declared value to
+  equal the measured production coverage. Other contributors still require a trusted maintainer's
+  current-head approval for the ratchet.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.
@@ -417,6 +421,12 @@ policy code, fetches the PR head as data, and never executes PR source. A PR the
 its required policy status by replacing its own scripts or Makefile.
 Changes to any registered policy executor require a trusted maintainer's approving review on the
 current PR head; approvals for earlier revisions do not authorize later policy changes.
+The sole automatic exception is a trusted-maintainer-authored numeric increase to
+`.coverage-baseline` while `.coverage-metric-version` remains unchanged. The trusted workflow obtains
+the author identity from the GitHub pull-request event and checks it against the target branch's
+maintainer list. The coverage gate still requires the baseline to equal measured production line
+coverage. Baseline reductions, untrusted-author ratchets, metric changes, and all other
+policy-executor changes continue to require current-head approval.
 The repository ruleset must require the `Trusted Policy / policy` check before merge. Workflow files
 cannot configure that GitHub repository setting themselves; maintainers verify it after initial setup
 and whenever required-check settings change.

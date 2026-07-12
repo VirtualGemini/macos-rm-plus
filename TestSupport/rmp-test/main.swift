@@ -8,6 +8,9 @@ import Foundation
   #error("rmp-test must only be built with RMP_TESTING enabled")
 #endif
 
+@_cdecl("rmp_testing_build_identity")
+func rmpTestingBuildIdentity() {}
+
 let result = TestSafetyDriver.run(
   arguments: Array(CommandLine.arguments.dropFirst())
 ) { context, _ in

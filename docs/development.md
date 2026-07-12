@@ -141,7 +141,9 @@ adapter. The production dry-run path has no Trash, move, overwrite, or deletion 
   platform-test serialization. Parallel core-only execution may be introduced later through a
   separate command that cannot include platform or real-filesystem suites.
 - Every `FR-SAFE-*` and `FR-TEST-*` requirement has at least one corresponding test.
-- Every safety rejection proves the expected error, no filesystem change, and zero TrashClient calls.
+- Every pre-capability safety rejection proves the expected error, no unauthorized or partially
+  prepared filesystem change, and zero TrashClient calls. A complete fixed safety boundary that was
+  atomically published before a later setup failure remains in place under FR-TEST-027.
 - Parameter parsing uses a behavior matrix rather than isolated happy-path tests.
 - Bug fixes begin with a failing regression test.
 - Unit tests collect coverage and CI publishes an `llvm-cov` summary, but no global percentage
@@ -200,9 +202,10 @@ Real-filesystem tests:
 Assertions should expose mistakes early, but every assertion has a non-optional `guard` or typed
 error enforcing the same boundary in optimized builds.
 
-The compile-time-isolated `rmp-test` entrypoint supplies the `RMP_TESTING` build identity; production
-targets cannot enable it. The driver establishes the Test Safety Context before exposing path
-arguments to downstream test work. It derives the loaded executable path from macOS rather than
+The compile-time-isolated `rmp-test` target embeds a process symbol only when `RMP_TESTING` is enabled;
+the driver verifies that symbol without accepting a caller-provided build flag. Production targets do
+not embed it. The driver establishes the Test Safety Context before exposing path arguments to
+downstream test work. It derives the loaded executable path from macOS rather than
 trusting `argv[0]`, obtains the effective user's home from the system account database, rejects root or the wrong executable identity,
 exclusively creates UUID Run Directories, and retains open
 descriptors for all three safety directories. Versioned JSON markers record their directory role and

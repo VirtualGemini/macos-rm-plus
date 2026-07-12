@@ -41,7 +41,7 @@ public enum TestSafetyDriver {
         effectiveUserID: effectiveUserID,
         trustedUser: try TrustedUserAccount.current(effectiveUserID: effectiveUserID),
         executableName: try LoadedExecutableIdentity.currentName(),
-        testingBuildEnabled: true
+        testingBuildEnabled: TestingBuildIdentity.isEnabled
       )
       return run(arguments: arguments, runtime: runtime, operation: operation)
     } catch let diagnostic as TestSafetyDiagnostic {
@@ -154,6 +154,14 @@ public enum TestSafetyDriver {
         message: "The test safety driver failed unexpectedly."
       )
     )
+  }
+}
+
+private enum TestingBuildIdentity {
+  static var isEnabled: Bool {
+    guard let processHandle = dlopen(nil, RTLD_LAZY) else { return false }
+    defer { dlclose(processHandle) }
+    return dlsym(processHandle, "rmp_testing_build_identity") != nil
   }
 }
 

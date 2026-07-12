@@ -78,6 +78,41 @@ func validateExistingMarker(
       message: "A required safety marker is missing."
     )
   }
+  try validateMarkerStatus(status, owner: owner)
+  let descriptor = openat(parent.fileDescriptor, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+  guard descriptor >= 0 else {
+    throw TestSafetyDiagnostic(
+      code: "test-safety.marker-open-failed",
+      message: "A required safety marker could not be opened without following symbolic links."
+    )
+  }
+  defer { close(descriptor) }
+  var openedStatus = stat()
+  guard fstat(descriptor, &openedStatus) == 0 else {
+    throw TestSafetyDiagnostic(
+      code: "test-safety.marker-identity-mismatch",
+      message: "A required safety marker changed identity during validation."
+    )
+  }
+  try validateMarkerStatus(openedStatus, owner: owner)
+  guard FileIdentity(status: openedStatus) == FileIdentity(status: status) else {
+    throw TestSafetyDiagnostic(
+      code: "test-safety.marker-identity-mismatch",
+      message: "A required safety marker changed identity during validation."
+    )
+  }
+  let data = try readAll(from: descriptor)
+  guard let marker = try? JSONDecoder().decode(TestSafetyMarker.self, from: data),
+    marker == expected
+  else {
+    throw TestSafetyDiagnostic(
+      code: "test-safety.marker-invalid",
+      message: "A required safety marker has invalid or mismatched contents."
+    )
+  }
+}
+
+private func validateMarkerStatus(_ status: stat, owner: uid_t) throws {
   guard status.st_mode & S_IFMT == S_IFREG else {
     throw TestSafetyDiagnostic(
       code: "test-safety.marker-wrong-type",
@@ -94,32 +129,6 @@ func validateExistingMarker(
     throw TestSafetyDiagnostic(
       code: "test-safety.marker-permissions",
       message: "A required safety marker must have permissions 0600."
-    )
-  }
-  let descriptor = openat(parent.fileDescriptor, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
-  guard descriptor >= 0 else {
-    throw TestSafetyDiagnostic(
-      code: "test-safety.marker-open-failed",
-      message: "A required safety marker could not be opened without following symbolic links."
-    )
-  }
-  defer { close(descriptor) }
-  var openedStatus = stat()
-  guard fstat(descriptor, &openedStatus) == 0,
-    FileIdentity(status: openedStatus) == FileIdentity(status: status)
-  else {
-    throw TestSafetyDiagnostic(
-      code: "test-safety.marker-identity-mismatch",
-      message: "A required safety marker changed identity during validation."
-    )
-  }
-  let data = try readAll(from: descriptor)
-  guard let marker = try? JSONDecoder().decode(TestSafetyMarker.self, from: data),
-    marker == expected
-  else {
-    throw TestSafetyDiagnostic(
-      code: "test-safety.marker-invalid",
-      message: "A required safety marker has invalid or mismatched contents."
     )
   }
 }

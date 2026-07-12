@@ -19,6 +19,13 @@ docs/development.md @VirtualGemini
 docs/adr/** @VirtualGemini
 .docs-impact.yml @VirtualGemini
 .coverage-baseline @VirtualGemini
+.coverage-metric-version @VirtualGemini
 .policy-files @VirtualGemini
 scripts/check-policy-ownership.sh @VirtualGemini
+scripts/check-policy-changes.sh @VirtualGemini
 scripts/report-coverage.sh @VirtualGemini
+.tool-versions.lock @VirtualGemini
+Makefile @VirtualGemini
+.github/CODEOWNERS @VirtualGemini
+.github/workflows/policy.yml @VirtualGemini
+scripts/check-tool-versions.sh @VirtualGemini

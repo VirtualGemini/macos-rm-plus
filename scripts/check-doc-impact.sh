@@ -83,7 +83,7 @@ case "${1-}" in
       usage
     fi
     changed_files=$(git diff --cached --name-only --diff-filter=ACMRD)
-    document_files=$(git diff --cached --name-only --diff-filter=ACMR)
+    document_files=$(git diff --cached --name-only --diff-filter=AM)
     trigger_files=$changed_files
     message=$(cat "$3")
     use_configuration_from_ref HEAD
@@ -95,9 +95,9 @@ case "${1-}" in
     changed_files=$(commit_changed_files "$2")
     parent_for_docs=$(git rev-parse "$2^1" 2>/dev/null || true)
     if [ -n "$parent_for_docs" ]; then
-      document_files=$(git diff --name-only --diff-filter=ACMR "$parent_for_docs" "$2")
+      document_files=$(git diff --name-only --diff-filter=AM "$parent_for_docs" "$2")
     else
-      document_files=$(git diff-tree --root --no-commit-id --name-only --diff-filter=ACMR -r "$2")
+      document_files=$(git diff-tree --root --no-commit-id --name-only --diff-filter=AM -r "$2")
     fi
     trigger_files=$changed_files
     message=$(git show -s --format=%B "$2")
@@ -111,8 +111,9 @@ case "${1-}" in
       usage
     fi
     merge_base=$(git merge-base "$2" "$3")
+    use_configuration_from_ref "$2"
     changed_files=$(git diff --name-only --diff-filter=ACMRD "$merge_base" "$3")
-    document_files=$(git diff --name-only --diff-filter=ACMR "$merge_base" "$3")
+    document_files=$(git diff --name-only --diff-filter=AM "$merge_base" "$3")
     for commit in $(git rev-list --reverse "$merge_base..$3"); do
       commit_message=$(git show -s --format=%B "$commit")
       commit_impact=$(message_trailer "$commit_message" Docs-Impact)
@@ -125,7 +126,6 @@ case "${1-}" in
         trigger_files=$(printf '%s\n%s\n' "$trigger_files" "$commit_files")
       fi
     done
-    use_configuration_from_ref "$2"
     ;;
   *)
     usage

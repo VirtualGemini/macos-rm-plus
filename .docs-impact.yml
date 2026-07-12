@@ -30,9 +30,23 @@
       "require": "all"
     },
     {
-      "name": "safety-policy",
-      "paths": ["Sources/RMPCore/**", "Sources/RMPPlatform/**"],
-      "documents": [".scratch/rmp-core/spec.md", "Tests/**", "CHANGELOG.md"],
+      "name": "core-safety-evidence",
+      "paths": ["Sources/RMPCore/**"],
+      "documents": [
+        ".scratch/rmp-core/spec.md",
+        "Tests/RMPCoreTests/**",
+        "CHANGELOG.md"
+      ],
+      "require": "all"
+    },
+    {
+      "name": "platform-safety-evidence",
+      "paths": ["Sources/RMPPlatform/**"],
+      "documents": [
+        ".scratch/rmp-core/spec.md",
+        "Tests/RMPPlatformTests/**",
+        "CHANGELOG.md"
+      ],
       "require": "all"
     },
     {

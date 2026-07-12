@@ -146,6 +146,9 @@ directly. Those capabilities cross explicit interfaces implemented in `RMPPlatfo
 - `.coverage-baseline` records the minimum line coverage. PR CI reads that file from the trusted
   target SHA, so a PR cannot lower its own threshold. A deliberate reduction requires a separately
   reviewed baseline change on the target branch before the implementation PR.
+- `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
+  source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
+  PRs are compared only within that metric version.
 - Coverage includes production executables as additional `llvm-cov` objects; test-only coverage
   cannot hide newly added untested CLI code.
 - SafetyPolicy, option parsing, and test-whitelist branches may not remain untested.
@@ -394,6 +397,12 @@ relying on filenames to guess whether code is safety-sensitive.
 Commit metadata is parsed with `git interpret-trailers`; trailer-like text in the message body is not
 accepted. A documentation exemption approval must target a commit that contains the exempt commit,
 so approvals from an earlier PR revision cannot be reused after new exempt changes are pushed.
+
+`Trusted Policy` runs through `pull_request_target`: it checks out and executes only target-branch
+policy code, fetches the PR head as data, and never executes PR source. A PR therefore cannot disable
+its required policy status by replacing its own scripts or Makefile.
+Changes to any registered policy executor require a trusted maintainer's approving review on the
+current PR head; approvals for earlier revisions do not authorize later policy changes.
 
 ## 15. CI workflows
 

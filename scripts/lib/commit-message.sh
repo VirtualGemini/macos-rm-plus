@@ -17,7 +17,23 @@ message_is_breaking() {
   message=$1
   subject=$(message_subject "$message")
   printf '%s\n' "$subject" | grep -Eq '^.+!:' \
-    || [ -n "$(message_trailer "$message" BREAKING-CHANGE)" ]
+    || [ -n "$(message_trailer "$message" BREAKING-CHANGE)" ] \
+    || [ -n "$(message_breaking_change "$message")" ]
+}
+
+message_breaking_change() {
+  printf '%s\n' "$1" | awk '
+    BEGIN { block = ""; current = "" }
+    /^$/ { if (current != "") { block = current; current = "" }; next }
+    { current = current $0 "\n" }
+    END {
+      if (current != "") block = current
+      count = split(block, lines, "\n")
+      for (index = 1; index <= count; index++)
+        if (lines[index] ~ /^BREAKING CHANGE: /) {
+          sub(/^BREAKING CHANGE: /, "", lines[index]); print lines[index]
+        }
+    }'
 }
 
 validate_breaking_ticket_fields() {

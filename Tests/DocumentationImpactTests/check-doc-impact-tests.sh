@@ -77,6 +77,26 @@ assert_contains "$TEMP_DIR/stderr" "README.md"
 assert_contains "$TEMP_DIR/stderr" "spec.md"
 assert_contains "$TEMP_DIR/stderr" "CHANGELOG.md"
 
+registry_base=$(git -C "$repo" rev-parse HEAD)
+printf '%s\n' '# weakened registry' >"$repo/.policy-files"
+git -C "$repo" add .policy-files
+git -C "$repo" commit -qm "ci: weaken policy registry" \
+  -m "Docs-Impact: updated"
+printf '%s\n' '# disabled' >"$repo/scripts/check-doc-impact-approvals.sh"
+git -C "$repo" add scripts/check-doc-impact-approvals.sh
+git -C "$repo" commit -qm "ci: disable approval gate" \
+  -m "Docs-Impact: none
+Docs-Impact-Reason: invalid exemption
+Docs-Impact-Approved-By: @example-reviewer"
+registry_head=$(git -C "$repo" rev-parse HEAD)
+
+if "$repo/scripts/check-doc-impact.sh" --range "$registry_base" "$registry_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "PR validation trusted a policy registry weakened earlier in the PR"
+fi
+assert_contains "$TEMP_DIR/stderr" "cannot use Docs-Impact: none"
+git -C "$repo" switch -q --detach "$head"
+
 deletion_base=$head
 git -C "$repo" rm -q Sources/rmp/main.swift
 git -C "$repo" commit -qm "refactor: remove CLI entrypoint" \

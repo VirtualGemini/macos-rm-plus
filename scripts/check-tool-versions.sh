@@ -7,7 +7,8 @@ ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 . "$ROOT/scripts/lib/tool-versions.sh"
 
 swiftlint_version=$(tool_value swiftlint)
-if ! grep -Fq "exact: \"$swiftlint_version\"" "$ROOT/Package.swift"; then
+if ! grep -Eq "^[[:space:]]*\.package\(url: .*SwiftLint\.git.*, exact: \"$swiftlint_version\"\)" \
+  "$ROOT/Package.swift"; then
   echo "error: Package.swift SwiftLint version must match .tool-versions.lock" >&2
   exit 1
 fi
@@ -19,9 +20,15 @@ grep -Fq "swiftLanguageModes: [.v$swift_mode]" "$ROOT/Package.swift" \
   || { echo "error: Package.swift language mode must match .tool-versions.lock" >&2; exit 1; }
 
 checkout_sha=$(tool_value actions-checkout)
-for workflow in "$ROOT"/.github/workflows/*.yml; do
-  grep -Fq "actions/checkout@$checkout_sha" "$workflow" \
-    || { echo "error: actions/checkout SHA drift in $workflow" >&2; exit 1; }
+for workflow in "$ROOT"/.github/workflows/*.yml "$ROOT"/.github/workflows/*.yaml; do
+  [ -e "$workflow" ] || continue
+  while IFS= read -r reference; do
+    printf '%s\n' "$reference" \
+      | grep -Eq "^[[:space:]]*uses:[[:space:]]+actions/checkout@$checkout_sha([[:space:]]|$)" \
+      || { echo "error: actions/checkout SHA drift in $workflow: $reference" >&2; exit 1; }
+  done <<EOF
+$(grep -E '^[[:space:]]*uses:[[:space:]]+actions/checkout@' "$workflow" || true)
+EOF
 done
 
 latest_swift=$(tool_value swift-latest-verified)

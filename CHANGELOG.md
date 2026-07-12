@@ -13,3 +13,5 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   complete target builds, serialized platform tests, dependency-drift checks, and coverage reporting.
 - Compare PR documentation from the merge base, require fresh review commits, reject deleted test
   evidence, enforce a trusted coverage baseline, and use native Git trailer parsing.
+- Execute policy from the trusted target branch, ratchet production-only coverage, recognize the
+  standard `BREAKING CHANGE` footer, and validate policy ownership structurally.

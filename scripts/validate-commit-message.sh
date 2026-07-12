@@ -55,8 +55,9 @@ if message_is_breaking "$message"; then
     exit 1
   fi
 
-  if [ -z "$(message_trailer "$message" BREAKING-CHANGE)" ]; then
-    echo "error: breaking changes require a BREAKING-CHANGE trailer" >&2
+  if [ -z "$(message_trailer "$message" BREAKING-CHANGE)" ] \
+    && [ -z "$(message_breaking_change "$message")" ]; then
+    echo "error: breaking changes require a BREAKING CHANGE or BREAKING-CHANGE footer" >&2
     exit 1
   fi
 

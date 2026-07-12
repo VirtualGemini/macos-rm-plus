@@ -1,14 +1,21 @@
 # Files that implement or configure repository policy gates.
 .docs-impact.yml
 .coverage-baseline
+.coverage-metric-version
 .policy-files
+.tool-versions.lock
+Makefile
 .githooks/commit-msg
+.github/CODEOWNERS
 .github/maintainers.txt
 .github/workflows/ci.yml
+.github/workflows/policy.yml
 scripts/check-breaking-change-approvals.sh
 scripts/check-commits.sh
 scripts/check-doc-impact*.sh
 scripts/check-policy-ownership.sh
+scripts/check-policy-changes.sh
+scripts/check-tool-versions.sh
 scripts/lib/commit-message.sh
 scripts/report-coverage.sh
 scripts/validate-commit-message.sh

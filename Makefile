@@ -61,6 +61,7 @@ coverage-report:
 test-policy:
 	Tests/DocumentationImpactTests/check-doc-impact-tests.sh
 	Tests/PolicyTests/check-breaking-change-approvals-tests.sh
+	Tests/PolicyTests/check-policy-ownership-tests.sh
 
 test-integration:
 	./scripts/run-integration-tests.sh

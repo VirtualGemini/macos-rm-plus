@@ -62,6 +62,8 @@ test-policy:
 	Tests/DocumentationImpactTests/check-doc-impact-tests.sh
 	Tests/PolicyTests/check-breaking-change-approvals-tests.sh
 	Tests/PolicyTests/check-policy-ownership-tests.sh
+	Tests/PolicyTests/check-policy-changes-tests.sh
+	Tests/PolicyTests/check-tool-versions-tests.sh
 
 test-integration:
 	./scripts/run-integration-tests.sh

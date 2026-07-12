@@ -403,6 +403,12 @@ policy code, fetches the PR head as data, and never executes PR source. A PR the
 its required policy status by replacing its own scripts or Makefile.
 Changes to any registered policy executor require a trusted maintainer's approving review on the
 current PR head; approvals for earlier revisions do not authorize later policy changes.
+The repository ruleset must require the `Trusted Policy / policy` check before merge. Workflow files
+cannot configure that GitHub repository setting themselves; maintainers verify it after initial setup
+and whenever required-check settings change.
+
+Coverage metric-version changes must use a dedicated PR containing only the metric, baseline,
+development-guide, and changelog files. Implementation changes cannot reset their own metric.
 
 ## 15. CI workflows
 

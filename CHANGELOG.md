@@ -15,3 +15,5 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   evidence, enforce a trusted coverage baseline, and use native Git trailer parsing.
 - Execute policy from the trusted target branch, ratchet production-only coverage, recognize the
   standard `BREAKING CHANGE` footer, and validate policy ownership structurally.
+- Require final-state policy approval, cover every CI executor in the policy registry, isolate
+  coverage metric migrations, and harden CODEOWNERS and quoted Action reference validation.

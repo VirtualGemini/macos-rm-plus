@@ -127,7 +127,7 @@ assert_contains "$TEMP_DIR/stderr" "requires Docs-Impact-Approved-By"
 cat >"$TEMP_DIR/footer-breaking-message" <<'EOF'
 feat: change public contract
 
-BREAKING-CHANGE: consumers must migrate
+BREAKING CHANGE: consumers must migrate
 Signed-off-by: Example Author <author@example.invalid>
 Docs-Impact: none
 Docs-Impact-Reason: incorrectly claimed exemption

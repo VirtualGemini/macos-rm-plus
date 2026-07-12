@@ -29,9 +29,9 @@ message_breaking_change() {
     END {
       if (current != "") block = current
       count = split(block, lines, "\n")
-      for (index = 1; index <= count; index++)
-        if (lines[index] ~ /^BREAKING CHANGE: /) {
-          sub(/^BREAKING CHANGE: /, "", lines[index]); print lines[index]
+      for (line_number = 1; line_number <= count; line_number++)
+        if (lines[line_number] ~ /^BREAKING CHANGE: /) {
+          sub(/^BREAKING CHANGE: /, "", lines[line_number]); print lines[line_number]
         }
     }'
 }

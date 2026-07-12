@@ -23,11 +23,12 @@ checkout_sha=$(tool_value actions-checkout)
 for workflow in "$ROOT"/.github/workflows/*.yml "$ROOT"/.github/workflows/*.yaml; do
   [ -e "$workflow" ] || continue
   while IFS= read -r reference; do
-    printf '%s\n' "$reference" \
-      | grep -Eq "^[[:space:]]*uses:[[:space:]]+actions/checkout@$checkout_sha([[:space:]]|$)" \
+    actual=$(printf '%s\n' "$reference" \
+      | sed -E 's#.*actions/checkout@([^"'"'"'[:space:]#]+).*#\1#')
+    [ "$actual" = "$checkout_sha" ] \
       || { echo "error: actions/checkout SHA drift in $workflow: $reference" >&2; exit 1; }
   done <<EOF
-$(grep -E '^[[:space:]]*uses:[[:space:]]+actions/checkout@' "$workflow" || true)
+$(grep -E '^[[:space:]]*[^#]*actions/checkout@' "$workflow" || true)
 EOF
 done
 

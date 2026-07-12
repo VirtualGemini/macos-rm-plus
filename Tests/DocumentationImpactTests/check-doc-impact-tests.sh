@@ -77,6 +77,101 @@ assert_contains "$TEMP_DIR/stderr" "README.md"
 assert_contains "$TEMP_DIR/stderr" "spec.md"
 assert_contains "$TEMP_DIR/stderr" "CHANGELOG.md"
 
+bootstrap_repo="$TEMP_DIR/bootstrap-repo"
+mkdir -p "$bootstrap_repo/scripts/lib" "$bootstrap_repo/Sources/rmp"
+cp "$ROOT/scripts/check-doc-impact.sh" "$bootstrap_repo/scripts/check-doc-impact.sh"
+cp "$ROOT/scripts/lib/commit-message.sh" "$bootstrap_repo/scripts/lib/commit-message.sh"
+printf '%s\n' '# Bootstrap spec' >"$bootstrap_repo/spec.md"
+printf '%s\n' '// initial CLI' >"$bootstrap_repo/Sources/rmp/main.swift"
+git -C "$bootstrap_repo" init -q
+git -C "$bootstrap_repo" config user.name "Documentation Impact Tests"
+git -C "$bootstrap_repo" config user.email "docs-impact-tests@example.invalid"
+git -C "$bootstrap_repo" add .
+git -C "$bootstrap_repo" commit -qm "chore: create bootstrap fixture"
+bootstrap_base=$(git -C "$bootstrap_repo" rev-parse HEAD)
+
+printf '%s\n' '// changed CLI' >"$bootstrap_repo/Sources/rmp/main.swift"
+cat >"$bootstrap_repo/.docs-impact.yml" <<'EOF'
+{
+  "rules": [
+    {
+      "name": "cli-contract",
+      "paths": ["Sources/rmp/**"],
+      "documents": ["spec.md"],
+      "require": "all"
+    }
+  ]
+}
+EOF
+git -C "$bootstrap_repo" add .docs-impact.yml Sources/rmp/main.swift
+git -C "$bootstrap_repo" commit -qm "ci: initialize documentation policy" \
+  -m "Docs-Impact: updated"
+bootstrap_head=$(git -C "$bootstrap_repo" rev-parse HEAD)
+
+if ! "$bootstrap_repo/scripts/check-doc-impact.sh" --commit "$bootstrap_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "commit validation applied the newly introduced matrix to its bootstrap commit"
+fi
+
+if ! "$bootstrap_repo/scripts/check-doc-impact.sh" --range "$bootstrap_base" "$bootstrap_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "range validation applied the newly introduced matrix before it became trusted"
+fi
+
+git -C "$bootstrap_repo" switch -q --detach "$bootstrap_base"
+printf '%s\n' '// staged CLI change' >"$bootstrap_repo/Sources/rmp/main.swift"
+git -C "$bootstrap_repo" show "$bootstrap_head:.docs-impact.yml" \
+  >"$bootstrap_repo/.docs-impact.yml"
+git -C "$bootstrap_repo" add .docs-impact.yml Sources/rmp/main.swift
+cat >"$TEMP_DIR/bootstrap-message" <<'EOF'
+ci: initialize documentation policy
+
+Docs-Impact: updated
+EOF
+if ! "$bootstrap_repo/scripts/check-doc-impact.sh" --staged \
+  --message-file "$TEMP_DIR/bootstrap-message" >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "staged validation applied an uncommitted matrix before it became trusted"
+fi
+
+git -C "$bootstrap_repo" commit -qm "ci: initialize staged documentation policy" \
+  -m "Docs-Impact: updated"
+initialized_head=$(git -C "$bootstrap_repo" rev-parse HEAD)
+printf '%s\n' '// later CLI change' >"$bootstrap_repo/Sources/rmp/main.swift"
+git -C "$bootstrap_repo" add Sources/rmp/main.swift
+git -C "$bootstrap_repo" commit -qm "feat: change CLI after policy initialization" \
+  -m "Docs-Impact: updated"
+post_initialization_head=$(git -C "$bootstrap_repo" rev-parse HEAD)
+
+if "$bootstrap_repo/scripts/check-doc-impact.sh" --commit "$post_initialization_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "commit validation did not enforce the initialized matrix on a subsequent commit"
+fi
+assert_contains "$TEMP_DIR/stderr" "documentation rule 'cli-contract'"
+
+if "$bootstrap_repo/scripts/check-doc-impact.sh" --range \
+  "$initialized_head" "$post_initialization_head" >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "range validation did not enforce the initialized matrix from its trusted base"
+fi
+assert_contains "$TEMP_DIR/stderr" "documentation rule 'cli-contract'"
+
+git -C "$bootstrap_repo" switch -q --detach "$initialized_head"
+printf '%s\n' '// later staged CLI change' >"$bootstrap_repo/Sources/rmp/main.swift"
+git -C "$bootstrap_repo" add Sources/rmp/main.swift
+cat >"$TEMP_DIR/post-initialization-message" <<'EOF'
+feat: change CLI after policy initialization
+
+Docs-Impact: updated
+EOF
+if "$bootstrap_repo/scripts/check-doc-impact.sh" --staged \
+  --message-file "$TEMP_DIR/post-initialization-message" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "staged validation did not enforce the initialized HEAD matrix"
+fi
+assert_contains "$TEMP_DIR/stderr" "documentation rule 'cli-contract'"
+
 registry_base=$(git -C "$repo" rev-parse HEAD)
 printf '%s\n' '# weakened registry' >"$repo/.policy-files"
 git -C "$repo" add .policy-files

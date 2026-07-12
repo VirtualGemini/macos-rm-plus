@@ -21,18 +21,21 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
+# Returns 1 when the trusted ref predates documentation-impact policy initialization.
 use_configuration_from_ref() {
   ref=$1
-  if git cat-file -e "$ref:.docs-impact.yml" 2>/dev/null; then
-    temporary_configuration=$(mktemp)
-    git show "$ref:.docs-impact.yml" >"$temporary_configuration"
-    configuration_file=$temporary_configuration
+  if ! git cat-file -e "$ref:.docs-impact.yml" 2>/dev/null; then
+    return 1
   fi
+  temporary_configuration=$(mktemp)
+  git show "$ref:.docs-impact.yml" >"$temporary_configuration"
+  configuration_file=$temporary_configuration
   if git cat-file -e "$ref:.policy-files" 2>/dev/null; then
     temporary_policy=$(mktemp)
     git show "$ref:.policy-files" >"$temporary_policy"
     policy_file=$temporary_policy
   fi
+  return 0
 }
 
 usage() {
@@ -86,7 +89,9 @@ case "${1-}" in
     document_files=$(git diff --cached --name-only --diff-filter=AM)
     trigger_files=$changed_files
     message=$(cat "$3")
-    use_configuration_from_ref HEAD
+    if ! use_configuration_from_ref HEAD; then
+      exit 0
+    fi
     ;;
   --commit)
     if [ "$#" -ne 2 ]; then
@@ -102,8 +107,8 @@ case "${1-}" in
     trigger_files=$changed_files
     message=$(git show -s --format=%B "$2")
     parent=$(git rev-parse "$2^" 2>/dev/null || true)
-    if [ -n "$parent" ]; then
-      use_configuration_from_ref "$parent"
+    if [ -z "$parent" ] || ! use_configuration_from_ref "$parent"; then
+      exit 0
     fi
     ;;
   --range)
@@ -111,7 +116,9 @@ case "${1-}" in
       usage
     fi
     merge_base=$(git merge-base "$2" "$3")
-    use_configuration_from_ref "$2"
+    if ! use_configuration_from_ref "$2"; then
+      exit 0
+    fi
     changed_files=$(git diff --name-only --diff-filter=ACMRD "$merge_base" "$3")
     document_files=$(git diff --name-only --diff-filter=AM "$merge_base" "$3")
     for commit in $(git rev-list --reverse "$merge_base..$3"); do

@@ -373,6 +373,11 @@ The staged checker reads the committed `HEAD` matrix, commit checks read the par
 range checks read the base SHA matrix. A change therefore cannot weaken or delete the rules used to
 judge itself. Documentation-policy files cannot use `Docs-Impact: none`.
 
+If that trusted `HEAD`, parent, or base SHA does not contain `.docs-impact.yml`, the check is a policy
+initialization check and no documentation matrix is applied. The checker must not fall back to an
+uncommitted working-tree matrix or the pull-request head matrix, because neither is trusted yet. The
+new matrix takes effect for subsequent commits and pull requests whose trusted reference contains it.
+
 Examples:
 
 - CLI flags, output, and exit codes affect README, help, PRD, and changelog.

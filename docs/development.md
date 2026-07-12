@@ -200,8 +200,23 @@ Real-filesystem tests:
 Assertions should expose mistakes early, but every assertion has a non-optional `guard` or typed
 error enforcing the same boundary in optimized builds.
 
-The current scaffold intentionally contains no real Trash integration. `make test-integration` must
-fail closed until the whitelist and WhitelistedTrashClient tickets are complete.
+The compile-time-isolated `rmp-test` entrypoint supplies the `RMP_TESTING` build identity; production
+targets cannot enable it. The driver establishes the Test Safety Context before exposing path
+arguments to downstream test work. It derives the loaded executable path from macOS rather than
+trusting `argv[0]`, obtains the effective user's home from the system account database, rejects root or the wrong executable identity,
+exclusively creates UUID Run Directories, and retains open
+descriptors for all three safety directories. Versioned JSON markers record their directory role and
+device/inode identity; the run marker additionally records the UUID and all three directory
+identities. Existing directories and markers are validated without following symbolic links and are
+never repaired automatically.
+
+Test-safety failures use stable `test-safety.*` diagnostic codes. Local cleanup revalidates the full
+hierarchy, removes only the matching run marker, and uses non-recursive `rmdir` semantics only when
+the Run Directory has no Test Fixtures. The two fixed directories and their long-lived markers are
+never removed automatically.
+
+The project still contains no real Trash integration. `make test-integration` must fail closed until
+the WhitelistedTrashClient ticket is complete.
 
 ## 7. Development commands
 

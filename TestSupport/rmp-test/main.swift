@@ -2,11 +2,20 @@
 
 import Darwin
 import Foundation
+@_spi(RMPTestingEntrypoint) import RMPTestKit
 
 #if !RMP_TESTING
   #error("rmp-test must only be built with RMP_TESTING enabled")
 #endif
 
-let message = "rmp-test safety driver has not been implemented yet.\n"
-FileHandle.standardError.write(Data(message.utf8))
-exit(2)
+let result = TestSafetyDriver.run(
+  arguments: Array(CommandLine.arguments.dropFirst())
+) { context, _ in
+  let message = "rmp-test build=RMP_TESTING run=\(context.runID.uuidString.lowercased()) ready\n"
+  FileHandle.standardOutput.write(Data(message.utf8))
+  return 0
+}
+if let diagnostic = result.diagnostic {
+  FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+}
+exit(result.exitCode)

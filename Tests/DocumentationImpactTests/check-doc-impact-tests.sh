@@ -231,4 +231,43 @@ if "$none_repo/scripts/check-doc-impact.sh" --range "$policy_base" "$policy_head
 fi
 assert_contains "$TEMP_DIR/stderr" "cannot use Docs-Impact: none"
 
+coverage_repo="$TEMP_DIR/coverage-repo"
+mkdir -p "$coverage_repo/scripts/lib" "$coverage_repo/docs"
+cp "$ROOT/.docs-impact.yml" "$coverage_repo/.docs-impact.yml"
+cp "$ROOT/.policy-files" "$coverage_repo/.policy-files"
+cp "$ROOT/scripts/check-doc-impact.sh" "$coverage_repo/scripts/"
+cp "$ROOT/scripts/lib/commit-message.sh" "$coverage_repo/scripts/lib/"
+printf '%s\n' '0.00' >"$coverage_repo/.coverage-baseline"
+printf '%s\n' '1' >"$coverage_repo/.coverage-metric-version"
+printf '%s\n' '# Development' >"$coverage_repo/docs/development.md"
+printf '%s\n' '# Changelog' >"$coverage_repo/CHANGELOG.md"
+git -C "$coverage_repo" init -q
+git -C "$coverage_repo" config user.name Tests
+git -C "$coverage_repo" config user.email tests@example.invalid
+git -C "$coverage_repo" add .
+git -C "$coverage_repo" commit -qm base
+coverage_base=$(git -C "$coverage_repo" rev-parse HEAD)
+printf '%s\n' '2' >"$coverage_repo/.coverage-metric-version"
+git -C "$coverage_repo" add .coverage-metric-version
+git -C "$coverage_repo" commit -qm "ci: change coverage metric" -m "Docs-Impact: updated"
+coverage_head=$(git -C "$coverage_repo" rev-parse HEAD)
+
+if "$coverage_repo/scripts/check-doc-impact.sh" --range "$coverage_base" "$coverage_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "coverage metric change passed without development documentation and changelog updates"
+fi
+assert_contains "$TEMP_DIR/stderr" "docs/development.md"
+assert_contains "$TEMP_DIR/stderr" "CHANGELOG.md"
+
+git -C "$coverage_repo" switch -q --detach "$coverage_base"
+printf '%s\n' '1.00' >"$coverage_repo/.coverage-baseline"
+git -C "$coverage_repo" add .coverage-baseline
+git -C "$coverage_repo" commit -qm "ci: change coverage baseline" -m "Docs-Impact: updated"
+baseline_head=$(git -C "$coverage_repo" rev-parse HEAD)
+if "$coverage_repo/scripts/check-doc-impact.sh" --range "$coverage_base" "$baseline_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "coverage baseline change passed without development documentation"
+fi
+assert_contains "$TEMP_DIR/stderr" "docs/development.md"
+
 echo "Documentation impact tests passed."

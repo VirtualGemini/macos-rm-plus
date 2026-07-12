@@ -17,3 +17,4 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   standard `BREAKING CHANGE` footer, and validate policy ownership structurally.
 - Require final-state policy approval, cover every CI executor in the policy registry, isolate
   coverage metric migrations, and harden CODEOWNERS and quoted Action reference validation.
+- Require coverage baseline and metric-definition changes to update their governing documentation.

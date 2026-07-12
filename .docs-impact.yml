@@ -74,6 +74,18 @@
       "require": "all"
     },
     {
+      "name": "coverage-policy",
+      "paths": [".coverage-baseline", "scripts/report-coverage.sh"],
+      "documents": ["docs/development.md"],
+      "require": "all"
+    },
+    {
+      "name": "coverage-metric-definition",
+      "paths": [".coverage-metric-version"],
+      "documents": ["docs/development.md", "CHANGELOG.md"],
+      "require": "all"
+    },
+    {
       "name": "module-boundaries",
       "paths": ["Package.swift"],
       "documents": [

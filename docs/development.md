@@ -149,6 +149,9 @@ directly. Those capabilities cross explicit interfaces implemented in `RMPPlatfo
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.
+- Documentation-impact checks require every baseline or coverage-report change to update this guide.
+  A metric-version change must update both this guide and `CHANGELOG.md` because it changes the
+  interpretation of reported coverage.
 - Coverage includes production executables as additional `llvm-cov` objects; test-only coverage
   cannot hide newly added untested CLI code.
 - SafetyPolicy, option parsing, and test-whitelist branches may not remain untested.

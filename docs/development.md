@@ -55,7 +55,8 @@ Sources/
 └── rmp/              Production command-line entrypoint
 
 TestSupport/
-├── RMPTestKit/       Fakes, spies, and test safety support
+├── RMPTestKit/       Fakes, spies, and pure test support
+├── RMPTestSafety/    Safety logic compiled only into the test executable
 └── rmp-test/         Compile-time-isolated real-filesystem test entrypoint
 
 Tests/
@@ -141,7 +142,9 @@ adapter. The production dry-run path has no Trash, move, overwrite, or deletion 
   platform-test serialization. Parallel core-only execution may be introduced later through a
   separate command that cannot include platform or real-filesystem suites.
 - Every `FR-SAFE-*` and `FR-TEST-*` requirement has at least one corresponding test.
-- Every safety rejection proves the expected error, no filesystem change, and zero TrashClient calls.
+- Every pre-capability safety rejection proves the expected error, no unauthorized or partially
+  prepared filesystem change, and zero TrashClient calls. A complete fixed safety boundary that was
+  atomically published before a later setup failure remains in place under FR-TEST-027.
 - Parameter parsing uses a behavior matrix rather than isolated happy-path tests.
 - Bug fixes begin with a failing regression test.
 - Unit tests collect coverage and CI publishes an `llvm-cov` summary, but no global percentage
@@ -200,8 +203,35 @@ Real-filesystem tests:
 Assertions should expose mistakes early, but every assertion has a non-optional `guard` or typed
 error enforcing the same boundary in optimized builds.
 
-The current scaffold intentionally contains no real Trash integration. `make test-integration` must
-fail closed until the whitelist and WhitelistedTrashClient tickets are complete.
+The compile-time-isolated `rmp-test` target fails compilation unless `RMP_TESTING` is enabled and is
+the only package product and module containing the real Test Safety Context implementation. The
+separate `RMPTestKit` module exposes no real safety entry for an unflagged target to call or forge
+with a matching runtime symbol. The driver establishes the Test Safety Context before
+exposing path arguments to downstream test work. It derives the loaded executable path from macOS rather than
+trusting `argv[0]`, obtains the effective user's home from the system account database, rejects root or the wrong executable identity,
+exclusively creates UUID Run Directories, and retains open
+descriptors for all three safety directories. Versioned JSON markers record their directory role and
+device/inode identity; the run marker additionally records the UUID and all three directory
+identities. Existing directories and markers are validated without following symbolic links and are
+never repaired automatically.
+
+Directory validation packages the expected device/inode identity, owner, and directory role into one
+expectation value so path and descriptor checks apply the same invariant. Stable `test-safety.*`
+identifiers are defined as typed diagnostic codes while preserving their documented raw strings.
+
+Test-safety failures use stable `test-safety.*` diagnostic codes. Local cleanup revalidates the full
+hierarchy, removes only the matching run marker, and uses non-recursive `rmdir` semantics only when
+the Run Directory has no Test Fixtures. The two fixed directories and their long-lived markers are
+never removed automatically after they have been atomically published. New safety directories and
+their markers are prepared under random staging names and become fixed boundaries only when an
+exclusive rename publishes the complete directory. A failed preparation removes its unpublished
+staging directory and marker so that a safety rejection normally leaves no filesystem change. If a
+filesystem error prevents that rollback, the operation fails with `test-safety.rollback-failed`,
+reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
+succeeded.
+
+The project still contains no real Trash integration. `make test-integration` must fail closed until
+the WhitelistedTrashClient ticket is complete.
 
 ## 7. Development commands
 

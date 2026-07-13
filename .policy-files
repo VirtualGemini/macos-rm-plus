@@ -21,6 +21,7 @@ scripts/check-doc-impact*.sh
 scripts/check-policy-ownership.sh
 scripts/check-policy-changes.sh
 scripts/check-spdx.sh
+scripts/check-system-trash-boundary.sh
 scripts/check-tool-versions.sh
 scripts/install-dev-tools.sh
 scripts/lib/commit-message.sh

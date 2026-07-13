@@ -36,6 +36,7 @@ Package.resolved @VirtualGemini
 scripts/bootstrap.sh @VirtualGemini
 scripts/check-dangerous-test-commands.sh @VirtualGemini
 scripts/check-spdx.sh @VirtualGemini
+scripts/check-system-trash-boundary.sh @VirtualGemini
 scripts/install-dev-tools.sh @VirtualGemini
 scripts/lib/tool-versions.sh @VirtualGemini
 scripts/run-swiftlint.sh @VirtualGemini

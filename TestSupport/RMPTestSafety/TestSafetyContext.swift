@@ -112,6 +112,17 @@ final class TestSafetyContext {
     )
   }
 
+  func duplicateRunDirectoryDescriptor() throws -> Int32 {
+    let descriptor = dup(runDirectoryHandle.fileDescriptor)
+    guard descriptor >= 0 else {
+      throw TestSafetyDiagnostic(
+        code: .trashPathInspectionFailed,
+        message: "The Run Directory could not be inspected."
+      )
+    }
+    return descriptor
+  }
+
   func cleanupRunDirectory(
     remove: (Int32, String, Int32) -> Int32 = { unlinkat($0, $1, $2) }
   ) throws {

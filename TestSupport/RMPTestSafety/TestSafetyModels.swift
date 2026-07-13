@@ -107,6 +107,18 @@ enum TestSafetyDiagnosticCode: String, Sendable {
   case runDirectoryNotEmpty = "test-safety.run-directory-not-empty"
   case unexpectedError = "test-safety.unexpected-error"
   case wrongExecutable = "test-safety.wrong-executable"
+  case trashFileProviderRoot = "test-safety.trash-file-provider-root"
+  case trashEvidenceMismatch = "test-safety.trash-evidence-mismatch"
+  case trashFixtureName = "test-safety.trash-fixture-name"
+  case trashIntermediateSymlink = "test-safety.trash-intermediate-symlink"
+  case trashMountPoint = "test-safety.trash-mount-point"
+  case trashNetworkVolume = "test-safety.trash-network-volume"
+  case trashOutsideRunDirectory = "test-safety.trash-outside-run-directory"
+  case trashPathInspectionFailed = "test-safety.trash-path-inspection-failed"
+  case trashPlanIdentityMismatch = "test-safety.trash-plan-identity-mismatch"
+  case trashSafetyDirectory = "test-safety.trash-safety-directory"
+  case trashSystemCallFailed = "test-safety.trash-system-call-failed"
+  case trashVolumeMismatch = "test-safety.trash-volume-mismatch"
 }
 
 struct TestSafetyDiagnostic: Error, Equatable, CustomStringConvertible, Sendable {

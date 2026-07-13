@@ -243,8 +243,12 @@ filesystem error prevents that rollback, the operation fails with `test-safety.r
 reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
 succeeded.
 
-The project still contains no real Trash integration. `make test-integration` must fail closed until
-the WhitelistedTrashClient ticket is complete.
+The compile-time-isolated `rmp-test` target contains the only real Foundation Trash integration. Its
+WhitelistedTrashClient accepts only opaque targets produced by the planning authorization pass,
+revalidates the complete Test Safety Context and target immediately before the system call, and
+returns read-only verification evidence. Pure test commands inject a Trash spy and never invoke the
+real capability. The integration runner remains separately guarded and cannot be enabled through an
+environment switch in the production executable.
 
 ## 7. Development commands
 

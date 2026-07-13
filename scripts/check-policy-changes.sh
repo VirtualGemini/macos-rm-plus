@@ -10,10 +10,12 @@ merge_base=$(git merge-base "$base" "$head")
 changed=$(git diff --name-only --diff-filter=ACMRD "$merge_base" "$head")
 policy=$(git show "$base:.policy-files")
 maintainers=$(git show "$base:.github/maintainers.txt")
+maintainer_count=$(printf '%s\n' "$maintainers" | awk '
+  /^@[A-Za-z0-9-]+$/ { count++ }
+  END { print count + 0 }')
 requires_approval=0
 base_metric=
 head_metric=
-metric_available=0
 trusted_pr_author=0
 
 if [ -n "${POLICY_PR_AUTHOR-}" ] \
@@ -23,7 +25,6 @@ fi
 
 if git cat-file -e "$base:.coverage-metric-version" 2>/dev/null \
   && git cat-file -e "$head:.coverage-metric-version" 2>/dev/null; then
-  metric_available=1
   base_metric=$(git show "$base:.coverage-metric-version")
   head_metric=$(git show "$head:.coverage-metric-version")
   if [ "$base_metric" != "$head_metric" ]; then
@@ -40,23 +41,7 @@ $changed
 EOF
   fi
 fi
-coverage_baseline_ratchet=0
-if [ "$metric_available" -eq 1 ] && [ "$base_metric" = "$head_metric" ] \
-  && git cat-file -e "$base:.coverage-baseline" 2>/dev/null \
-  && git cat-file -e "$head:.coverage-baseline" 2>/dev/null; then
-  base_coverage=$(git show "$base:.coverage-baseline")
-  head_coverage=$(git show "$head:.coverage-baseline")
-  if awk -v base="$base_coverage" -v head="$head_coverage" 'BEGIN {
-    number = "^[0-9]+([.][0-9]+)?$"
-    exit !(base ~ number && head ~ number && head > base)
-  }' && [ "$trusted_pr_author" -eq 1 ]; then
-    coverage_baseline_ratchet=1
-  fi
-fi
 while IFS= read -r file; do
-  if [ "$file" = ".coverage-baseline" ] && [ "$coverage_baseline_ratchet" -eq 1 ]; then
-    continue
-  fi
   while IFS= read -r pattern; do
     case "$pattern" in '' | \#*) continue ;; esac
     # shellcheck disable=SC2254
@@ -68,6 +53,9 @@ done <<EOF
 $changed
 EOF
 [ "$requires_approval" -eq 1 ] || exit 0
+if [ "$trusted_pr_author" -eq 1 ] && [ "$maintainer_count" -eq 1 ]; then
+  exit 0
+fi
 if [ -n "${POLICY_REVIEWS_TSV-}" ]; then
   reviews=$POLICY_REVIEWS_TSV
 else

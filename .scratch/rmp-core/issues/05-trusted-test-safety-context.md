@@ -4,7 +4,7 @@
 
 **Blocked by:** None — the completed project scaffold provides the required foundation.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The test driver obtains the real user's home directory from trusted system account information rather than caller-controlled environment variables.
 - [x] The fixed outer container and authorized test root are exclusively created when absent, or validated without following symlinks when present, with the required ownership and permissions.

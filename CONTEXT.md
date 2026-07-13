@@ -25,7 +25,8 @@ _Avoid_: Dangerous path, blocked file
 **Compatibility Option**:
 A historical command-line option accepted to preserve familiar invocation forms even when it has no native Trash meaning.
 Compatibility help classifies each one as accepted with no effect, accepted with a warning, or
-unsupported; Compatibility Options never become execution-facing Trash Plan fields.
+unsupported. Compatibility diagnostics remain in the CLI result envelope; Compatibility Options
+never become execution-facing Trash Operation requests or Trash Plan fields.
 _Avoid_: Legacy flag, ignored flag
 
 **Trash Result**:

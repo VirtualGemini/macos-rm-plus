@@ -62,6 +62,37 @@ enum OutputMode: Equatable, Sendable {
   case json
 }
 
+struct TrashOperationRequest: Equatable, Sendable {
+  let paths: [String]
+  let confirmation: ConfirmationMode
+  let ignoreMissing: Bool
+  let output: OutputMode
+  let dryRun: Bool
+  let nonInteractive: Bool
+  let stopOnError: Bool
+  let strictOptions: Bool
+
+  init(
+    paths: [String],
+    confirmation: ConfirmationMode = .smart,
+    ignoreMissing: Bool = false,
+    output: OutputMode = .standard,
+    dryRun: Bool = true,
+    nonInteractive: Bool = false,
+    stopOnError: Bool = false,
+    strictOptions: Bool = false
+  ) {
+    self.paths = paths
+    self.confirmation = confirmation
+    self.ignoreMissing = ignoreMissing
+    self.output = output
+    self.dryRun = dryRun
+    self.nonInteractive = nonInteractive
+    self.stopOnError = stopOnError
+    self.strictOptions = strictOptions
+  }
+}
+
 struct TrashPlan: Equatable, Sendable {
   let inputs: [TrashInput]
   let confirmation: ConfirmationMode
@@ -117,38 +148,16 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
     self.fileSystem = fileSystem
   }
 
-  func makePlan(request: OperationRequest) throws(TrashPlanningError) -> TrashPlan {
-    try makePlan(
-      paths: request.paths,
-      confirmation: request.confirmation,
-      ignoreMissing: request.ignoreMissing,
-      output: request.output,
-      dryRun: request.dryRun,
-      nonInteractive: request.nonInteractive,
-      stopOnError: request.stopOnError,
-      strictOptions: request.strictOptions
-    )
-  }
-
-  func makePlan(
-    paths: [String],
-    confirmation: ConfirmationMode = .smart,
-    ignoreMissing: Bool = false,
-    output: OutputMode = .standard,
-    dryRun: Bool = true,
-    nonInteractive: Bool = false,
-    stopOnError: Bool = false,
-    strictOptions: Bool = false
-  ) throws(TrashPlanningError) -> TrashPlan {
-    guard !paths.isEmpty else {
+  func makePlan(request: TrashOperationRequest) throws(TrashPlanningError) -> TrashPlan {
+    guard !request.paths.isEmpty else {
       throw .noInputs
     }
 
     let protectedIdentities = try protectedIdentities()
     var inputs: [TrashInput] = []
-    inputs.reserveCapacity(paths.count)
+    inputs.reserveCapacity(request.paths.count)
 
-    for path in paths {
+    for path in request.paths {
       if isParentDirectoryExpression(path) {
         throw .protectedPath(path: path, protectedPath: .parentDirectory)
       }
@@ -159,7 +168,7 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
         }
         inputs.append(TrashInput(path: path, kind: entry.kind))
       case .missing:
-        if !ignoreMissing { throw .missingPath(path) }
+        if !request.ignoreMissing { throw .missingPath(path) }
       case .inaccessible:
         throw .inaccessiblePath(path)
       }
@@ -167,14 +176,18 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
 
     return TrashPlan(
       inputs: inputs,
-      confirmation: confirmation,
-      ignoreMissing: ignoreMissing,
-      output: output,
-      dryRun: dryRun,
-      nonInteractive: nonInteractive,
-      stopOnError: stopOnError,
-      strictOptions: strictOptions
+      confirmation: request.confirmation,
+      ignoreMissing: request.ignoreMissing,
+      output: request.output,
+      dryRun: request.dryRun,
+      nonInteractive: request.nonInteractive,
+      stopOnError: request.stopOnError,
+      strictOptions: request.strictOptions
     )
+  }
+
+  func makePlan(paths: [String]) throws(TrashPlanningError) -> TrashPlan {
+    try makePlan(request: TrashOperationRequest(paths: paths))
   }
 
   private func protectedIdentities() throws(TrashPlanningError) -> ProtectedIdentities {

@@ -13,3 +13,14 @@
 - [x] The primary help remains concise, compatibility help distinguishes ignored, warned, and unsupported options, and Chinese variants explain both help surfaces consistently.
 - [x] Help and version commands require no Trash Input and do not enter path safety checks or platform Trash capabilities.
 - [x] Parser and information-command tests cover the full compatibility matrix without touching the real filesystem.
+
+## Comments
+
+Strict review remediation removed the ticket-03 compatibility parser and public dry-run argument
+Interface, moved compatibility warnings out of the native Trash Operation request, made platform
+adapter construction explicit and lazy for information commands, applied conflicts before command
+dispatch, preserved explicit missing-path policy across `-i`, restricted explicit confirmation values,
+and expanded the parser behavior matrix. The maintainer approved the pre-release breaking Interface
+change in the implementation conversation.
+The maintainer also confirmed that unpublished internal module Interfaces do not retain compatibility
+before the first release; the public dry-run argument Interface was therefore removed without a shim.

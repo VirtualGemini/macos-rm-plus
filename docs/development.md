@@ -74,11 +74,18 @@ Trash Plan previews follow the same boundary: `RMPCore` receives only injected t
 directory-identity inspection capabilities, while `RMPPlatform` supplies the read-only Foundation
 adapter. The production dry-run path has no Trash, move, overwrite, or deletion capability.
 
+CLI arguments have one authoritative parser. Information commands complete before an explicit
+platform-adapter factory is invoked; operation commands create their adapter only after parsing and
+global validation. Compatibility diagnostics stay in the CLI result envelope and never enter the
+native Trash Operation request passed to planning or execution modules. The module responsibilities
+and Interfaces are recorded in ADR-0001.
+
 ## 4. Canonical language
 
-- Code identifiers, code comments, commit messages, pull-request titles, CLI text, JSON contracts,
-  ADRs, and development documentation use English.
-- Chinese documentation may be provided as a supplementary translation.
+- Code identifiers, code comments, commit messages, pull-request titles, canonical CLI text, JSON
+  contracts, ADRs, and development documentation use English.
+- Product-specified localized help surfaces may supplement the canonical English CLI text; Chinese
+  documentation may also be provided as a supplementary translation.
 - The current PRD may remain in Chinese; implementation tickets use English.
 - Canonical domain terms are defined in `CONTEXT.md`.
 
@@ -347,6 +354,12 @@ Breaking-Approval: .scratch/<feature>/issues/<ticket>.md
 Breaking commits may not use `Docs-Impact: none`.
 CI reads the approval ticket from the base SHA rather than the pull-request head, preventing a change
 author from creating or editing their own approval as part of the implementation.
+
+Before the first published release, compatibility is not preserved for unpublished Interfaces of
+non-product internal targets such as `RMPCore`. Removing or reshaping such an Interface still requires
+explicit maintainer confirmation before implementation, but does not require a compatibility shim,
+`BREAKING-CHANGE` trailer, or trusted-base migration ticket. Published executable CLI contracts and
+package products remain subject to the full breaking-change gate at every stage.
 
 Temporary `fixup!` and `squash!` commits, debug artifacts, and unexplained binaries may not be pushed
 for review.

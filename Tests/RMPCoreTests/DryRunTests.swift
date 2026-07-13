@@ -27,13 +27,6 @@ func dryRunOutputReportsKindsAndPreservesPaths() {
   #expect(output.hasSuffix("  [other] \"-leading-hyphen\"\n"))
 }
 
-@Test("Double dash permits a leading-hyphen Trash Input")
-func doubleDashPermitsLeadingHyphenInput() throws {
-  let request = try DryRunCommand.parse(arguments: ["--dry-run", "--", "-filename"])
-
-  #expect(request.paths == ["-filename"])
-}
-
 @Test("Dry-run output uses the singular item label")
 func dryRunOutputUsesSingularItemLabel() {
   let plan = TrashPlan(inputs: [.init(path: "report.txt", kind: .file)])
@@ -44,42 +37,9 @@ func dryRunOutputUsesSingularItemLabel() {
   )
 }
 
-@Test("Dry-run parsing requires the mode and at least one Trash Input")
-func dryRunParsingRejectsIncompleteCommands() {
-  do {
-    _ = try DryRunCommand.parse(arguments: ["report.txt"])
-    Issue.record("Expected a command without --dry-run to fail")
-  } catch {
-    #expect(error == .dryRunRequired)
-  }
-  do {
-    _ = try DryRunCommand.parse(arguments: ["--dry-run"])
-    Issue.record("Expected a dry run without Trash Inputs to fail")
-  } catch {
-    #expect(error == .noInputs)
-  }
-}
-
-@Test("Dry-run option parsing rejects unknown options before the option terminator")
-func dryRunOptionParsingRejectsUnknownOptions() {
-  let cases = [
-    UnknownOptionCase(arguments: ["--dry-run", "-f", "report.txt"], option: "-f"),
-    UnknownOptionCase(arguments: ["--dry-run", "--unknown", "report.txt"], option: "--unknown"),
-  ]
-
-  for testCase in cases {
-    do {
-      _ = try DryRunCommand.parse(arguments: testCase.arguments)
-      Issue.record("Expected \(testCase.option) to be rejected")
-    } catch {
-      #expect(error == .unknownOption(testCase.option))
-    }
-  }
-}
-
 @Test("Dry-run application reports unknown options as usage errors")
 func dryRunApplicationReportsUnknownOptions() {
-  let result = DryRunApplication(fileSystem: FakeTrashPlanningFileSystem(entries: [:])).run(
+  let result = CLIApplication(makeFileSystem: { FakeTrashPlanningFileSystem(entries: [:]) }).run(
     arguments: ["--dry-run", "--unknown", "report.txt"]
   )
 
@@ -94,7 +54,7 @@ func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
     entries: [
       "report.txt": .entry(.init(kind: .file, identity: .init(device: 1, inode: 10)))
     ])
-  let application = CLIApplication(fileSystem: fileSystem)
+  let application = CLIApplication(makeFileSystem: { fileSystem })
 
   let warning = application.run(arguments: ["--dry-run", "-P", "report.txt"])
   #expect(warning.exitCode == 0)
@@ -105,11 +65,21 @@ func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
   #expect(unsupported.exitCode == 2)
   #expect(unsupported.standardOutput.isEmpty)
   #expect(unsupported.standardError.contains("unsupported Compatibility Option -W"))
+
+  let failedWithWarning = application.run(arguments: ["--dry-run", "-P", "missing"])
+  #expect(failedWithWarning.exitCode == 1)
+  #expect(failedWithWarning.standardError.contains("warning: -P does not securely overwrite"))
+  #expect(failedWithWarning.standardError.contains("Trash Input does not exist"))
+
+  let unavailableExecution = application.run(arguments: ["-P", "report.txt"])
+  #expect(unavailableExecution.exitCode == 2)
+  #expect(unavailableExecution.standardError.contains("warning: -P does not securely overwrite"))
+  #expect(unavailableExecution.standardError.contains("only --dry-run execution is available"))
 }
 
 @Test("Parsed native policy is preserved in the execution-facing Trash Plan")
 func parsedPolicyIsPreservedInTrashPlan() throws {
-  let request = OperationRequest(
+  let request = TrashOperationRequest(
     paths: ["missing", "report.txt"],
     confirmation: .each,
     ignoreMissing: true,
@@ -117,8 +87,7 @@ func parsedPolicyIsPreservedInTrashPlan() throws {
     dryRun: true,
     nonInteractive: true,
     stopOnError: true,
-    strictOptions: true,
-    warnings: []
+    strictOptions: true
   )
   let fileSystem = FakeTrashPlanningFileSystem(
     entries: [
@@ -145,7 +114,7 @@ func dryRunRejectsProtectedPathWithSafetyExitCode() {
   )
 
   let result = DryRunApplication(fileSystem: fileSystem).run(
-    arguments: ["--dry-run", "/tmp/.."]
+    request: TrashOperationRequest(paths: ["/tmp/.."])
   )
 
   #expect(result.exitCode == 3)
@@ -166,7 +135,7 @@ func dryRunPresentsCompletePlanWithoutExecutionCapability() {
   )
 
   let result = DryRunApplication(fileSystem: fileSystem).run(
-    arguments: ["--dry-run", "report.txt", "build"]
+    request: TrashOperationRequest(paths: ["report.txt", "build"])
   )
 
   #expect(result.exitCode == 0)
@@ -180,9 +149,4 @@ func dryRunPresentsCompletePlanWithoutExecutionCapability() {
 
       """
   )
-}
-
-private struct UnknownOptionCase {
-  let arguments: [String]
-  let option: String
 }

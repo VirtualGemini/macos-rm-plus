@@ -25,7 +25,8 @@ rejects every no-effect Compatibility Option, including `-P`.
 `rmp --help` prints concise native help, while `rmp --help -a` groups compatibility behavior into
 accepted-with-no-effect, accepted-with-warning, and unsupported sections. `-zh` selects Chinese for
 either help surface. `rmp --version` prints `rmp 0.1.0`. These information commands require no Trash
-Input and do not inspect filesystem or Trash capabilities.
+Input, do not construct the platform filesystem adapter, and do not inspect filesystem or Trash
+capabilities.
 
 Missing paths return exit code 1; absent Trash Inputs, usage errors, and unsupported options return
 exit code 2; and

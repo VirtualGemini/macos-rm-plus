@@ -21,6 +21,8 @@ Familiar `-r`, `-R`, `-d`, and `-x` Compatibility Options are accepted with no e
 directories are moved as top-level items. `-P` warns that no secure overwrite occurs, `-W` is
 rejected, and `--strict-options` rejects all no-effect Compatibility Options. Run `rmp --help` for
 concise native help, `rmp --help -a` for the compatibility matrix, and add `-zh` for Chinese help.
+Help and version commands complete without constructing the platform filesystem adapter or inspecting
+Trash Inputs.
 Actual Trash moves remain unavailable until the system Trash capability is implemented; non-dry-run
 operations fail closed.
 

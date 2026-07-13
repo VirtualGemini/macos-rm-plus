@@ -1,47 +1,61 @@
 // SPDX-License-Identifier: Apache-2.0
 
 public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
-  private let dryRunApplication: DryRunApplication<FileSystem>
+  private let makeFileSystem: () -> FileSystem
   private let renderer = DryRunRenderer()
 
-  public init(fileSystem: FileSystem) {
-    dryRunApplication = DryRunApplication(fileSystem: fileSystem)
+  public init(makeFileSystem: @escaping () -> FileSystem) {
+    self.makeFileSystem = makeFileSystem
   }
 
   public func run(arguments: [String]) -> CommandResult {
-    let command: ParsedCommand
+    let invocation: ParsedInvocation
     do {
-      command = try CommandParser.parse(arguments: arguments)
+      invocation = try CommandParser.parse(arguments: arguments)
     } catch {
       return commandErrorResult(error)
     }
 
-    switch command {
+    switch invocation.command {
     case let .help(page):
-      return .init(standardOutput: InformationRenderer.render(page), standardError: "", exitCode: 0)
+      return .init(
+        standardOutput: InformationRenderer.render(page),
+        standardError: renderWarnings(invocation.warnings),
+        exitCode: 0
+      )
     case .version:
-      return .init(standardOutput: InformationRenderer.version, standardError: "", exitCode: 0)
+      return .init(
+        standardOutput: InformationRenderer.version,
+        standardError: renderWarnings(invocation.warnings),
+        exitCode: 0
+      )
     case let .operation(request):
-      return runOperation(request)
+      return runOperation(request, warnings: invocation.warnings)
     }
   }
 
-  private func runOperation(_ request: OperationRequest) -> CommandResult {
+  private func runOperation(
+    _ request: TrashOperationRequest, warnings: [CompatibilityWarning]
+  ) -> CommandResult {
     guard request.dryRun else {
       return .init(
         standardOutput: "",
-        standardError: "rmp: only --dry-run execution is available in this build\n",
+        standardError:
+          renderWarnings(warnings) + "rmp: only --dry-run execution is available in this build\n",
         exitCode: 2
       )
     }
 
-    let result = dryRunApplication.run(request: request)
-    guard result.exitCode == 0 else { return result }
+    let result = DryRunApplication(fileSystem: makeFileSystem()).run(request: request)
     return .init(
       standardOutput: result.standardOutput,
-      standardError: request.warnings.map(renderWarning).joined(),
+      standardError: renderWarnings(warnings) + result.standardError,
       exitCode: result.exitCode
     )
+  }
+
+  private func renderWarnings(_ warnings: [CompatibilityWarning]) -> String {
+    warnings.map(renderWarning).joined()
   }
 
   private func renderWarning(_ warning: CompatibilityWarning) -> String {

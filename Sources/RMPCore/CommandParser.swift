@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 enum ParsedCommand: Equatable, Sendable {
-  case operation(OperationRequest)
+  case operation(TrashOperationRequest)
   case help(HelpPage)
   case version
+}
+
+struct ParsedInvocation: Equatable, Sendable {
+  let command: ParsedCommand
+  let warnings: [CompatibilityWarning]
 }
 
 enum HelpPage: Equatable, Sendable {
@@ -15,18 +20,6 @@ enum HelpPage: Equatable, Sendable {
 
 enum CompatibilityWarning: Equatable, Sendable {
   case secureOverwriteIgnored
-}
-
-struct OperationRequest: Equatable, Sendable {
-  let paths: [String]
-  let confirmation: ConfirmationMode
-  let ignoreMissing: Bool
-  let output: OutputMode
-  let dryRun: Bool
-  let nonInteractive: Bool
-  let stopOnError: Bool
-  let strictOptions: Bool
-  let warnings: [CompatibilityWarning]
 }
 
 enum CommandParsingError: Error, Equatable, Sendable {
@@ -41,10 +34,20 @@ enum CommandParsingError: Error, Equatable, Sendable {
 }
 
 enum CommandParser {
+  private enum MissingPathPolicy {
+    case fail
+    case ignoreFromForce
+    case ignoreExplicitly
+
+    var ignoresMissing: Bool {
+      self != .fail
+    }
+  }
+
   private struct State {
     var paths: [String] = []
     var confirmation = ConfirmationMode.smart
-    var ignoreMissing = false
+    var missingPathPolicy = MissingPathPolicy.fail
     var output = OutputMode.standard
     var dryRun = false
     var nonInteractive = false
@@ -61,7 +64,7 @@ enum CommandParser {
     var sawQuiet = false
   }
 
-  static func parse(arguments: [String]) throws(CommandParsingError) -> ParsedCommand {
+  static func parse(arguments: [String]) throws(CommandParsingError) -> ParsedInvocation {
     var state = State()
 
     for argument in arguments {
@@ -71,9 +74,20 @@ enum CommandParser {
     return try finalize(state)
   }
 
-  private static func finalize(_ state: State) throws(CommandParsingError) -> ParsedCommand {
-    if let command = try informationCommand(from: state) { return command }
-    return try operationCommand(from: state)
+  private static func finalize(_ state: State) throws(CommandParsingError) -> ParsedInvocation {
+    if state.sawJSON && state.sawQuiet {
+      throw .conflictingOptions("--json", "--quiet")
+    }
+    if state.strictOptions, let option = state.compatibilityOptions.first {
+      throw .strictCompatibilityOption(option)
+    }
+    let command: ParsedCommand
+    if let informationCommand = try informationCommand(from: state) {
+      command = informationCommand
+    } else {
+      command = try operationCommand(from: state)
+    }
+    return ParsedInvocation(command: command, warnings: state.warnings)
   }
 
   private static func informationCommand(
@@ -96,25 +110,18 @@ enum CommandParser {
   private static func operationCommand(
     from state: State
   ) throws(CommandParsingError) -> ParsedCommand {
-    if state.sawJSON && state.sawQuiet {
-      throw .conflictingOptions("--json", "--quiet")
-    }
-    if state.strictOptions, let option = state.compatibilityOptions.first {
-      throw .strictCompatibilityOption(option)
-    }
     guard !state.paths.isEmpty else { throw .noInputs }
 
     return .operation(
-      OperationRequest(
+      TrashOperationRequest(
         paths: state.paths,
         confirmation: state.confirmation,
-        ignoreMissing: state.ignoreMissing,
+        ignoreMissing: state.missingPathPolicy.ignoresMissing,
         output: state.output,
         dryRun: state.dryRun,
         nonInteractive: state.nonInteractive,
         stopOnError: state.stopOnError,
-        strictOptions: state.strictOptions,
-        warnings: state.warnings
+        strictOptions: state.strictOptions
       ))
   }
 
@@ -144,7 +151,7 @@ enum CommandParser {
   ) throws(CommandParsingError) {
     if option.hasPrefix("--confirm=") {
       let value = String(option.dropFirst("--confirm=".count))
-      guard let mode = ConfirmationMode(rawValue: value) else {
+      guard let mode = explicitConfirmationMode(value) else {
         throw .invalidConfirmationMode(value)
       }
       state.confirmation = mode
@@ -160,7 +167,7 @@ enum CommandParser {
     switch option {
     case "--force": applyForce(to: &state); return true
     case "--interactive": applyInteractive(to: &state); return true
-    case "--ignore-missing": state.ignoreMissing = true; return true
+    case "--ignore-missing": state.missingPathPolicy = .ignoreExplicitly; return true
     case "--dry-run": state.dryRun = true; return true
     case "--non-interactive": state.nonInteractive = true; return true
     default: return false
@@ -240,11 +247,23 @@ enum CommandParser {
 
   private static func applyForce(to state: inout State) {
     state.confirmation = .never
-    state.ignoreMissing = true
+    state.missingPathPolicy = .ignoreFromForce
   }
 
   private static func applyInteractive(to state: inout State) {
     state.confirmation = .each
-    state.ignoreMissing = false
+    if state.missingPathPolicy == .ignoreFromForce {
+      state.missingPathPolicy = .fail
+    }
+  }
+
+  private static func explicitConfirmationMode(_ value: String) -> ConfirmationMode? {
+    switch value {
+    case "smart": .smart
+    case "never": .never
+    case "once": .once
+    case "each": .each
+    default: nil
+    }
   }
 }

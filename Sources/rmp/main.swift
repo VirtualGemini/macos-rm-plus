@@ -6,7 +6,7 @@ import RMPCore
 import RMPPlatform
 
 let arguments = Array(CommandLine.arguments.dropFirst())
-let result = CLIApplication(fileSystem: FoundationTrashPlanningFileSystem()).run(
+let result = CLIApplication(makeFileSystem: { FoundationTrashPlanningFileSystem() }).run(
   arguments: arguments
 )
 FileHandle.standardOutput.write(Data(result.standardOutput.utf8))

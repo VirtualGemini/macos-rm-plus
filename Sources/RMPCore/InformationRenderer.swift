@@ -4,20 +4,21 @@ enum InformationRenderer {
   static let version = "rmp 0.1.0\n"
 
   static func render(_ page: HelpPage) -> String {
-    switch page {
-    case .primaryEnglish: primaryEnglish
-    case .compatibilityEnglish: compatibilityEnglish
-    case .primaryChinese: primaryChinese
-    case .compatibilityChinese: compatibilityChinese
-    }
+    let content =
+      switch page {
+      case .primaryEnglish: primaryEnglish
+      case .compatibilityEnglish: compatibilityEnglish
+      case .primaryChinese: primaryChinese
+      case .compatibilityChinese: compatibilityChinese
+      }
+    return content + "\n"
   }
 
   private static let primaryEnglish = """
     Usage: rmp [OPTIONS] <PATH>...
 
-    Move files and directories to the macOS system Trash. rmp never falls back to permanent
-    deletion,
-    and force options cannot bypass Protected Path checks.
+    Move files and directories to the macOS system Trash. Permanent deletion is never used, and
+    force options cannot bypass Protected Path checks.
 
     Native options:
       -f, --force             Never confirm and ignore missing paths

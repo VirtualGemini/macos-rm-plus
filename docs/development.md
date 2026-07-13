@@ -32,6 +32,10 @@ SwiftLint version duplicated by necessity in the SwiftPM manifest.
 The unit-test command explicitly supplies the active developer directory's Testing framework and
 interop-library paths at compile and runtime. This keeps Swift Testing discoverable in both full
 Xcode and Command Line Tools installations without adding a third-party testing dependency.
+Before builds or tests, a compatibility probe type-checks a minimal `import Testing` program against
+the active compiler, macOS SDK, and developer-framework directory. Mixed or partially updated Xcode
+Command Line Tools therefore fail immediately with an actionable diagnostic instead of surfacing as
+unrelated test compilation errors.
 
 ## 2. Dependency policy
 
@@ -252,6 +256,7 @@ make format-check       Check Swift formatting
 make lint               Run SwiftLint
 make lint-scripts       Run ShellCheck
 make lint-actions       Run actionlint
+make check-swift-toolchain Verify compiler, SDK, and Testing.framework compatibility
 make build              Build every package target in Debug
 make build-release      Build every package target in Release
 make test               Run safe pure tests

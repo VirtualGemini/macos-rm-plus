@@ -43,6 +43,8 @@ if ! swift format --version >/dev/null 2>&1; then
   exit 1
 fi
 
+./scripts/check-swift-toolchain.sh
+
 ./scripts/install-dev-tools.sh
 PATH="$ROOT/.build/tools/bin:$PATH"
 export PATH

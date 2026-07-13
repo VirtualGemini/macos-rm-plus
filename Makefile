@@ -13,7 +13,8 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
 	build build-release test test-unit test-integration check-spdx check-dangerous \
-	test-policy coverage-report check-tool-versions check-policy-ownership check ci clean
+	test-policy coverage-report check-tool-versions check-swift-toolchain \
+	check-policy-ownership check ci clean
 
 bootstrap:
 	./scripts/bootstrap.sh
@@ -37,18 +38,18 @@ lint-scripts:
 lint-actions:
 	$(TOOLS_BIN)/actionlint
 
-build:
+build: check-swift-toolchain
 	swift build --build-tests $(SWIFT_WARNING_FLAGS) \
 		-Xswiftc -F -Xswiftc "$(DEVELOPER_FRAMEWORKS)"
 
-build-release:
+build-release: check-swift-toolchain
 	swift build --build-tests $(SWIFT_WARNING_FLAGS) -c release \
 		-Xswiftc -enable-testing \
 		-Xswiftc -F -Xswiftc "$(DEVELOPER_FRAMEWORKS)"
 
 test: test-unit
 
-test-unit:
+test-unit: check-swift-toolchain
 	DYLD_FRAMEWORK_PATH="$(DEVELOPER_FRAMEWORKS)" \
 		swift test --enable-code-coverage --no-parallel $(SWIFT_WARNING_FLAGS) \
 		-Xswiftc -F -Xswiftc "$(DEVELOPER_FRAMEWORKS)" \
@@ -64,6 +65,10 @@ test-policy:
 	Tests/PolicyTests/check-policy-ownership-tests.sh
 	Tests/PolicyTests/check-policy-changes-tests.sh
 	Tests/PolicyTests/check-tool-versions-tests.sh
+	Tests/PolicyTests/check-swift-toolchain-tests.sh
+
+check-swift-toolchain:
+	./scripts/check-swift-toolchain.sh
 
 test-integration:
 	./scripts/run-integration-tests.sh
@@ -81,7 +86,8 @@ check-policy-ownership:
 	./scripts/check-policy-ownership.sh
 
 check: format-check lint lint-scripts lint-actions check-spdx check-dangerous check-tool-versions \
-	check-policy-ownership build build-release test-unit coverage-report test-policy
+	check-swift-toolchain check-policy-ownership build build-release test-unit coverage-report \
+	test-policy
 
 ci: check
 

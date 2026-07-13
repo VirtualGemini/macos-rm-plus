@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 — Establish a trusted Test Safety Context.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Real Foundation Trash behavior is available to tests only through a whitelist-enforcing capability constructed with a previously verified Test Safety Context.
 - [x] Production and testing capabilities are separated at compile time or dependency-wiring boundaries; no environment variable can enable test behavior in the production executable.

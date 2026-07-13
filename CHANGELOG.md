@@ -14,6 +14,11 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
+- Add the complete v0.1 command-line parser with deterministic left-to-right precedence, combined
+  short options, strict compatibility validation, concise and compatibility help in English and
+  Chinese, filesystem-independent help/version commands, one authoritative parsing path, and
+  CLI-only compatibility diagnostics. Explicit missing-path policy remains independent of `-i`, and
+  internal confirmation policies cannot be selected through undocumented long-option values.
 - Add `rmp --dry-run` for ordered, kind-aware top-level Trash Plan previews with missing-path and
   Protected Path safety failures, without exposing any filesystem mutation capability.
 - Initial SwiftPM, development-policy, test-safety, and CI scaffold.

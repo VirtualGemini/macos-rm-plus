@@ -14,6 +14,7 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
 	build build-release test test-unit test-integration check-spdx check-dangerous \
 	test-policy coverage-report check-tool-versions check-swift-toolchain \
+	check-system-trash-boundary \
 	check-policy-ownership check ci clean
 
 bootstrap:
@@ -66,6 +67,7 @@ test-policy:
 	Tests/PolicyTests/check-policy-changes-tests.sh
 	Tests/PolicyTests/check-tool-versions-tests.sh
 	Tests/PolicyTests/check-swift-toolchain-tests.sh
+	Tests/PolicyTests/check-system-trash-boundary-tests.sh
 
 check-swift-toolchain:
 	./scripts/check-swift-toolchain.sh
@@ -82,11 +84,15 @@ check-dangerous:
 check-tool-versions:
 	./scripts/check-tool-versions.sh
 
+check-system-trash-boundary:
+	./scripts/check-system-trash-boundary.sh
+
 check-policy-ownership:
 	./scripts/check-policy-ownership.sh
 
 check: format-check lint lint-scripts lint-actions check-spdx check-dangerous check-tool-versions \
-	check-swift-toolchain check-policy-ownership build build-release test-unit coverage-report \
+	check-swift-toolchain check-system-trash-boundary check-policy-ownership build build-release \
+	test-unit coverage-report \
 	test-policy
 
 ci: check

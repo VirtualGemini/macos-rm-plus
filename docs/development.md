@@ -405,6 +405,11 @@ Agent review does not replace human approval for SafetyPolicy, WhitelistedTrashC
 FoundationTrashClient, `rmp-test`, Git hooks, workflows, release configuration, or development
 standards.
 
+Repository policy also enforces the test Trash boundary statically: the Foundation
+`trashItem(at:resultingItemURL:)` API may appear only in `WhitelistedTrashClient.swift`, and the
+injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy test.
+`make check-system-trash-boundary` runs this check directly, and `make check` includes it.
+
 Unresolved critical or high-risk findings block merge. Medium-risk findings are fixed or explicitly
 accepted with a written maintainer rationale.
 

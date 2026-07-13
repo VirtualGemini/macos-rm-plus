@@ -17,7 +17,7 @@ struct WhitelistedTrashClientTests {
     let target = try makeFixture(context: context)
     let returnedURL = URL(fileURLWithPath: "/Trash/\(target.lastPathComponent)")
     let spy = TrashSpy(returnedURL: returnedURL)
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: spy.call
@@ -37,7 +37,7 @@ struct WhitelistedTrashClientTests {
     let context = try fixture.establishContext()
     let target = try makeFixture(context: context)
     let spy = TrashSpy()
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: spy.call
@@ -57,7 +57,7 @@ struct WhitelistedTrashClientTests {
     defer { fixture.remove() }
     let context = try fixture.establishContext()
     let spy = TrashSpy()
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: spy.call
@@ -86,10 +86,17 @@ struct WhitelistedTrashClientTests {
     try FileManager.default.createSymbolicLink(at: intermediate, withDestinationURL: outside)
     let escapedTarget = intermediate.appendingPathComponent("\(prefix)escaped")
     try Data().write(to: outside.appendingPathComponent("\(prefix)escaped"))
-    let spy = TrashSpy()
-    let client = WhitelistedTrashClient.testing(
+    let volumeSpy = VolumeInspectionSpy()
+    let spy = TrashSpy(
+      returnedURL: URL(fileURLWithPath: "/Trash/\(finalSymlink.lastPathComponent)")
+    )
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
-      authorization: .accepting,
+      authorization: TrashAuthorizationOperations(
+        inspectVolume: volumeSpy.inspect,
+        deviceMatchesRun: { $0 == $1 },
+        resourceIdentifier: { _ in nil }
+      ),
       systemTrash: spy.call
     )
     let before = try fixture.snapshot()
@@ -97,7 +104,8 @@ struct WhitelistedTrashClientTests {
     _ = try trash(client: client, target: finalSymlink)
     let diagnostic = captureDiagnostic { _ = try trash(client: client, target: escapedTarget) }
 
-    #expect(spy.receivedURLs == [finalSymlink])
+    #expect(spy.receivedURLs.map(\.path) == [finalSymlink.path])
+    #expect(volumeSpy.receivedURLs == [context.runDirectoryURL, context.runDirectoryURL])
     #expect(diagnostic?.code == .trashIntermediateSymlink)
     #expect(try fixture.snapshot() == before)
   }
@@ -112,7 +120,7 @@ struct WhitelistedTrashClientTests {
     let context = try fixture.establishContext()
     let target = try makeFixture(context: context)
     let spy = TrashSpy()
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: testCase.authorization,
       systemTrash: spy.call
@@ -133,7 +141,7 @@ struct WhitelistedTrashClientTests {
     let context = try fixture.establishContext()
     let target = try makeFixture(context: context)
     let spy = TrashSpy()
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: spy.call
@@ -162,7 +170,7 @@ struct WhitelistedTrashClientTests {
     let context = try fixture.establishContext()
     let target = try makeFixture(context: context)
     let spy = TrashSpy()
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: spy.call
@@ -185,7 +193,7 @@ struct WhitelistedTrashClientTests {
     let context = try fixture.establishContext()
     let target = try makeFixture(context: context)
     let spy = TrashSpy()
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: spy.call
@@ -208,7 +216,7 @@ struct WhitelistedTrashClientTests {
     let context = try fixture.establishContext()
     let target = try makeFixture(context: context)
     let spy = TrashSpy(returnedURL: URL(fileURLWithPath: "/Trash/unrelated-item"))
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: spy.call
@@ -233,7 +241,7 @@ struct WhitelistedTrashClientTests {
       deviceMatchesRun: { $0 == $1 },
       resourceIdentifier: { url in url == target ? Data([1]) : Data([2]) }
     )
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: authorization,
       systemTrash: spy.call
@@ -251,7 +259,7 @@ struct WhitelistedTrashClientTests {
     defer { fixture.remove() }
     let context = try fixture.establishContext()
     let target = try makeFixture(context: context)
-    let client = WhitelistedTrashClient.testing(
+    let client = WhitelistedTrashClient.testingOnly(
       context: context,
       authorization: .accepting,
       systemTrash: { _ in throw InjectedSystemTrashError() }
@@ -279,7 +287,16 @@ private final class TrashSpy: @unchecked Sendable {
   }
 }
 
-private enum AuthorizationRejectionCase: CaseIterable, CustomTestStringConvertible {
+private final class VolumeInspectionSpy: @unchecked Sendable {
+  private(set) var receivedURLs: [URL] = []
+
+  func inspect(_ url: URL) throws -> TrashVolumeInspection {
+    receivedURLs.append(url)
+    return .accepted
+  }
+}
+
+enum AuthorizationRejectionCase: CaseIterable, CustomTestStringConvertible {
   case outside
   case runDirectory
   case wrongFixturePrefix
@@ -395,42 +412,6 @@ extension TrashVolumeInspection {
     isMountPoint: false,
     isFileProviderRoot: false
   )
-}
-
-private enum ContextRevalidationCase: CaseIterable, CustomTestStringConvertible {
-  case marker
-  case identity
-  case permissions
-
-  var testDescription: String { expectedCode.rawValue }
-
-  var expectedCode: TestSafetyDiagnosticCode {
-    switch self {
-    case .marker: .markerMissing
-    case .identity: .directoryIdentityMismatch
-    case .permissions: .directoryPermissions
-    }
-  }
-
-  func invalidate(context: TestSafetyContext, fixture: SafetyHomeFixture) throws {
-    switch self {
-    case .marker:
-      try FileManager.default.removeItem(at: context.runMarkerURL)
-    case .identity:
-      let displaced = fixture.homeURL.appendingPathComponent("displaced-run")
-      try FileManager.default.moveItem(at: context.runDirectoryURL, to: displaced)
-      try FileManager.default.createDirectory(
-        at: context.runDirectoryURL,
-        withIntermediateDirectories: false,
-        attributes: [.posixPermissions: 0o700]
-      )
-    case .permissions:
-      try FileManager.default.setAttributes(
-        [.posixPermissions: 0o755],
-        ofItemAtPath: fixture.authorizedRootURL.path
-      )
-    }
-  }
 }
 
 private func makeFixture(context: TestSafetyContext) throws -> URL {

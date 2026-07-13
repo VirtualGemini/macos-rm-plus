@@ -77,7 +77,7 @@ final class WhitelistedTrashClient {
     self.systemTrash = systemTrash
   }
 
-  static func testing(
+  static func testingOnly(
     context: TestSafetyContext,
     authorization: TrashAuthorizationOperations,
     systemTrash: @escaping SystemTrash
@@ -211,6 +211,13 @@ final class WhitelistedTrashClient {
         throw diagnostic(.trashVolumeMismatch, "The Trash target crossed the authorized volume.")
       }
       if isFinal { finalIdentity = FileIdentity(status: status) }
+
+      if !isFinal, status.st_mode & S_IFMT != S_IFDIR {
+        let code: TestSafetyDiagnosticCode =
+          status.st_mode & S_IFMT == S_IFLNK
+          ? .trashIntermediateSymlink : .trashPathInspectionFailed
+        throw diagnostic(code, "Every intermediate Trash path component must be a real directory.")
+      }
 
       try validateVolume(at: currentURL, status: status, isFinal: isFinal)
 

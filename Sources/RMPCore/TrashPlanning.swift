@@ -47,11 +47,12 @@ struct TrashInput: Equatable, Sendable {
   let kind: TrashInputKind
 }
 
-enum ConfirmationMode: Equatable, Sendable {
+enum ConfirmationMode: String, Equatable, Sendable {
   case smart
   case never
   case once
   case each
+  case conditionalOnce
 }
 
 enum OutputMode: Equatable, Sendable {
@@ -67,6 +68,7 @@ struct TrashPlan: Equatable, Sendable {
   let ignoreMissing: Bool
   let output: OutputMode
   let dryRun: Bool
+  let nonInteractive: Bool
   let stopOnError: Bool
   let strictOptions: Bool
 
@@ -76,6 +78,7 @@ struct TrashPlan: Equatable, Sendable {
     ignoreMissing: Bool = false,
     output: OutputMode = .standard,
     dryRun: Bool = true,
+    nonInteractive: Bool = false,
     stopOnError: Bool = false,
     strictOptions: Bool = false
   ) {
@@ -84,6 +87,7 @@ struct TrashPlan: Equatable, Sendable {
     self.ignoreMissing = ignoreMissing
     self.output = output
     self.dryRun = dryRun
+    self.nonInteractive = nonInteractive
     self.stopOnError = stopOnError
     self.strictOptions = strictOptions
   }
@@ -113,7 +117,29 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
     self.fileSystem = fileSystem
   }
 
-  func makePlan(paths: [String]) throws(TrashPlanningError) -> TrashPlan {
+  func makePlan(request: OperationRequest) throws(TrashPlanningError) -> TrashPlan {
+    try makePlan(
+      paths: request.paths,
+      confirmation: request.confirmation,
+      ignoreMissing: request.ignoreMissing,
+      output: request.output,
+      dryRun: request.dryRun,
+      nonInteractive: request.nonInteractive,
+      stopOnError: request.stopOnError,
+      strictOptions: request.strictOptions
+    )
+  }
+
+  func makePlan(
+    paths: [String],
+    confirmation: ConfirmationMode = .smart,
+    ignoreMissing: Bool = false,
+    output: OutputMode = .standard,
+    dryRun: Bool = true,
+    nonInteractive: Bool = false,
+    stopOnError: Bool = false,
+    strictOptions: Bool = false
+  ) throws(TrashPlanningError) -> TrashPlan {
     guard !paths.isEmpty else {
       throw .noInputs
     }
@@ -133,13 +159,22 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
         }
         inputs.append(TrashInput(path: path, kind: entry.kind))
       case .missing:
-        throw .missingPath(path)
+        if !ignoreMissing { throw .missingPath(path) }
       case .inaccessible:
         throw .inaccessiblePath(path)
       }
     }
 
-    return TrashPlan(inputs: inputs)
+    return TrashPlan(
+      inputs: inputs,
+      confirmation: confirmation,
+      ignoreMissing: ignoreMissing,
+      output: output,
+      dryRun: dryRun,
+      nonInteractive: nonInteractive,
+      stopOnError: stopOnError,
+      strictOptions: strictOptions
+    )
   }
 
   private func protectedIdentities() throws(TrashPlanningError) -> ProtectedIdentities {

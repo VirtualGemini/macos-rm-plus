@@ -419,6 +419,8 @@ new matrix takes effect for subsequent commits and pull requests whose trusted r
 Examples:
 
 - CLI flags, output, and exit codes affect README, help, PRD, and changelog.
+- CLI parser tests exercise the pure `RMPCore` command boundary with fake filesystem capabilities;
+  help and version tests must prove that no path inspection occurs.
 - safety behavior affects the PRD, tests, and changelog.
 - TestSupport, hooks, Makefile, and workflows affect this guide.
 - module boundaries affect this guide and an ADR.

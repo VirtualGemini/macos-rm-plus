@@ -4,12 +4,12 @@
 
 **Blocked by:** 03 — Safely preview a Trash Plan.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] All native options in the v0.1.0 specification parse into their documented independent policy fields, including explicit confirmation, missing-path, output, dry-run, non-interactive, and stop-on-error choices.
-- [ ] Combined short options and mixed short/long invocations are processed once from left to right, with tests covering `-rf`, `-Rfv`, `-fi`, `-if`, repeated options, and explicit overrides.
-- [ ] `--` ends option parsing and permits leading-hyphen Trash Inputs; unknown options and invalid or conflicting option combinations return exit code 2.
-- [ ] Compatibility options are accepted, warned about, or rejected exactly as specified; strict mode rejects every no-effect compatibility option.
-- [ ] The primary help remains concise, compatibility help distinguishes ignored, warned, and unsupported options, and Chinese variants explain both help surfaces consistently.
-- [ ] Help and version commands require no Trash Input and do not enter path safety checks or platform Trash capabilities.
-- [ ] Parser and information-command tests cover the full compatibility matrix without touching the real filesystem.
+- [x] All native options in the v0.1.0 specification parse into their documented independent policy fields, including explicit confirmation, missing-path, output, dry-run, non-interactive, and stop-on-error choices.
+- [x] Combined short options and mixed short/long invocations are processed once from left to right, with tests covering `-rf`, `-Rfv`, `-fi`, `-if`, repeated options, and explicit overrides.
+- [x] `--` ends option parsing and permits leading-hyphen Trash Inputs; unknown options and invalid or conflicting option combinations return exit code 2.
+- [x] Compatibility options are accepted, warned about, or rejected exactly as specified; strict mode rejects every no-effect compatibility option.
+- [x] The primary help remains concise, compatibility help distinguishes ignored, warned, and unsupported options, and Chinese variants explain both help surfaces consistently.
+- [x] Help and version commands require no Trash Input and do not enter path safety checks or platform Trash capabilities.
+- [x] Parser and information-command tests cover the full compatibility matrix without touching the real filesystem.

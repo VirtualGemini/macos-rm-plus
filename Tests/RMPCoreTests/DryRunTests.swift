@@ -88,6 +88,55 @@ func dryRunApplicationReportsUnknownOptions() {
   #expect(result.standardError == "rmp: unknown option \"--unknown\"\n")
 }
 
+@Test("CLI compatibility warnings use stderr and usage failures return exit code 2")
+func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
+  let fileSystem = FakeTrashPlanningFileSystem(
+    entries: [
+      "report.txt": .entry(.init(kind: .file, identity: .init(device: 1, inode: 10)))
+    ])
+  let application = CLIApplication(fileSystem: fileSystem)
+
+  let warning = application.run(arguments: ["--dry-run", "-P", "report.txt"])
+  #expect(warning.exitCode == 0)
+  #expect(warning.standardOutput.contains("Would move 1 item to Trash"))
+  #expect(warning.standardError.contains("warning: -P does not securely overwrite"))
+
+  let unsupported = application.run(arguments: ["--dry-run", "-W", "report.txt"])
+  #expect(unsupported.exitCode == 2)
+  #expect(unsupported.standardOutput.isEmpty)
+  #expect(unsupported.standardError.contains("unsupported Compatibility Option -W"))
+}
+
+@Test("Parsed native policy is preserved in the execution-facing Trash Plan")
+func parsedPolicyIsPreservedInTrashPlan() throws {
+  let request = OperationRequest(
+    paths: ["missing", "report.txt"],
+    confirmation: .each,
+    ignoreMissing: true,
+    output: .verbose,
+    dryRun: true,
+    nonInteractive: true,
+    stopOnError: true,
+    strictOptions: true,
+    warnings: []
+  )
+  let fileSystem = FakeTrashPlanningFileSystem(
+    entries: [
+      "report.txt": .entry(.init(kind: .file, identity: .init(device: 1, inode: 10)))
+    ])
+
+  let plan = try TrashPlanner(fileSystem: fileSystem).makePlan(request: request)
+
+  #expect(plan.inputs == [.init(path: "report.txt", kind: .file)])
+  #expect(plan.confirmation == .each)
+  #expect(plan.ignoreMissing)
+  #expect(plan.output == .verbose)
+  #expect(plan.dryRun)
+  #expect(plan.nonInteractive)
+  #expect(plan.stopOnError)
+  #expect(plan.strictOptions)
+}
+
 @Test("Dry-run rejects a Protected Path with exit code 3 before presenting a plan")
 func dryRunRejectsProtectedPathWithSafetyExitCode() {
   let rootIdentity = FileSystemIdentity(device: 1, inode: 1)

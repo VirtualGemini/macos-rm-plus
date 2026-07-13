@@ -33,6 +33,7 @@ func trashPlanPreservesInputOrderAndKinds() throws {
   #expect(!plan.ignoreMissing)
   #expect(plan.output == .standard)
   #expect(plan.dryRun)
+  #expect(!plan.nonInteractive)
   #expect(!plan.stopOnError)
   #expect(!plan.strictOptions)
 }

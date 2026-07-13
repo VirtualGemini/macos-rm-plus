@@ -25,11 +25,26 @@ public struct DryRunApplication<FileSystem: TrashPlanningFileSystem> {
     do {
       request = try DryRunCommand.parse(arguments: arguments)
     } catch {
-      return commandErrorResult(error)
+      return legacyCommandErrorResult(error)
     }
 
+    let operation = OperationRequest(
+      paths: request.paths,
+      confirmation: .smart,
+      ignoreMissing: false,
+      output: .standard,
+      dryRun: true,
+      nonInteractive: false,
+      stopOnError: false,
+      strictOptions: false,
+      warnings: []
+    )
+    return run(request: operation)
+  }
+
+  func run(request: OperationRequest) -> CommandResult {
     do {
-      let plan = try TrashPlanner(fileSystem: fileSystem).makePlan(paths: request.paths)
+      let plan = try TrashPlanner(fileSystem: fileSystem).makePlan(request: request)
       return CommandResult(
         standardOutput: renderer.render(plan),
         standardError: "",
@@ -40,7 +55,7 @@ public struct DryRunApplication<FileSystem: TrashPlanningFileSystem> {
     }
   }
 
-  private func commandErrorResult(_ error: DryRunCommandError) -> CommandResult {
+  private func legacyCommandErrorResult(_ error: DryRunCommandError) -> CommandResult {
     let message: String
     switch error {
     case .dryRunRequired:

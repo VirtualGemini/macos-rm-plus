@@ -1131,7 +1131,16 @@ test ! -e file-If && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-If" to Trash at "/Users/virtualgemini/.Trash/file-if".
+exit=0
+source=absent（移动后）
+放回前: 废纸篓有项；内容 If；系统路径名大小写可能规范化为 file-if
+人工: 废纸篓可见 file-if；放回后文件内容为 If
+放回后验证: readdir 名为 file-if（APFS 默认大小写不敏感，file-If 与 file-if 同一 inode）；内容 If；位于 TEST_DIR；废纸篓计数=0
+Finder 备注: 放回时 Finder 未按预期打开 tmp 目录视图，而是以该文件名呈现（路径仍正确落在 TEST_DIR）。归类为 Finder/卷大小写不敏感展示问题，非 rmp 移动失败；rmp 仅调用 FileManager.trashItem。
+结果: PASS（功能：进入废纸篓并回到 TEST_DIR；展示/大小写见备注）
 ```
 
 ## TC-46：`-i --confirm=never`

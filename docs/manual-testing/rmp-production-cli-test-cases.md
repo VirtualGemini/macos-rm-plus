@@ -67,7 +67,15 @@ cd "$TEST_DIR"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+分支: test/rmp-production-cli
+预清理: 清空废纸篓；FXRecentFolders 移除 tmp.Dpnt129azc；killall Finder；废纸篓计数=0
+make build-release: 成功
+command -v rmp: /Users/virtualgemini/.local/bin/rmp
+rmp --version: rmp 0.1.0（exit=0）
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+废纸篓计数: 0
+结果: PASS
 ```
 
 ## TC-01：普通文件 dry-run
@@ -86,7 +94,14 @@ test -f file-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 1 item to Trash:
+  [file] "file-dry"
+exit=0
+source=present
+结果: PASS
 ```
 
 ## TC-02：普通文件真实移动
@@ -105,7 +120,14 @@ test ! -e file-real && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-real" to Trash at "/Users/virtualgemini/.Trash/file-real".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-real；放回原处后废纸篓消失
+验证: source=present 于 TEST_DIR/file-real；内容 real-file；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-03：目录 dry-run 不递归
@@ -124,7 +146,14 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 1 item to Trash:
+  [directory] "directory-dry"
+exit=0
+dir=present nested=present（未进废纸篓）
+结果: PASS
 ```
 
 ## TC-04：`rmp -r directory`
@@ -143,7 +172,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "directory-r": confirmation is required before this Trash Input can be moved
+exit=1
+dir=present nested=present（未进废纸篓）
+结果: PASS（交互确认 08 暂不支持，安全失败符合预期）
 ```
 
 ## TC-05：`rmp -rf directory`
@@ -162,7 +196,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-rf" to Trash at "/Users/virtualgemini/.Trash/directory-rf".
+exit=0
+source=absent（移动后）
+废纸篓: directory-rf 为单一文件夹对象；内部 sub/file 完整（内容 nested）
+人工: 废纸篓可见且结构正确；放回原处成功
+验证: source=present 于 TEST_DIR/directory-rf；sub/file=nested；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-06：组合短选项 `-Rfv`
@@ -180,7 +222,14 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-Rfv" to Trash at "/Users/virtualgemini/.Trash/directory-Rfv".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 directory-Rfv；放回原处成功
+验证: source=present 于 TEST_DIR/directory-Rfv；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-07：组合顺序 `-fi`
@@ -198,7 +247,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-fi": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓）
+结果: PASS（-i 覆盖 -f；交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-08：组合顺序 `-if`
@@ -216,7 +270,14 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-if" to Trash at "/Users/virtualgemini/.Trash/file-if".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-if；放回原处成功
+验证: source=present 于 TEST_DIR/file-if；内容 if；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-09：选项在路径后
@@ -234,7 +295,14 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-after" to Trash at "/Users/virtualgemini/.Trash/file-after".
+exit=0
+source=absent（移动后）；无名为 -f 的文件
+人工: 废纸篓可见 file-after；放回原处成功
+验证: source=present 于 TEST_DIR/file-after；内容 after；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-10：`--` 与前导短横线文件名
@@ -252,7 +320,14 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "-special" to Trash at "/Users/virtualgemini/.Trash/-special".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 -special；放回原处成功
+验证: source=present 于 TEST_DIR/-special；内容 special；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-11：`-P` 警告
@@ -270,7 +345,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-P" to Trash at "/Users/virtualgemini/.Trash/file-P".
+stderr: rmp: warning: -P does not securely overwrite; the item will only be moved to Trash
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-P；放回原处成功
+验证: source=present 于 TEST_DIR/file-P；内容 secure；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-12：missing path 默认失败
@@ -287,7 +370,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: rmp: missing_input: Trash Input does not exist: "missing-file"
+exit=1
+废纸篓计数=0（未调用 Trash）
+结果: PASS
 ```
 
 ## TC-13：`-f` 忽略 missing path
@@ -304,7 +393,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+废纸篓计数=0（未调用 Trash）
+结果: PASS
 ```
 
 ## TC-14：符号链接只移动链接
@@ -324,7 +419,15 @@ cat target-file
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+重测: 是（首轮在 put-back 前未先核对 target；本轮按正确顺序重跑）
+stdout: Moved "link-file" to Trash at "/Users/virtualgemini/.Trash/link-file".
+exit=0
+放回前验证: link=absent；target=present 内容 target；废纸篓 link-file 仍为 symlink → TEST_DIR/target-file
+人工: 废纸篓可见 link-file（种类=替身）；放回原处成功
+放回后验证: link=present（symlink→target-file）；target=present 内容 target；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-15：失效符号链接
@@ -342,7 +445,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "broken-link" to Trash at "/Users/virtualgemini/.Trash/broken-link".
+exit=0
+stderr: 空（无 missing_input）
+放回前: source=absent；废纸篓 broken-link；no-such-target 仍不存在
+人工: 废纸篓可见 broken-link；放回原处成功
+放回后: source=present（symlink→no-such-target）；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-16：Protected Path
@@ -363,7 +474,13 @@ printf 'cwd-exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+root-exit=3 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+home-exit=3 stderr: rmp: protected_path (home-directory): Protected Path rejected: "/Users/virtualgemini"
+cwd-exit=3 stderr: rmp: protected_path (current-directory): Protected Path rejected: ".../tmp.tbyfgQFr3V"
+stdout 均为空；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-17：`-f` 不能绕过保护
@@ -380,7 +497,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+exit=3
+stdout: 空；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-18：未知选项
@@ -398,7 +520,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unknown option "--not-an-option"
+exit=2
+source=present（unknown-file 未移动）
+废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-19：多输入真实执行
@@ -417,7 +545,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：暂不支持，09 完成前应安全失败；本轮按「不支持的暂不测试」跳过。相近安全失败已在 TC-63/TC-136 覆盖）
 ```
 
 ## TC-20：交互确认
@@ -435,7 +565,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：暂不支持交互确认 08；本轮跳过。相近 confirmation_required 已在 TC-04/TC-07/TC-25 等覆盖）
 ```
 
 ## TC-21：JSON 输出
@@ -453,7 +585,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：JSON 输出暂不支持 10；本轮跳过。相近 unsupported_output_mode 已在 TC-56/TC-118 覆盖）
 ```
 
 ## TC-22：无路径参数
@@ -470,7 +604,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: at least one Trash Input is required
+exit=2
+stdout: 空；废纸篓计数未因本用例变化
+结果: PASS
+备注: TC-19/TC-20/TC-21 状态为暂不支持，本轮跳过
 ```
 
 ## TC-23：长选项 `--force`
@@ -489,7 +629,14 @@ test ! -e file-force-long && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-force-long" to Trash at "/Users/virtualgemini/.Trash/file-force-long".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-force-long；放回原处成功
+验证: source=present 于 TEST_DIR/file-force-long；内容 force-long；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-24：`--force` 忽略 missing path
@@ -506,7 +653,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+废纸篓计数未因本用例增加（忽略 missing，不调用 Trash）
+结果: PASS
 ```
 
 ## TC-25：长选项 `--interactive`
@@ -525,7 +678,12 @@ test -f file-interactive-long && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-interactive-long": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓，命令立即结束）
+结果: PASS（交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-26：条件式确认短选项 `-I`
@@ -544,7 +702,12 @@ test -f file-I && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-I": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓，命令立即结束）
+结果: PASS（交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-27：`--confirm=smart` 普通文件
@@ -563,7 +726,14 @@ test ! -e file-confirm-smart && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-confirm-smart" to Trash at "/Users/virtualgemini/.Trash/file-confirm-smart".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-confirm-smart；放回原处成功
+验证: source=present 于 TEST_DIR/file-confirm-smart；内容 smart-file；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-28：`--confirm=smart` 目录
@@ -582,7 +752,12 @@ test -d directory-confirm-smart && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "directory-confirm-smart": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（目录未进废纸篓）
+结果: PASS（目录确认 08 暂不支持，安全失败）
 ```
 
 ## TC-29：`--confirm=never` 目录
@@ -602,7 +777,15 @@ test ! -e directory-confirm-never && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-confirm-never" to Trash at "/Users/virtualgemini/.Trash/directory-confirm-never".
+exit=0
+source=absent（移动后）
+放回前: 废纸篓为单一目录对象；内部 sub/file=nested 完整
+人工: 废纸篓可见且结构正确；放回原处成功
+验证: source=present；sub/file=nested；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-30：`--confirm=once`
@@ -621,7 +804,12 @@ test -f file-confirm-once && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-confirm-once": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓）
+结果: PASS（交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-31：`--confirm=each`
@@ -640,7 +828,12 @@ test -f file-confirm-each && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-confirm-each": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓）
+结果: PASS（交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-32：无效确认值
@@ -659,7 +852,12 @@ test -f file-invalid-confirm && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: invalid confirmation mode "sometimes"
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-33：空确认值
@@ -676,7 +874,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: invalid confirmation mode ""
+exit=2
+结果: PASS（不检查路径，不调用 Trash）
 ```
 
 ## TC-34：未公开确认值
@@ -693,7 +895,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: invalid confirmation mode "conditionalOnce"
+exit=2
+结果: PASS
 ```
 
 ## TC-35：`--confirm` 缺少 `=<mode>`
@@ -710,7 +916,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unknown option "--confirm"
+exit=2
+结果: PASS（仅接受 --confirm=<mode>）
 ```
 
 ## TC-36：显式 `--ignore-missing`
@@ -727,7 +937,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-37：`-f -i` 对 missing path 的覆盖
@@ -744,7 +960,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: missing_input: Trash Input does not exist: "missing-fi"
+exit=1
+结果: PASS（-i 关闭 -f 的 missing 忽略）
 ```
 
 ## TC-38：`-i -f` 对 missing path 的覆盖
@@ -761,7 +981,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+结果: PASS（-f 重新启用 missing 忽略）
 ```
 
 ## TC-39：`--force --interactive` 对 missing path 的覆盖
@@ -778,7 +1003,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: missing_input: Trash Input does not exist: "missing-force-interactive"
+exit=1
+结果: PASS
 ```
 
 ## TC-40：`--interactive --force` 对 missing path 的覆盖
@@ -795,7 +1024,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+结果: PASS
 ```
 
 ## TC-41：显式 missing 策略不被后续 `-i` 清除
@@ -812,7 +1046,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+结果: PASS（显式 --ignore-missing 保留）
 ```
 
 ## TC-42：`-f --ignore-missing -i`
@@ -829,7 +1068,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+结果: PASS（显式 missing 在 -f 之后，-i 不清除）
 ```
 
 ## TC-43：`--ignore-missing -f -i`
@@ -846,7 +1090,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: missing_input: Trash Input does not exist: "missing-explicit-force-i"
+exit=1
+结果: PASS（-f 改为 force 来源后 -i 关闭）
 ```
 
 ## TC-44：组合顺序 `-fI`
@@ -865,7 +1113,12 @@ test -f file-fI && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-fI": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓）
+结果: PASS（-I 覆盖 -f；交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-45：组合顺序 `-If`
@@ -884,7 +1137,16 @@ test ! -e file-If && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-If" to Trash at "/Users/virtualgemini/.Trash/file-if".
+exit=0
+source=absent（移动后）
+放回前: 废纸篓有项；内容 If；系统路径名大小写可能规范化为 file-if
+人工: 废纸篓可见 file-if；放回后文件内容为 If
+放回后验证: readdir 名为 file-if（APFS 默认大小写不敏感，file-If 与 file-if 同一 inode）；内容 If；位于 TEST_DIR；废纸篓计数=0
+Finder 备注: 放回时 Finder 未按预期打开 tmp 目录视图，而是以该文件名呈现（路径仍正确落在 TEST_DIR）。归类为 Finder/卷大小写不敏感展示问题，非 rmp 移动失败；rmp 仅调用 FileManager.trashItem。
+结果: PASS（功能：进入废纸篓并回到 TEST_DIR；展示/大小写见备注）
 ```
 
 ## TC-46：`-i --confirm=never`
@@ -903,7 +1165,14 @@ test ! -e file-i-never && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-i-never" to Trash at "/Users/virtualgemini/.Trash/file-i-never".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-i-never；放回原处成功；Finder 展示正常
+验证: source=present 于 TEST_DIR/file-i-never；内容 i-never；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-47：`--confirm=never -i`
@@ -922,7 +1191,12 @@ test -f file-never-i && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-never-i": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓）
+结果: PASS（后面的 -i 覆盖 never；交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-48：短选项 `-v`
@@ -941,7 +1215,14 @@ test ! -e file-v && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-v" to Trash at "/Users/virtualgemini/.Trash/file-v".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-v；放回原处成功
+验证: source=present 于 TEST_DIR/file-v；内容 verbose-short；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-49：长选项 `--verbose`
@@ -960,7 +1241,14 @@ test ! -e file-verbose && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-verbose" to Trash at "/Users/virtualgemini/.Trash/file-verbose".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-verbose；放回原处成功
+验证: source=present 于 TEST_DIR/file-verbose；内容 verbose-long；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-50：`--quiet` 成功输出
@@ -982,7 +1270,15 @@ test ! -e file-quiet && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+quiet-success.stdout 字节=0；quiet-success.stderr 字节=0
+source=absent（移动后）
+人工: 废纸篓可见 file-quiet（内容 quiet-success）；放回原处成功
+验证: source=present 于 TEST_DIR/file-quiet；内容 quiet-success
+环境污染备注: 首次执行因 zsh 只读变量 status 在 rmp 成功后脚本报错，随后重跑，导致废纸篓额外残留 file-quiet 21-12-05-525（时间戳式重名）。该残留不是产品第二份输出逻辑；file-quiet 放回后该残留仍在。
+结果: PASS（--quiet 成功静默 + 主对象放回）；残留待清理
 ```
 
 ## TC-51：`--quiet` 不抑制错误
@@ -1002,7 +1298,12 @@ cat quiet-error.stderr
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=1
+stdout 字节=0
+stderr: rmp: missing_input: Trash Input does not exist: "missing-quiet"
+结果: PASS
 ```
 
 ## TC-52：输出顺序 `--quiet --verbose`
@@ -1020,7 +1321,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-quiet-verbose" to Trash at "/Users/virtualgemini/.Trash/file-quiet-verbose".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-quiet-verbose；放回原处成功
+验证: source=present 于 TEST_DIR/file-quiet-verbose；内容 quiet-verbose
+残留: file-quiet 21-12-05-525 仍在废纸篓（TC-50 误重跑环境污染）
+结果: PASS
 ```
 
 ## TC-53：输出顺序 `--verbose --quiet`
@@ -1041,7 +1350,15 @@ wc -c < verbose-quiet.stderr
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+verbose-quiet.stdout 字节=0；verbose-quiet.stderr 字节=0
+source=absent（移动后）
+人工: file-verbose-quiet 放回原处成功
+验证: source=present 于 TEST_DIR/file-verbose-quiet；内容 verbose-quiet
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-54：组合短选项 `-fv`
@@ -1059,7 +1376,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-fv" to Trash at "/Users/virtualgemini/.Trash/file-fv".
+exit=0
+source=absent（移动后）
+人工: file-fv 放回原处成功
+验证: source=present 于 TEST_DIR/file-fv；内容 fv
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-55：组合短选项 `-iv`
@@ -1078,7 +1403,12 @@ test -f file-iv && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-iv": confirmation is required before this Trash Input can be moved
+exit=1
+source=present
+结果: PASS（交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-56：`--json --verbose`
@@ -1097,7 +1427,12 @@ test -f file-json-verbose && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_output_mode for "file-json-verbose": JSON Trash Operation results are not available in this build
+exit=2
+source=present
+结果: PASS（JSON 执行 10 暂不支持，安全失败）
 ```
 
 ## TC-57：`--json --quiet` 冲突
@@ -1116,7 +1451,12 @@ test -f file-json-quiet && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: conflicting options --json and --quiet
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-58：`--json --dry-run`
@@ -1135,7 +1475,12 @@ test -f file-json-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Would move 1 item to Trash: / [file] "file-json-dry"（人类可读，非 JSON）
+exit=0
+source=present
+结果: PASS（符合当前行为；不能作为 JSON 支持通过）
 ```
 
 ## TC-59：`--quiet --dry-run`
@@ -1154,7 +1499,12 @@ test -f file-quiet-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Would move 1 item to Trash: / [file] "file-quiet-dry"
+exit=0
+source=present
+结果: PASS（quiet 不抑制 dry-run 计划）
 ```
 
 ## TC-60：`--non-interactive` 普通文件
@@ -1173,7 +1523,15 @@ test ! -e file-non-interactive && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-non-interactive" to Trash at "/Users/virtualgemini/.Trash/file-non-interactive".
+exit=0
+source=absent（移动后）
+人工: file-non-interactive 放回原处成功
+验证: source=present 于 TEST_DIR/file-non-interactive；内容 non-interactive-file
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-61：`--non-interactive` 目录
@@ -1192,7 +1550,12 @@ test -d directory-non-interactive && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "directory-non-interactive": confirmation is required before this Trash Input can be moved
+exit=1
+source=present
+结果: PASS（目录确认 08 暂不支持，安全失败）
 ```
 
 ## TC-62：`--stop-on-error` 单对象执行
@@ -1211,7 +1574,15 @@ test ! -e file-stop-single && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-stop-single" to Trash at "/Users/virtualgemini/.Trash/file-stop-single".
+exit=0
+source=absent（移动后）
+人工: file-stop-single 放回原处成功
+验证: source=present 于 TEST_DIR/file-stop-single；内容 stop-single
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-63：`--stop-on-error` 多对象真实执行
@@ -1231,7 +1602,12 @@ test -f file-stop-a && test -f file-stop-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "file-stop-a", "file-stop-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present（均未移动）
+结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
 
 ## TC-64：`--strict-options` 与原生选项
@@ -1250,7 +1626,15 @@ test ! -e file-strict-native && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-strict-native" to Trash at "/Users/virtualgemini/.Trash/file-strict-native".
+exit=0
+source=absent（移动后）
+人工: file-strict-native 放回原处成功
+验证: source=present 于 TEST_DIR/file-strict-native；内容 strict-native
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-65：兼容选项 `-R`
@@ -1268,7 +1652,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-compat-R" to Trash at "/Users/virtualgemini/.Trash/file-compat-R".
+exit=0
+stderr: 空（无兼容警告）
+source=absent（移动后）
+人工: file-compat-R 放回原处成功
+验证: source=present 于 TEST_DIR/file-compat-R；内容 compat-R
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-66：兼容选项 `-d`
@@ -1286,7 +1679,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-compat-d" to Trash at "/Users/virtualgemini/.Trash/file-compat-d".
+exit=0
+stderr: 空
+source=absent（移动后）
+人工: file-compat-d 放回原处成功
+验证: source=present 于 TEST_DIR/file-compat-d；内容 compat-d
+残留: file-quiet 21-12-05-525 仍在废纸篓；另见 file-compat-x 环境污染残留
+结果: PASS
 ```
 
 ## TC-67：兼容选项 `-x`
@@ -1304,7 +1706,17 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x 21-55-21-877".
+exit=0
+stderr: 空
+source=absent（移动后）
+说明: 废纸篓已有环境污染残留 file-compat-x，系统同名重命名为 file-compat-x 21-55-21-877
+人工: file-compat-x 21-55-21-877 放回原处成功
+验证: TEST_DIR 出现 'file-compat-x 21-55-21-877'（保留系统重命名）；内容 compat-x
+残留: 旧 file-compat-x 与 file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS（-x 兼容接受；同名重命名为系统 Trash 行为）
 ```
 
 ## TC-68：组合兼容选项 `-rdx`
@@ -1322,7 +1734,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-compat-rdx" to Trash at "/Users/virtualgemini/.Trash/file-compat-rdx".
+exit=0
+stderr: 空（-r/-d/-x 均接受、无警告）
+source=absent（移动后）
+人工: file-compat-rdx 放回原处成功
+验证: source=present 于 TEST_DIR/file-compat-rdx；内容 compat-rdx
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-69：组合短选项 `-rfv`
@@ -1342,7 +1763,17 @@ test ! -e directory-rfv && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-rfv" to Trash at "/Users/virtualgemini/.Trash/directory-Rfv".
+exit=0
+source=absent（移动后）
+放回前: 单一目录对象；内部 sub/file=nested
+人工: directory-Rfv 放回原处成功；结构 directory-Rfv/sub/file
+验证: TEST_DIR/directory-Rfv/sub/file 存在；内容 nested
+说明: APFS 大小写不敏感，显示名折叠为 directory-Rfv（与 TC-06 同名冲突）
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-70：重复警告选项 `-PP`
@@ -1362,7 +1793,16 @@ cat repeated-P.stderr
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-PP" to Trash at "/Users/virtualgemini/.Trash/file-PP".
+exit=0
+stderr: -P warning 出现两次（逐次警告）
+source=absent（移动后）
+人工: file-PP 放回原处成功
+验证: source=present 于 TEST_DIR/file-PP；内容 PP
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-71：不支持的兼容选项 `-W`
@@ -1381,7 +1821,12 @@ test -f file-compat-W && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported Compatibility Option -W
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-72：严格模式拒绝 `-r`
@@ -1399,7 +1844,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -r is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-73：严格模式拒绝 `-R`
@@ -1417,7 +1867,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -R is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-74：严格模式拒绝 `-d`
@@ -1435,7 +1890,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -d is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-75：严格模式拒绝 `-x`
@@ -1453,7 +1913,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -x is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-76：严格模式拒绝 `-P`
@@ -1471,7 +1936,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -P is not allowed with --strict-options
+exit=2
+source=present（无普通 -P 警告）
+结果: PASS
 ```
 
 ## TC-77：严格模式下的 `-W`
@@ -1489,7 +1959,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported Compatibility Option -W
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-78：英文主帮助
@@ -1506,7 +1981,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout 含 Usage: rmp [OPTIONS] <PATH>...、Native options:、rmp --help -a
+stderr: 空
+结果: PASS
 ```
 
 ## TC-79：英文兼容帮助
@@ -1523,7 +2003,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout 含 Accepted with no effect / Accepted with a warning / Unsupported 及 -r,-R,-d,-x / -P / -W
+结果: PASS
 ```
 
 ## TC-80：中文主帮助
@@ -1540,7 +2024,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout 含 用法：rmp [选项] <路径>...、原生选项：、rmp --help -a -zh
+stderr: 空
+结果: PASS
 ```
 
 ## TC-81：中文兼容帮助
@@ -1557,7 +2046,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout 含 接受但无效果 / 接受但会警告 / 不支持
+结果: PASS
 ```
 
 ## TC-82：孤立帮助修饰符 `-a`
@@ -1574,7 +2067,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: -a is only valid with --help
+exit=2
+结果: PASS
 ```
 
 ## TC-83：孤立帮助修饰符 `-zh`
@@ -1591,7 +2088,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: -zh is only valid with --help
+exit=2
+结果: PASS
 ```
 
 ## TC-84：帮助与版本冲突
@@ -1608,7 +2109,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: --help and --version cannot be used together
+exit=2
+stdout: 空
+结果: PASS
 ```
 
 ## TC-85：版本命令
@@ -1625,7 +2131,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: rmp 0.1.0
+exit=0
+stderr: 空
+结果: PASS
 ```
 
 ## TC-86：帮助命令忽略附加路径
@@ -1642,7 +2153,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: 帮助正文
+stderr: 无 missing_input
+结果: PASS
 ```
 
 ## TC-87：帮助命令保留 `-P` 警告
@@ -1659,7 +2175,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: 主帮助
+stderr: -P does not securely overwrite 出现 1 次
+结果: PASS
 ```
 
 ## TC-88：版本命令执行严格模式校验
@@ -1676,7 +2197,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -r is not allowed with --strict-options
+exit=2
+stdout: 空
+结果: PASS
 ```
 
 ## TC-89：信息命令仍执行全局输出冲突校验
@@ -1693,7 +2219,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: conflicting options --json and --quiet
+exit=2
+stdout: 空
+结果: PASS
 ```
 
 ## TC-90：未知短选项
@@ -1712,7 +2243,12 @@ test -f file-unknown-short && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unknown option "-z"
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-91：组合短选项中的未知字符
@@ -1731,7 +2267,12 @@ test -f file-unknown-cluster && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unknown option "-z"
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-92：单独的 `-` 作为路径
@@ -1750,7 +2291,15 @@ test ! -e ./- && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "-" to Trash at "/Users/virtualgemini/.Trash/-".
+exit=0
+source=absent（移动后）
+人工: 废纸篓名为 - 的项放回原处成功
+验证: source=present 于 TEST_DIR/-；内容 dash-file
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-93：相对路径前缀避开选项解析
@@ -1769,7 +2318,16 @@ test ! -e ./-f && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "./-f" to Trash at "/Users/virtualgemini/.Trash/-f".
+exit=0
+source=absent（移动后）
+人工: -f 放回原处成功
+验证: source=present 于 TEST_DIR/-f；内容 relative-hyphen
+说明: ./-f 被当作路径，未解析为 force
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-94：选项位于两个路径之间
@@ -1789,7 +2347,12 @@ test -f file-middle-a && test -f file-middle-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "file-middle-a", "file-middle-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present（-f 识别为选项；两文件均未移动）
+结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
 
 ## TC-95：`--` 位于两个路径之间
@@ -1809,7 +2372,12 @@ test -f file-boundary-a && test -f file-boundary-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "file-boundary-a", "file-boundary-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present（-- 不成为路径；两文件均未移动）
+结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
 
 ## TC-96：长选项位于路径后
@@ -1828,7 +2396,15 @@ test ! -e file-long-after && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-long-after" to Trash at "/Users/virtualgemini/.Trash/file-long-after".
+exit=0
+source=absent（移动后）
+人工: file-long-after 放回原处成功
+验证: source=present 于 TEST_DIR/file-long-after；内容 long-after
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-97：多路径 dry-run 保持输入顺序
@@ -1848,7 +2424,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout 依次:
+Would move 3 items to Trash:
+  [file] "dry-order-first"
+  [directory] "dry-order-directory"
+  [file] "dry-order-third"
+exit=0
+三对象均仍在原处
+结果: PASS
 ```
 
 ## TC-98：空格与 Unicode 路径
@@ -1867,7 +2452,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 2 items to Trash:
+  [file] "file with space"
+  [file] "文件-测试"
+exit=0
+两文件均仍在原处
+结果: PASS
 ```
 
 ## TC-99：换行、引号与反斜线路径转义
@@ -1890,7 +2483,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 3 items to Trash:
+  [file] "line\nbreak"
+  [file] "quote\"name"
+  [file] "back\\slash"
+exit=0
+三对象均仍在原处
+结果: PASS
 ```
 
 ## TC-100：只读普通文件
@@ -1910,7 +2512,15 @@ test ! -e file-readonly && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-readonly" to Trash at "/Users/virtualgemini/.Trash/file-readonly".
+exit=0
+source=absent（移动后）；废纸篓内 mode=444
+人工: file-readonly 放回原处成功；权限仍为只读
+验证: source=present 于 TEST_DIR/file-readonly；mode=444；内容 readonly
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-101：不支持类型的 dry-run
@@ -1929,7 +2539,14 @@ test -p fifo-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 1 item to Trash:
+  [other] "fifo-dry"
+exit=0
+source=present（fifo 未移动）
+结果: PASS
 ```
 
 ## TC-102：不支持类型的真实执行
@@ -1948,7 +2565,12 @@ test -p fifo-real && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_kind (rejected) for "fifo-real": The Trash Input has an unsupported entry kind.
+exit=1
+source=present
+结果: PASS
 ```
 
 ## TC-103：无法检查的路径
@@ -1970,7 +2592,12 @@ chmod 700 inaccessible-parent
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: inaccessible_input: Trash Input cannot be inspected: "inaccessible-parent/file"
+exit=1
+恢复权限后 file=present
+结果: PASS
 ```
 
 ## TC-104：指向受保护目录的符号链接
@@ -1990,7 +2617,15 @@ test -d "$HOME" && echo 'home=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "link-to-home" to Trash at "/Users/virtualgemini/.Trash/link-to-home".
+exit=0
+放回前: link=absent；home=present；废纸篓 link-to-home 仍为 symlink → $HOME
+人工: link-to-home 放回原处成功；Finder 种类=替身，图标为目录
+验证: link=present（symlink→/Users/virtualgemini）；home=present
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-105：根目录等价表达 `//`
@@ -2007,7 +2642,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "//"
+exit=3
+stdout: 空
+结果: PASS
 ```
 
 ## TC-106：当前目录表达 `.`
@@ -2024,7 +2664,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (current-directory): Protected Path rejected: "."
+exit=3
+结果: PASS
 ```
 
 ## TC-107：主目录等价表达
@@ -2041,7 +2685,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (home-directory): Protected Path rejected: "/Users/virtualgemini/"
+exit=3
+结果: PASS
 ```
 
 ## TC-108：父目录表达式 `..`
@@ -2058,7 +2706,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (parent-directory): Protected Path rejected: ".."
+exit=3
+结果: PASS
 ```
 
 ## TC-109：`--confirm=never` 不能绕过保护
@@ -2075,7 +2727,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+exit=3
+结果: PASS（--confirm=never 不能绕过）
 ```
 
 ## TC-110：`--non-interactive` 不能绕过保护
@@ -2092,7 +2748,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+exit=3
+结果: PASS（--non-interactive 不能绕过）
 ```
 
 ## TC-111：root 执行不能被 force 绕过
@@ -2111,7 +2771,9 @@ test -f root-safe-file && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：需要单独人工授权的环境测试；常规测试跳过；本轮不执行 sudo）
 ```
 
 ## TC-112：废纸篓同名目标由系统重命名
@@ -2133,7 +2795,15 @@ test ! -e collision-file && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+first: Moved "collision-file" to Trash at ".../collision-file". exit=0 内容 first
+second: Moved "collision-file" to Trash at ".../collision-file 22-21-20-292". exit=0 内容 second
+source=absent（两次移动后）
+人工: 两项均放回原处成功
+验证: TEST_DIR/collision-file=first；TEST_DIR/collision-file 22-21-20-292=second
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS（系统同名重命名，未覆盖）
 ```
 
 ## TC-113：空字符串路径
@@ -2150,7 +2820,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: missing_input: Trash Input does not exist: ""
+exit=1
+结果: PASS
 ```
 
 ## TC-114：force 忽略空字符串路径
@@ -2167,7 +2841,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+结果: PASS
 ```
 
 ## TC-115：重复原生短选项
@@ -2185,7 +2864,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-ffv" to Trash at "/Users/virtualgemini/.Trash/file-ffv".
+exit=0
+source=absent（移动后）
+人工: file-ffv 放回原处成功
+验证: source=present 于 TEST_DIR/file-ffv；内容 repeated-native
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-116：dry-run 接受 `--stop-on-error`
@@ -2204,7 +2891,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout 按序:
+Would move 2 items to Trash:
+  [file] "dry-stop-a"
+  [file] "dry-stop-b"
+exit=0
+两文件均仍在原处
+结果: PASS
 ```
 
 ## TC-117：版本命令不能使用 `-a`
@@ -2221,7 +2916,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: -a is only valid with --help
+exit=2
+stdout: 空
+结果: PASS
 ```
 
 ## TC-118：`--verbose --json`
@@ -2240,7 +2940,12 @@ test -f file-verbose-json && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_output_mode for "file-verbose-json": JSON Trash Operation results are not available in this build
+exit=2
+source=present
+结果: PASS（JSON 10 暂不支持）
 ```
 
 ## TC-119：`--quiet --json` 冲突
@@ -2259,7 +2964,12 @@ test -f file-quiet-json && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: conflicting options --json and --quiet
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-120：兼容选项 `-r` 位于严格模式之前
@@ -2278,7 +2988,12 @@ test -f file-strict-last-r && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -r is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-121：兼容选项 `-R` 位于严格模式之前
@@ -2297,7 +3012,12 @@ test -f file-strict-last-R && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -R is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-122：兼容选项 `-d` 位于严格模式之前
@@ -2316,7 +3036,12 @@ test -f file-strict-last-d && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -d is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-123：兼容选项 `-x` 位于严格模式之前
@@ -2335,7 +3060,12 @@ test -f file-strict-last-x && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -x is not allowed with --strict-options
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-124：兼容选项 `-P` 位于严格模式之前
@@ -2354,7 +3084,12 @@ test -f file-strict-last-P && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: Compatibility Option -P is not allowed with --strict-options
+exit=2
+source=present（无普通 -P 警告）
+结果: PASS
 ```
 
 ## TC-125：`-W` 位于严格模式之前
@@ -2373,7 +3108,12 @@ test -f file-strict-last-W && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported Compatibility Option -W
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-126：版本与帮助冲突的反向顺序
@@ -2390,7 +3130,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: --help and --version cannot be used together
+exit=2
+stdout: 空
+结果: PASS
 ```
 
 ## TC-127：版本命令忽略附加路径
@@ -2407,7 +3152,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: rmp 0.1.0
+exit=0
+stderr: 无 missing_input
+结果: PASS
 ```
 
 ## TC-128：根目录等价表达 `/./`
@@ -2424,7 +3174,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/./"
+exit=3
+结果: PASS
 ```
 
 ## TC-129：绝对路径中的父目录组件 `/tmp/..`
@@ -2441,7 +3195,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 1 item to Trash:
+  [directory] "/tmp/.."
+exit=0
+结果: PASS（边界记录：非 parent-directory 保护）
 ```
 
 ## TC-130：当前目录表达 `./`
@@ -2458,7 +3218,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (current-directory): Protected Path rejected: "./"
+exit=3
+结果: PASS
 ```
 
 ## TC-131：当前目录绝对等价表达
@@ -2475,7 +3239,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (current-directory): Protected Path rejected: ".../tmp.tbyfgQFr3V/."
+exit=3
+结果: PASS
 ```
 
 ## TC-132：父目录表达式 `./..`
@@ -2492,7 +3260,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (parent-directory): Protected Path rejected: "./.."
+exit=3
+结果: PASS
 ```
 
 ## TC-133：父目录表达式 `././..`
@@ -2509,7 +3281,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (parent-directory): Protected Path rejected: "././.."
+exit=3
+结果: PASS
 ```
 
 ## TC-134：版本命令不能使用 `-zh`
@@ -2526,7 +3302,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: -zh is only valid with --help
+exit=2
+stdout: 空
+结果: PASS
 ```
 
 ## TC-135：目录默认真实执行
@@ -2545,7 +3326,12 @@ test -d directory-default && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "directory-default": confirmation is required before this Trash Input can be moved
+exit=1
+source=present
+结果: PASS（默认确认 08 暂不支持，安全失败）
 ```
 
 ## TC-136：无选项多对象真实执行
@@ -2565,7 +3351,12 @@ test -f plain-batch-a && test -f plain-batch-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "plain-batch-a", "plain-batch-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present
+结果: PASS（多对象 09 暂不支持，安全失败）
 ```
 
 ## TC-137：`--dry-run` 缺少路径
@@ -2582,7 +3373,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: at least one Trash Input is required
+exit=2
+结果: PASS
 ```
 
 ## TC-138：root 下的 dry-run
@@ -2601,7 +3396,9 @@ test -f root-dry-file && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：需要单独人工授权的 root/sudo 环境；本轮不执行）
 ```
 
 ## TC-139：系统 Trash 调用失败且源对象未变化
@@ -2620,7 +3417,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：由受控自动化测试覆盖；本轮不在真机生产 CLI 强制系统调用失败）
 ```
 
 ## TC-140：系统 Trash 调用失败后的状态无法确认
@@ -2639,7 +3438,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：由受控自动化测试覆盖；本轮不在真机生产 CLI 构造 state_uncertain）
 ```
 
 ## TC-141：只有选项终止符
@@ -2656,7 +3457,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: at least one Trash Input is required
+exit=2
+结果: PASS
 ```
 
 ## TC-142：文件名本身为 `--`
@@ -2675,7 +3480,15 @@ test ! -e ./-- && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "--" to Trash at "/Users/virtualgemini/.Trash/--".
+exit=0
+source=absent（移动后）
+人工: 废纸篓名为 -- 的项放回原处成功
+验证: source=present 于 TEST_DIR/--；内容 double-dash
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓（环境污染，非本用例失败）
+结果: PASS
 ```
 
 ## TC-143：帮助修饰符 `-a` 位于 `--help` 之前
@@ -2692,7 +3505,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: 英文兼容帮助（含 Accepted with no effect / Unsupported）
+结果: PASS
 ```
 
 ## TC-144：帮助修饰符 `-zh` 位于 `--help` 之前
@@ -2709,7 +3526,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: 中文主帮助（用法：rmp / 原生选项：）
+结果: PASS
 ```
 
 ## TC-145：两个帮助修饰符都位于 `--help` 之前
@@ -2726,7 +3547,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: 中文兼容帮助（接受但无效果 / 不支持）
+结果: PASS
 ```
 
 ## TC-146：版本命令保留 `-P` 警告
@@ -2743,7 +3568,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: rmp 0.1.0
+stderr: -P does not securely overwrite 一次
+exit=0
+结果: PASS
 ```
 
 ## TC-147：`-P` 后出现 `-W`
@@ -2762,7 +3592,12 @@ test -f file-P-W && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported Compatibility Option -W
+exit=2
+source=present（无累积 -P 警告输出）
+结果: PASS
 ```
 
 ## TC-148：dry-run 忽略唯一的 missing path
@@ -2779,7 +3614,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Would move 0 items to Trash:
+exit=0
+stderr: 空
+结果: PASS
 ```
 
 ## TC-149：dry-run 在多个输入中忽略 missing path
@@ -2798,7 +3638,14 @@ test -f dry-mixed-present && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 1 item to Trash:
+  [file] "dry-mixed-present"
+exit=0
+source=present
+结果: PASS
 ```
 
 ## TC-150：受保护目录身份无法取得
@@ -2817,7 +3664,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：由受控自动化测试覆盖；本轮不破坏系统受保护身份）
 ```
 
 ## TC-151：`-P` 与 dry-run 的输出通道
@@ -2839,7 +3688,13 @@ test -f file-P-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: Would move 1 item to Trash: / [file] "file-P-dry"
+stderr: -P does not securely overwrite 一次
+source=present
+结果: PASS
 ```
 
 ## TC-152：多对象与 JSON 的错误优先级
@@ -2859,7 +3714,13 @@ test -f json-batch-a && test -f json-batch-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "json-batch-a", "json-batch-b": single-item execution requires exactly one Trash Input
+exit=2
+无 unsupported_output_mode
+sources=present
+结果: PASS（多对象错误优先于 JSON 模式错误）
 ```
 
 ## 测试安全边界

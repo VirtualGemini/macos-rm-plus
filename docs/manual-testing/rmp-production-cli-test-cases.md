@@ -2418,7 +2418,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout 依次:
+Would move 3 items to Trash:
+  [file] "dry-order-first"
+  [directory] "dry-order-directory"
+  [file] "dry-order-third"
+exit=0
+三对象均仍在原处
+结果: PASS
 ```
 
 ## TC-98：空格与 Unicode 路径

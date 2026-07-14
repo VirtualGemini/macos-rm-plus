@@ -1596,7 +1596,12 @@ test -f file-stop-a && test -f file-stop-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "file-stop-a", "file-stop-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present（均未移动）
+结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
 
 ## TC-64：`--strict-options` 与原生选项

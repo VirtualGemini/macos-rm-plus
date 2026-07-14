@@ -2611,7 +2611,15 @@ test -d "$HOME" && echo 'home=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "link-to-home" to Trash at "/Users/virtualgemini/.Trash/link-to-home".
+exit=0
+放回前: link=absent；home=present；废纸篓 link-to-home 仍为 symlink → $HOME
+人工: link-to-home 放回原处成功；Finder 种类=替身，图标为目录
+验证: link=present（symlink→/Users/virtualgemini）；home=present
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-105：根目录等价表达 `//`

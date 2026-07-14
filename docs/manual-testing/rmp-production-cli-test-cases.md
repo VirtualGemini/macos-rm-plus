@@ -585,7 +585,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：JSON 输出暂不支持 10；本轮跳过。相近 unsupported_output_mode 已在 TC-56/TC-118 覆盖）
 ```
 
 ## TC-22：无路径参数

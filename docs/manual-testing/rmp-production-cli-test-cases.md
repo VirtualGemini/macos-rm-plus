@@ -497,7 +497,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+exit=3
+stdout: 空；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-18：未知选项

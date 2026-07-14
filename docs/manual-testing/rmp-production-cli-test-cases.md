@@ -2586,7 +2586,12 @@ chmod 700 inaccessible-parent
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: inaccessible_input: Trash Input cannot be inspected: "inaccessible-parent/file"
+exit=1
+恢复权限后 file=present
+结果: PASS
 ```
 
 ## TC-104：指向受保护目录的符号链接

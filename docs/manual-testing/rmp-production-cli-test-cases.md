@@ -1469,7 +1469,12 @@ test -f file-quiet-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Would move 1 item to Trash: / [file] "file-quiet-dry"
+exit=0
+source=present
+结果: PASS（quiet 不抑制 dry-run 计划）
 ```
 
 ## TC-60：`--non-interactive` 普通文件

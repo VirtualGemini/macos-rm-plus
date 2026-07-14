@@ -3706,7 +3706,13 @@ test -f json-batch-a && test -f json-batch-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "json-batch-a", "json-batch-b": single-item execution requires exactly one Trash Input
+exit=2
+无 unsupported_output_mode
+sources=present
+结果: PASS（多对象错误优先于 JSON 模式错误）
 ```
 
 ## 测试安全边界

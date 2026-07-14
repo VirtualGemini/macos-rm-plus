@@ -22,11 +22,26 @@ func trashPlanPreservesInputOrderAndKinds() throws {
 
   #expect(
     plan.inputs == [
-      TrashInput(path: "report.txt", kind: .file),
-      TrashInput(path: "build", kind: .directory),
-      TrashInput(path: "shortcut", kind: .symbolicLink),
-      TrashInput(path: "broken", kind: .brokenSymbolicLink),
-      TrashInput(path: "pipe", kind: .other),
+      TrashInput(
+        path: "report.txt", kind: .file,
+        plannedIdentity: .init(device: 1, inode: 10)
+      ),
+      TrashInput(
+        path: "build", kind: .directory,
+        plannedIdentity: .init(device: 1, inode: 11)
+      ),
+      TrashInput(
+        path: "shortcut", kind: .symbolicLink,
+        plannedIdentity: .init(device: 1, inode: 12)
+      ),
+      TrashInput(
+        path: "broken", kind: .brokenSymbolicLink,
+        plannedIdentity: .init(device: 1, inode: 13)
+      ),
+      TrashInput(
+        path: "pipe", kind: .other,
+        plannedIdentity: .init(device: 1, inode: 14)
+      ),
     ]
   )
   #expect(plan.confirmation == .smart)
@@ -96,8 +111,12 @@ func symlinkEntryToProtectedDestinationIsAllowed() throws {
   )
 
   let plan = try TrashPlanner(fileSystem: fileSystem).makePlan(paths: ["home-link"])
+  let expected = TrashInput(
+    path: "home-link", kind: .symbolicLink,
+    plannedIdentity: .init(device: 1, inode: 20)
+  )
 
-  #expect(plan.inputs == [TrashInput(path: "home-link", kind: .symbolicLink)])
+  #expect(plan.inputs == [expected])
 }
 
 @Test("A missing Trash Input fails planning by default")

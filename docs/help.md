@@ -1,8 +1,9 @@
 # rmp Help Contract
 
-The supported operational form is:
+The supported operational forms are:
 
 ```text
+rmp [OPTIONS] [--] <PATH>
 rmp [OPTIONS] --dry-run [--] <PATH>...
 ```
 
@@ -10,6 +11,16 @@ rmp [OPTIONS] --dry-run [--] <PATH>...
 top-level Trash Plan to stdout in input order. Each line contains the entry kind and a quoted path;
 control characters are escaped so paths containing newlines remain unambiguous. Dry-run mode never
 moves, deletes, overwrites, or sends an item to Trash.
+
+Non-dry-run execution currently accepts exactly one top-level file, directory, symbolic link, or
+broken symbolic link. One ordinary file or link proceeds under smart confirmation; a directory must
+use `--confirm=never` until interactive confirmation is available. Modes that still require a prompt
+fail closed with `confirmation_required` and make no Trash call. Successful execution uses the macOS
+Foundation Trash API and reports its exact resulting destination path. Failure never triggers
+permanent deletion, direct Trash-directory access, overwrite, or automatic move-back.
+Quiet mode suppresses a successful single-item result but never an error. Non-dry-run JSON output
+fails closed until the versioned schema is implemented; it never emits human output on stdout while
+claiming to be JSON.
 
 Native options set confirmation (`-f`, `-i`, `-I`, `--confirm`), missing-path
 (`--ignore-missing`), output (`-v`, `--quiet`, `--json`), preview (`--dry-run`), automation
@@ -32,5 +43,8 @@ Missing paths return exit code 1; absent Trash Inputs, usage errors, and unsuppo
 exit code 2; and
 Protected Paths return exit code 3 without presenting a plan. Protected Paths include filesystem
 root, the current working directory, the user's home directory, their identity-equivalent path
-expressions, and explicit parent-directory expressions such as `..`. Commands without `--dry-run`
-remain fail-closed until the system Trash capability is implemented.
+expressions, and explicit parent-directory expressions such as `..`. Effective root execution also
+returns exit code 3 before planning or Trash capability construction. `-f`, `--confirm=never`, and
+`--non-interactive` cannot bypass root or Protected Path policy. A failed system Trash call reports a
+stable code plus `not_moved` when the original identity remains, or `state_uncertain` when the final
+state cannot be established reliably.

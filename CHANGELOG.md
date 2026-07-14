@@ -14,6 +14,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
+- Add one-item system Trash execution for files, directories, symbolic links, and broken symbolic
+  links with root and Protected Path refusal, exact system-returned destinations, stable failure
+  codes, and honest `not_moved` versus `state_uncertain` reporting without destructive fallback.
 - Add the complete v0.1 command-line parser with deterministic left-to-right precedence, combined
   short options, strict compatibility validation, concise and compatibility help in English and
   Chinese, filesystem-independent help/version commands, one authoritative parsing path, and

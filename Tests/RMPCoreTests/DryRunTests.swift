@@ -95,8 +95,12 @@ func parsedPolicyIsPreservedInTrashPlan() throws {
     ])
 
   let plan = try TrashPlanner(fileSystem: fileSystem).makePlan(request: request)
+  let expected = TrashInput(
+    path: "report.txt", kind: .file,
+    plannedIdentity: .init(device: 1, inode: 10)
+  )
 
-  #expect(plan.inputs == [.init(path: "report.txt", kind: .file)])
+  #expect(plan.inputs == [expected])
   #expect(plan.confirmation == .each)
   #expect(plan.ignoreMissing)
   #expect(plan.output == .verbose)
@@ -121,7 +125,7 @@ func dryRunRejectsProtectedPathWithSafetyExitCode() {
   #expect(result.standardOutput.isEmpty)
   #expect(
     result.standardError
-      == "rmp: Protected Path rejected (filesystem-root): \"/tmp/..\"\n"
+      == "rmp: protected_path (filesystem-root): Protected Path rejected: \"/tmp/..\"\n"
   )
 }
 

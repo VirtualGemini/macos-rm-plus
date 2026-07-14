@@ -6,7 +6,10 @@ set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
-capability_file=TestSupport/RMPTestSafety/WhitelistedTrashClient.swift
+capability_file=Sources/RMPPlatform/FoundationTrashClient.swift
+production_wiring_file=Sources/rmp/main.swift
+whitelist_file=TestSupport/RMPTestSafety/WhitelistedTrashClient.swift
+foundation_injection_test_file=Tests/RMPPlatformTests/FoundationTrashClientTests.swift
 injection_test_file=Tests/RMPPlatformTests/WhitelistedTrashClientTests.swift
 failed=0
 
@@ -27,6 +30,16 @@ while IFS= read -r file; do
     && printf '%s\n' "$normalized" \
       | grep -E 'FileManager([[:space:]]*\.[[:space:]]*default)?[[:space:]]*\.[[:space:]]*trashItem|resultingItemURL[[:space:]]*:' >/dev/null 2>&1; then
     echo "error: Foundation Trash API is outside $capability_file: $file" >&2
+    failed=1
+  fi
+
+  if [ "$file" != "$capability_file" ] \
+    && [ "$file" != "$production_wiring_file" ] \
+    && [ "$file" != "$whitelist_file" ] \
+    && [ "$file" != "$foundation_injection_test_file" ] \
+    && printf '%s\n' "$normalized" \
+      | grep -E 'FoundationTrashClient[[:space:]]*\(' >/dev/null 2>&1; then
+    echo "error: Foundation Trash client construction bypasses approved wiring: $file" >&2
     failed=1
   fi
 

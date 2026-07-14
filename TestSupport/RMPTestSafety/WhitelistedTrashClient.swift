@@ -3,6 +3,7 @@
 import Darwin
 import FileProvider
 import Foundation
+import RMPPlatform
 
 struct TrashVerificationEvidence: Equatable, Sendable {
   let returnedURL: URL
@@ -64,7 +65,7 @@ final class WhitelistedTrashClient {
   init(context: TestSafetyContext) {
     self.context = context
     authorization = .system
-    systemTrash = foundationSystemTrash
+    systemTrash = platformSystemTrash
   }
 
   private init(
@@ -360,23 +361,9 @@ private enum FileProviderInspectionError: Error {
   case timedOut
 }
 
-private func foundationSystemTrash(_ sourceURL: URL) throws -> URL {
-  var resultingURL: NSURL?
-  do {
-    try FileManager.default.trashItem(at: sourceURL, resultingItemURL: &resultingURL)
-  } catch {
-    throw diagnostic(
-      .trashSystemCallFailed,
-      "The macOS system Trash operation failed."
-    )
-  }
-  guard let resultingURL else {
-    throw diagnostic(
-      .trashSystemCallFailed,
-      "The system Trash API did not return verification evidence."
-    )
-  }
-  return resultingURL as URL
+private func platformSystemTrash(_ sourceURL: URL) throws -> URL {
+  let receipt = try FoundationTrashClient().trashItem(atPath: sourceURL.path)
+  return URL(fileURLWithPath: receipt.destinationPath)
 }
 
 private func diagnostic(

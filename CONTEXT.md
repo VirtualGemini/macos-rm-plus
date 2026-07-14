@@ -31,6 +31,10 @@ _Avoid_: Legacy flag, ignored flag
 
 **Trash Result**:
 The planned, moved, failed, or skipped outcome for one Trash Input.
+Single-item execution distinguishes `not_moved`, used only when the original directory entry's kind
+and filesystem identity can be confirmed unchanged after a system Trash failure, from
+`state_uncertain`, used whenever the final source state cannot be established reliably. A moved
+result records the exact destination path returned by the system Trash API.
 _Avoid_: Delete result, removal response
 
 ## Testing Language

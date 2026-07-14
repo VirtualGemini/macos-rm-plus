@@ -45,6 +45,17 @@ public protocol TrashPlanningFileSystem {
 struct TrashInput: Equatable, Sendable {
   let path: String
   let kind: TrashInputKind
+  let plannedIdentity: FileSystemIdentity?
+
+  init(
+    path: String,
+    kind: TrashInputKind,
+    plannedIdentity: FileSystemIdentity? = nil
+  ) {
+    self.path = path
+    self.kind = kind
+    self.plannedIdentity = plannedIdentity
+  }
 }
 
 enum ConfirmationMode: String, Equatable, Sendable {
@@ -166,7 +177,9 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
         if let protectedPath = protectedIdentities[entry.identity] {
           throw .protectedPath(path: path, protectedPath: protectedPath)
         }
-        inputs.append(TrashInput(path: path, kind: entry.kind))
+        inputs.append(
+          TrashInput(path: path, kind: entry.kind, plannedIdentity: entry.identity)
+        )
       case .missing:
         if !request.ignoreMissing { throw .missingPath(path) }
       case .inaccessible:

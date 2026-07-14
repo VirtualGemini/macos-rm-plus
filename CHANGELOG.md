@@ -8,6 +8,12 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Changed
 
+- Reserve `not_moved` and `state_uncertain` for post-system-call outcome classification, report
+  pre-capability unsupported inputs as `rejected`, and include stable codes plus affected source
+  paths when unsupported output modes or input counts fail closed.
+- Prevent tests, including the Foundation adapter injection suite, from constructing the production
+  system Trash capability directly; injected adapter tests receive only an existential Trash client,
+  so the production metatype and initializer cannot be recovered.
 - Allow trusted maintainers to ratchet coverage baselines upward with implementation changes without
   creating a self-approval deadlock; untrusted authors, reductions, and metric changes remain
   protected.

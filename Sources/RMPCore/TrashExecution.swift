@@ -17,7 +17,9 @@ public enum TrashErrorCode: String, Equatable, Sendable {
   case rootExecution = "root_execution"
   case safetyIdentityUnavailable = "safety_identity_unavailable"
   case systemTrashFailed = "trash_system_call_failed"
+  case unsupportedInputCount = "unsupported_input_count"
   case unsupportedInputKind = "unsupported_input_kind"
+  case unsupportedOutputMode = "unsupported_output_mode"
 }
 
 public struct TrashCapabilityError: Error, Equatable, Sendable {
@@ -34,6 +36,7 @@ public protocol TrashClient: Sendable {
 
 enum TrashResultStatus: String, Equatable, Sendable {
   case moved
+  case rejected
   case notMoved = "not_moved"
   case stateUncertain = "state_uncertain"
 }
@@ -69,7 +72,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
         sourcePath: input.path,
         destinationPath: nil,
         kind: input.kind,
-        status: .notMoved,
+        status: .rejected,
         error: TrashFailure(
           code: .unsupportedInputKind,
           explanation: "The Trash Input has an unsupported entry kind."
@@ -93,7 +96,12 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
   }
 
   private func failedResult(input: TrashInput, code: TrashErrorCode) -> TrashResult {
-    let status: TrashResultStatus = sourceIsUnchanged(input) ? .notMoved : .stateUncertain
+    let sourceUnchanged = sourceIsUnchanged(input)
+    let status: TrashResultStatus = sourceUnchanged ? .notMoved : .stateUncertain
+    let explanation =
+      sourceUnchanged
+      ? "The system Trash operation failed; the source entry is unchanged."
+      : "The system Trash operation failed; the source entry's final state is uncertain."
     return TrashResult(
       sourcePath: input.path,
       destinationPath: nil,
@@ -101,7 +109,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
       status: status,
       error: TrashFailure(
         code: code,
-        explanation: failureExplanation(status: status)
+        explanation: explanation
       )
     )
   }
@@ -113,16 +121,6 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
     return entry.identity == input.plannedIdentity && entry.kind == input.kind
   }
 
-  private func failureExplanation(status: TrashResultStatus) -> String {
-    switch status {
-    case .moved:
-      "The Trash Input was moved to Trash."
-    case .notMoved:
-      "The system Trash operation failed; the source entry is unchanged."
-    case .stateUncertain:
-      "The system Trash operation failed; the source entry's final state is uncertain."
-    }
-  }
 }
 
 struct SingleTrashApplication<FileSystem: TrashPlanningFileSystem> {
@@ -193,7 +191,7 @@ private struct SingleTrashRenderer {
         standardError: "",
         exitCode: 0
       )
-    case .notMoved, .stateUncertain:
+    case .rejected, .notMoved, .stateUncertain:
       let error =
         result.error
         ?? TrashFailure(

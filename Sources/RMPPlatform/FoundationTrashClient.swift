@@ -12,7 +12,7 @@ public struct FoundationTrashClient: TrashClient {
     systemTrash = Self.moveThroughSystemTrash
   }
 
-  init(systemTrash: @escaping SystemTrash) {
+  fileprivate init(systemTrash: @escaping SystemTrash) {
     self.systemTrash = systemTrash
   }
 
@@ -33,4 +33,10 @@ public struct FoundationTrashClient: TrashClient {
     }
     return resultingURL as URL
   }
+}
+
+func makeInjectedFoundationTrashClient(
+  systemTrash: @escaping FoundationTrashClient.SystemTrash
+) -> any TrashClient {
+  FoundationTrashClient(systemTrash: systemTrash)
 }

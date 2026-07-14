@@ -71,20 +71,24 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
       )
     }
     guard request.paths.count == 1 else {
+      let sources = request.paths.map(renderer.renderPath).joined(separator: ", ")
       return .init(
         standardOutput: "",
         standardError:
           renderWarnings(warnings)
-          + "rmp: single-item execution requires exactly one Trash Input\n",
+          + "rmp: \(TrashErrorCode.unsupportedInputCount.rawValue) for \(sources): "
+          + "single-item execution requires exactly one Trash Input\n",
         exitCode: 2
       )
     }
     guard request.output != .json else {
+      let source = renderer.renderPath(request.paths[0])
       return .init(
         standardOutput: "",
         standardError:
           renderWarnings(warnings)
-          + "rmp: JSON Trash Operation results are not available in this build\n",
+          + "rmp: \(TrashErrorCode.unsupportedOutputMode.rawValue) for \(source): "
+          + "JSON Trash Operation results are not available in this build\n",
         exitCode: 2
       )
     }

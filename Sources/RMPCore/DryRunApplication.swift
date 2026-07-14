@@ -48,9 +48,10 @@ struct PlanningErrorRenderer {
         "rmp: \(TrashErrorCode.protectedPath.rawValue) (\(protectedPath.rawValue)): "
         + "Protected Path rejected: \(renderer.renderPath(path))\n"
       exitCode = 3
-    case let .unavailableProtectedPath(protectedPath):
+    case let .unavailableProtectedPath(path, protectedPath):
       message =
-        "rmp: \(TrashErrorCode.safetyIdentityUnavailable.rawValue): "
+        "rmp: \(TrashErrorCode.safetyIdentityUnavailable.rawValue) for "
+        + "\(renderer.renderPath(path)): "
         + "safety identity unavailable: \(protectedPath.rawValue)\n"
       exitCode = 3
     }

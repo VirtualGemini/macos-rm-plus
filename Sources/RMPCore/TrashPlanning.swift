@@ -147,7 +147,7 @@ enum TrashPlanningError: Error, Equatable, Sendable {
   case missingPath(String)
   case inaccessiblePath(String)
   case protectedPath(path: String, protectedPath: ProtectedPath)
-  case unavailableProtectedPath(ProtectedPath)
+  case unavailableProtectedPath(path: String, protectedPath: ProtectedPath)
 }
 
 struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
@@ -164,7 +164,7 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
       throw .noInputs
     }
 
-    let protectedIdentities = try protectedIdentities()
+    let protectedIdentities = try protectedIdentities(sourcePath: request.paths[0])
     var inputs: [TrashInput] = []
     inputs.reserveCapacity(request.paths.count)
 
@@ -203,7 +203,9 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
     try makePlan(request: TrashOperationRequest(paths: paths))
   }
 
-  private func protectedIdentities() throws(TrashPlanningError) -> ProtectedIdentities {
+  private func protectedIdentities(
+    sourcePath: String
+  ) throws(TrashPlanningError) -> ProtectedIdentities {
     let protectedDirectories: [(String, ProtectedPath)] = [
       (fileSystem.homeDirectoryPath, .homeDirectory),
       (fileSystem.currentDirectoryPath, .currentDirectory),
@@ -213,7 +215,7 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
 
     for (path, protectedPath) in protectedDirectories {
       guard let identity = fileSystem.directoryIdentity(at: path) else {
-        throw .unavailableProtectedPath(protectedPath)
+        throw .unavailableProtectedPath(path: sourcePath, protectedPath: protectedPath)
       }
       identities[identity] = protectedPath
     }

@@ -85,7 +85,7 @@ func unsupportedEntryIsRejectedBeforeTrashCapability() {
   )
 
   #expect(client.receivedPaths.isEmpty)
-  #expect(result.status == .notMoved)
+  #expect(result.status == .rejected)
   #expect(result.error?.code == .unsupportedInputKind)
 }
 

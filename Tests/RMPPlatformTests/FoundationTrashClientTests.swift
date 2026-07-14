@@ -15,17 +15,12 @@ import Testing
 func foundationTrashClientPreservesSystemDestination() throws {
   let returnedURL = URL(fileURLWithPath: "/Users/test/.Trash/link 2")
   let spy = FoundationTrashSpy(result: .success(returnedURL))
-  let client = FoundationTrashClient(systemTrash: spy.call)
+  let client = makeInjectedFoundationTrashClient(systemTrash: spy.call)
 
   let receipt = try client.trashItem(atPath: "/work/link")
 
   #expect(spy.receivedURLs.map(\.path) == ["/work/link"])
   #expect(receipt.destinationPath == "/Users/test/.Trash/link 2")
-}
-
-@Test("Production Foundation Trash client construction performs no filesystem operation")
-func productionFoundationTrashClientConstructionIsInert() {
-  _ = FoundationTrashClient()
 }
 
 @Test("Foundation Trash failure leaves an authorized Test Fixture unchanged")
@@ -39,7 +34,7 @@ func foundationTrashFailureHasNoDestructiveFallback() throws {
   try Data("fixture".utf8).write(to: target)
   let before = try fixture.snapshot()
   let spy = FoundationTrashSpy(result: .failure(InjectedFoundationTrashFailure()))
-  let client = FoundationTrashClient(systemTrash: spy.call)
+  let client = makeInjectedFoundationTrashClient(systemTrash: spy.call)
 
   do {
     _ = try client.trashItem(atPath: target.path)
@@ -53,6 +48,36 @@ func foundationTrashFailureHasNoDestructiveFallback() throws {
   #expect(spy.receivedURLs.map(\.path) == [target.path])
   #expect(try fixture.snapshot() == before)
   #expect(FileManager.default.fileExists(atPath: target.path))
+}
+
+@Test("Foundation Trash client preserves protected and broken symlink entry URLs")
+func foundationTrashClientDoesNotResolveSymlinkDestinations() throws {
+  let fixture = try SafetyHomeFixture()
+  defer { fixture.remove() }
+  let context = try fixture.establishContext()
+  let prefix = "rmp-test-\(context.runID.uuidString.lowercased())-"
+  let protectedLink = context.runDirectoryURL.appendingPathComponent("\(prefix)root-link")
+  let brokenLink = context.runDirectoryURL.appendingPathComponent("\(prefix)broken-link")
+  try FileManager.default.createSymbolicLink(
+    at: protectedLink,
+    withDestinationURL: URL(fileURLWithPath: "/", isDirectory: true)
+  )
+  try FileManager.default.createSymbolicLink(
+    at: brokenLink,
+    withDestinationURL: context.runDirectoryURL.appendingPathComponent("missing-destination")
+  )
+  let before = try fixture.snapshot()
+  let spy = FoundationTrashSpy(
+    result: .success(context.runDirectoryURL.appendingPathComponent("trashed-link"))
+  )
+  let client = makeInjectedFoundationTrashClient(systemTrash: spy.call)
+
+  _ = try client.trashItem(atPath: protectedLink.path)
+  _ = try client.trashItem(atPath: brokenLink.path)
+
+  #expect(spy.receivedURLs.map(\.path) == [protectedLink.path, brokenLink.path])
+  #expect(try fixture.snapshot() == before)
+  #expect(FileManager.default.fileExists(atPath: "/"))
 }
 
 @Test("Protected and broken symlink destinations never replace the top-level Trash entry")

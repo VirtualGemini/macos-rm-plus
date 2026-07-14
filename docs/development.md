@@ -166,7 +166,7 @@ and Interfaces are recorded in ADR-0001.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `93.88%`, ratcheted upward with single-item system Trash
+- The v1 production coverage baseline is `95.05%`, ratcheted upward with single-item system Trash
   execution without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
@@ -410,8 +410,10 @@ standards.
 Repository policy also enforces the test Trash boundary statically: the Foundation
 `trashItem(at:resultingItemURL:)` API may appear only in `FoundationTrashClient.swift`.
 `FoundationTrashClient` construction is limited to production wiring, the whitelist wrapper, and its
-injected adapter test; the injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear
-only in its dedicated spy test.
+private platform implementation. The adapter test may obtain only an `any TrashClient` existential
+through `makeInjectedFoundationTrashClient(systemTrash:)`; concrete production type references,
+aliases, metatypes, and constructor references remain forbidden in all tests. The injectable
+`WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy test.
 `make check-system-trash-boundary` runs this check directly, and `make check` includes it.
 
 Unresolved critical or high-risk findings block merge. Medium-risk findings are fixed or explicitly

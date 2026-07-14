@@ -37,6 +37,15 @@ func dryRunOutputUsesSingularItemLabel() {
   )
 }
 
+@Test("Path rendering escapes every control and quoting form on one line")
+func pathRenderingEscapesControlAndQuotingForms() {
+  let path = "\u{08}\t\n\u{0C}\r\"\\\u{01}"
+
+  #expect(
+    DryRunRenderer().renderPath(path) == "\"\\b\\t\\n\\f\\r\\\"\\\\\\u0001\""
+  )
+}
+
 @Test("Dry-run application reports unknown options as usage errors")
 func dryRunApplicationReportsUnknownOptions() {
   let result = CLIApplication(makeFileSystem: { FakeTrashPlanningFileSystem(entries: [:]) }).run(

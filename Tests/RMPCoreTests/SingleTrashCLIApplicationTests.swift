@@ -212,7 +212,10 @@ func multipleInputsRemainOutsideTheSingleItemExecutionScope() {
   let result = application.run(arguments: ["first", "second"])
 
   #expect(result.exitCode == 2)
+  #expect(result.standardError.contains("unsupported_input_count"))
   #expect(result.standardError.contains("exactly one Trash Input"))
+  #expect(result.standardError.contains("first"))
+  #expect(result.standardError.contains("second"))
   #expect(probes.fileSystemFactoryCalls == 0)
   #expect(probes.trashClientFactoryCalls == 0)
   #expect(probes.receivedTrashPaths.isEmpty)
@@ -274,6 +277,7 @@ func unsupportedEntryValidationDoesNotConstructTrashCapability() {
 
   #expect(result.exitCode == 1)
   #expect(result.standardError.contains("unsupported_input_kind"))
+  #expect(result.standardError.contains("(rejected)"))
   #expect(result.standardError.contains("pipe"))
   #expect(probes.trashClientFactoryCalls == 0)
   #expect(probes.receivedTrashPaths.isEmpty)
@@ -338,7 +342,9 @@ func singleItemOutputModesDoNotMisrepresentResults() {
 
   #expect(json.exitCode == 2)
   #expect(json.standardOutput.isEmpty)
+  #expect(json.standardError.contains("unsupported_output_mode"))
   #expect(json.standardError.contains("JSON Trash Operation results are not available"))
+  #expect(json.standardError.contains("report.txt"))
   #expect(probes.fileSystemFactoryCalls == 0)
   #expect(probes.trashClientFactoryCalls == 0)
 
@@ -376,6 +382,30 @@ func planningFailuresExposeStableCodes() {
   #expect(inaccessible.standardError.contains("inaccessible"))
   #expect(protected.standardError.contains("protected_path"))
   #expect(protected.standardError.contains("home-alias"))
+}
+
+@Test("Unavailable safety identity reports the escaped source path without Trash access")
+func unavailableSafetyIdentityReportsSourcePath() {
+  let probes = ApplicationProbes()
+  let path = "victim\n.txt"
+  let application = CLIApplication(
+    makeFileSystem: { UnavailableSafetyIdentityFileSystem() },
+    makeTrashClient: {
+      probes.trashClientFactoryCalls += 1
+      return ApplicationTrashClient(probes: probes)
+    },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: [path])
+
+  #expect(result.exitCode == 3)
+  #expect(result.standardOutput.isEmpty)
+  #expect(result.standardError.contains("safety_identity_unavailable"))
+  #expect(result.standardError.contains("\"victim\\n.txt\""))
+  #expect(result.standardError.filter { $0 == "\n" }.count == 1)
+  #expect(probes.trashClientFactoryCalls == 0)
+  #expect(probes.receivedTrashPaths.isEmpty)
 }
 
 private final class ApplicationProbes: @unchecked Sendable {
@@ -434,6 +464,24 @@ private struct UncertainApplicationFileSystem: TrashPlanningFileSystem {
     case "/": .init(device: 1, inode: 1)
     case currentDirectoryPath: .init(device: 1, inode: 2)
     case homeDirectoryPath: .init(device: 1, inode: 3)
+    default: nil
+    }
+  }
+}
+
+private struct UnavailableSafetyIdentityFileSystem: TrashPlanningFileSystem {
+  let currentDirectoryPath = "/work"
+  let homeDirectoryPath = "/home/test"
+
+  func inspectEntry(at path: String) -> FileSystemEntryInspection {
+    .entry(.init(kind: .file, identity: .init(device: 1, inode: 70)))
+  }
+
+  func directoryIdentity(at path: String) -> FileSystemIdentity? {
+    switch path {
+    case "/": .init(device: 1, inode: 1)
+    case currentDirectoryPath: .init(device: 1, inode: 2)
+    case homeDirectoryPath: nil
     default: nil
     }
   }

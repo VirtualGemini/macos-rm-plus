@@ -3351,7 +3351,12 @@ test -f plain-batch-a && test -f plain-batch-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "plain-batch-a", "plain-batch-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present
+结果: PASS（多对象 09 暂不支持，安全失败）
 ```
 
 ## TC-137：`--dry-run` 缺少路径

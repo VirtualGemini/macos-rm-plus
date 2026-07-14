@@ -2390,7 +2390,15 @@ test ! -e file-long-after && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-long-after" to Trash at "/Users/virtualgemini/.Trash/file-long-after".
+exit=0
+source=absent（移动后）
+人工: file-long-after 放回原处成功
+验证: source=present 于 TEST_DIR/file-long-after；内容 long-after
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-97：多路径 dry-run 保持输入顺序

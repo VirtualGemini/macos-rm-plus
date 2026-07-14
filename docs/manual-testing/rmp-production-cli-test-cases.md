@@ -1397,7 +1397,12 @@ test -f file-json-verbose && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_output_mode for "file-json-verbose": JSON Trash Operation results are not available in this build
+exit=2
+source=present
+结果: PASS（JSON 执行 10 暂不支持，安全失败）
 ```
 
 ## TC-57：`--json --quiet` 冲突

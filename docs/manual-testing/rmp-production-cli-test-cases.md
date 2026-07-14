@@ -1107,7 +1107,12 @@ test -f file-fI && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: confirmation_required for "file-fI": confirmation is required before this Trash Input can be moved
+exit=1
+source=present（未进废纸篓）
+结果: PASS（-I 覆盖 -f；交互确认 08 暂不支持，安全失败）
 ```
 
 ## TC-45：组合顺序 `-If`

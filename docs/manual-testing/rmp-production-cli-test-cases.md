@@ -3152,7 +3152,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: rmp 0.1.0
+exit=0
+stderr: 无 missing_input
+结果: PASS
 ```
 
 ## TC-128：根目录等价表达 `/./`

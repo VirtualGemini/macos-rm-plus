@@ -3396,7 +3396,9 @@ test -f root-dry-file && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：需要单独人工授权的 root/sudo 环境；本轮不执行）
 ```
 
 ## TC-139：系统 Trash 调用失败且源对象未变化

@@ -2559,7 +2559,12 @@ test -p fifo-real && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_kind (rejected) for "fifo-real": The Trash Input has an unsupported entry kind.
+exit=1
+source=present
+结果: PASS
 ```
 
 ## TC-103：无法检查的路径

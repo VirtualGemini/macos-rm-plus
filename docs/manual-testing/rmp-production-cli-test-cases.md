@@ -2765,7 +2765,9 @@ test -f root-safe-file && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：需要单独人工授权的环境测试；常规测试跳过；本轮不执行 sudo）
 ```
 
 ## TC-112：废纸篓同名目标由系统重命名

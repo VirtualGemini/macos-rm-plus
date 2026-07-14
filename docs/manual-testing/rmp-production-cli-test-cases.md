@@ -120,7 +120,14 @@ test ! -e file-real && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-real" to Trash at "/Users/virtualgemini/.Trash/file-real".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-real；放回原处后废纸篓消失
+验证: source=present 于 TEST_DIR/file-real；内容 real-file；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-03：目录 dry-run 不递归

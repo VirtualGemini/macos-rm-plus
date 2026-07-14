@@ -2366,7 +2366,12 @@ test -f file-boundary-a && test -f file-boundary-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "file-boundary-a", "file-boundary-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present（-- 不成为路径；两文件均未移动）
+结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
 
 ## TC-96：长选项位于路径后

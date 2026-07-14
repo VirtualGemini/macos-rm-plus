@@ -623,7 +623,14 @@ test ! -e file-force-long && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-force-long" to Trash at "/Users/virtualgemini/.Trash/file-force-long".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-force-long；放回原处成功
+验证: source=present 于 TEST_DIR/file-force-long；内容 force-long；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-24：`--force` 忽略 missing path

@@ -445,7 +445,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "broken-link" to Trash at "/Users/virtualgemini/.Trash/broken-link".
+exit=0
+stderr: 空（无 missing_input）
+放回前: source=absent；废纸篓 broken-link；no-such-target 仍不存在
+人工: 废纸篓可见 broken-link；放回原处成功
+放回后: source=present（symlink→no-such-target）；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-16：Protected Path

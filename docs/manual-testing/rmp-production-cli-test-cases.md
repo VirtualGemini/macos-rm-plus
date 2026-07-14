@@ -1815,7 +1815,12 @@ test -f file-compat-W && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported Compatibility Option -W
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-72：严格模式拒绝 `-r`

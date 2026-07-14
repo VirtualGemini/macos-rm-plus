@@ -1315,7 +1315,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-quiet-verbose" to Trash at "/Users/virtualgemini/.Trash/file-quiet-verbose".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-quiet-verbose；放回原处成功
+验证: source=present 于 TEST_DIR/file-quiet-verbose；内容 quiet-verbose
+残留: file-quiet 21-12-05-525 仍在废纸篓（TC-50 误重跑环境污染）
+结果: PASS
 ```
 
 ## TC-53：输出顺序 `--verbose --quiet`

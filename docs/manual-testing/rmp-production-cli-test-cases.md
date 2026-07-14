@@ -222,7 +222,14 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-Rfv" to Trash at "/Users/virtualgemini/.Trash/directory-Rfv".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 directory-Rfv；放回原处成功
+验证: source=present 于 TEST_DIR/directory-Rfv；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-07：组合顺序 `-fi`

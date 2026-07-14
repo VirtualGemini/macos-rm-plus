@@ -1159,7 +1159,14 @@ test ! -e file-i-never && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-i-never" to Trash at "/Users/virtualgemini/.Trash/file-i-never".
+exit=0
+source=absent（移动后）
+人工: 废纸篓可见 file-i-never；放回原处成功；Finder 展示正常
+验证: source=present 于 TEST_DIR/file-i-never；内容 i-never；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-47：`--confirm=never -i`

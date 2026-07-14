@@ -3584,7 +3584,12 @@ test -f file-P-W && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported Compatibility Option -W
+exit=2
+source=present（无累积 -P 警告输出）
+结果: PASS
 ```
 
 ## TC-148：dry-run 忽略唯一的 missing path

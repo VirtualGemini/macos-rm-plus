@@ -3417,7 +3417,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：由受控自动化测试覆盖；本轮不在真机生产 CLI 强制系统调用失败）
 ```
 
 ## TC-140：系统 Trash 调用失败后的状态无法确认

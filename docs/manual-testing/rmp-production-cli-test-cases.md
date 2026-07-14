@@ -598,7 +598,13 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: at least one Trash Input is required
+exit=2
+stdout: 空；废纸篓计数未因本用例变化
+结果: PASS
+备注: TC-19/TC-20/TC-21 状态为暂不支持，本轮跳过
 ```
 
 ## TC-23：长选项 `--force`

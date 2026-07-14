@@ -771,7 +771,15 @@ test ! -e directory-confirm-never && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-confirm-never" to Trash at "/Users/virtualgemini/.Trash/directory-confirm-never".
+exit=0
+source=absent（移动后）
+放回前: 废纸篓为单一目录对象；内部 sub/file=nested 完整
+人工: 废纸篓可见且结构正确；放回原处成功
+验证: source=present；sub/file=nested；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-30：`--confirm=once`

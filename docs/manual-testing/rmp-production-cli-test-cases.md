@@ -2061,7 +2061,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: -a is only valid with --help
+exit=2
+结果: PASS
 ```
 
 ## TC-83：孤立帮助修饰符 `-zh`

@@ -2169,7 +2169,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: 主帮助
+stderr: -P does not securely overwrite 出现 1 次
+结果: PASS
 ```
 
 ## TC-88：版本命令执行严格模式校验

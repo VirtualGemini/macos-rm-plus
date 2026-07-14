@@ -3518,7 +3518,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: 中文主帮助（用法：rmp / 原生选项：）
+结果: PASS
 ```
 
 ## TC-145：两个帮助修饰符都位于 `--help` 之前

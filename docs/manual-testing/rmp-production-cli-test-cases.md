@@ -565,7 +565,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：暂不支持交互确认 08；本轮跳过。相近 confirmation_required 已在 TC-04/TC-07/TC-25 等覆盖）
 ```
 
 ## TC-21：JSON 输出

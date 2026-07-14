@@ -1728,7 +1728,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-compat-rdx" to Trash at "/Users/virtualgemini/.Trash/file-compat-rdx".
+exit=0
+stderr: 空（-r/-d/-x 均接受、无警告）
+source=absent（移动后）
+人工: file-compat-rdx 放回原处成功
+验证: source=present 于 TEST_DIR/file-compat-rdx；内容 compat-rdx
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-69：组合短选项 `-rfv`

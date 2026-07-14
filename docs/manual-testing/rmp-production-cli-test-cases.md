@@ -3680,7 +3680,13 @@ test -f file-P-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout: Would move 1 item to Trash: / [file] "file-P-dry"
+stderr: -P does not securely overwrite 一次
+source=present
+结果: PASS
 ```
 
 ## TC-152：多对象与 JSON 的错误优先级

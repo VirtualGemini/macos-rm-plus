@@ -868,7 +868,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: invalid confirmation mode ""
+exit=2
+结果: PASS（不检查路径，不调用 Trash）
 ```
 
 ## TC-34：未公开确认值

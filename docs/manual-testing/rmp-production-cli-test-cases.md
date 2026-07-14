@@ -2446,7 +2446,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 2 items to Trash:
+  [file] "file with space"
+  [file] "文件-测试"
+exit=0
+两文件均仍在原处
+结果: PASS
 ```
 
 ## TC-99：换行、引号与反斜线路径转义

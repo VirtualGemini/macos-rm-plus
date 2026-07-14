@@ -2700,7 +2700,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (parent-directory): Protected Path rejected: ".."
+exit=3
+结果: PASS
 ```
 
 ## TC-109：`--confirm=never` 不能绕过保护

@@ -415,6 +415,12 @@ Moved 3 items to Trash; 1 failed.
 
 退出码在 v1.0 前可以扩展，但不得在补丁版本中改变既有含义。
 
+所有执行失败诊断必须包含稳定的机器可读错误码和受影响的源路径。系统调用前拒绝的不支持输入使用
+`rejected` 状态；`not_moved` 与 `state_uncertain` 仅用于系统废纸篓调用失败后的最终状态分类。
+当前构建尚未实现非 dry-run JSON 时，必须以稳定的 `unsupported_output_mode` 码和源路径 fail-closed。
+当前单项执行收到多个输入时，必须以稳定的 `unsupported_input_count` 码列出全部受影响源路径并
+fail-closed。
+
 ## 13. JSON 输出契约
 
 顶层结构：
@@ -569,6 +575,8 @@ FR-TEST-015：`rmp-test` 必须硬编码白名单结构 `~/rmp-test/test/<run-uu
 任一条件不满足时，测试进程必须在解析路径参数前退出。
 
 FR-TEST-016：真实 Foundation 实现不得在测试代码中直接构造。测试构建只能通过 `WhitelistedTrashClient` 获得系统废纸篓能力；其构造函数必须接收已经验证的测试安全上下文，并在每次调用前再次执行白名单校验。
+Foundation 平台适配器的纯单元测试只能通过内部注入工厂取得 `any TrashClient`，不得取得具体生产类型、
+其 metatype 或生产 initializer。
 
 FR-TEST-017：测试安全上下文必须在启动时记录 `~/rmp-test`、`~/rmp-test/test` 和 `<run-uuid>` 三层目录的 device/inode，并在每次真实系统调用前重新比较。目录身份变化时立即拒绝。
 
@@ -784,7 +792,8 @@ guard isInsideAuthorizedTestRoot(url) else {
 
 以下项目不阻塞 PRD，但必须在实现对应功能前确定：
 
-- 单个成功操作默认完全静默，还是输出一行摘要。
+- 单个成功操作输出一行结果，包含用户提供的源路径和系统废纸篓 API 返回的精确最终目标路径；
+  该决定在批量输出实现时继续保持一致。
 - `-P` 警告是否在非 TTY 环境默认显示。
 - JSON 中是否包含 Foundation 原始错误域和错误码。
 - 最低 macOS 版本是否需要低于 macOS 13。

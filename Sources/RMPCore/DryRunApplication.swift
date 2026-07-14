@@ -17,29 +17,42 @@ struct DryRunApplication<FileSystem: TrashPlanningFileSystem> {
         exitCode: 0
       )
     } catch {
-      return planningErrorResult(error)
+      return PlanningErrorRenderer().render(error)
     }
   }
+}
 
-  private func planningErrorResult(_ error: TrashPlanningError) -> CommandResult {
+struct PlanningErrorRenderer {
+  private let renderer = DryRunRenderer()
+
+  func render(_ error: TrashPlanningError) -> CommandResult {
     let message: String
     let exitCode: Int32
     switch error {
     case .noInputs:
-      message = "rmp: --dry-run requires at least one Trash Input\n"
+      message =
+        "rmp: \(TrashErrorCode.noInputs.rawValue): --dry-run requires at least one Trash Input\n"
       exitCode = 2
     case let .missingPath(path):
-      message = "rmp: Trash Input does not exist: \(renderer.renderPath(path))\n"
+      message =
+        "rmp: \(TrashErrorCode.missingInput.rawValue): Trash Input does not exist: "
+        + "\(renderer.renderPath(path))\n"
       exitCode = 1
     case let .inaccessiblePath(path):
-      message = "rmp: Trash Input cannot be inspected: \(renderer.renderPath(path))\n"
+      message =
+        "rmp: \(TrashErrorCode.inaccessibleInput.rawValue): Trash Input cannot be inspected: "
+        + "\(renderer.renderPath(path))\n"
       exitCode = 1
     case let .protectedPath(path, protectedPath):
       message =
-        "rmp: Protected Path rejected (\(protectedPath.rawValue)): \(renderer.renderPath(path))\n"
+        "rmp: \(TrashErrorCode.protectedPath.rawValue) (\(protectedPath.rawValue)): "
+        + "Protected Path rejected: \(renderer.renderPath(path))\n"
       exitCode = 3
-    case let .unavailableProtectedPath(protectedPath):
-      message = "rmp: safety identity unavailable: \(protectedPath.rawValue)\n"
+    case let .unavailableProtectedPath(path, protectedPath):
+      message =
+        "rmp: \(TrashErrorCode.safetyIdentityUnavailable.rawValue) for "
+        + "\(renderer.renderPath(path)): "
+        + "safety identity unavailable: \(protectedPath.rawValue)\n"
       exitCode = 3
     }
     return CommandResult(standardOutput: "", standardError: message, exitCode: exitCode)

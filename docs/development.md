@@ -166,8 +166,8 @@ and Interfaces are recorded in ADR-0001.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `91.19%`, ratcheted upward with the complete compatible CLI
-  implementation without changing the coverage metric definition.
+- The v1 production coverage baseline is `95.05%`, ratcheted upward with single-item system Trash
+  execution without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.
@@ -243,12 +243,14 @@ filesystem error prevents that rollback, the operation fails with `test-safety.r
 reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
 succeeded.
 
-The compile-time-isolated `rmp-test` target contains the only real Foundation Trash integration. Its
-WhitelistedTrashClient accepts only opaque targets produced by the planning authorization pass,
-revalidates the complete Test Safety Context and target immediately before the system call, and
-returns read-only verification evidence. Pure test commands inject a Trash spy and never invoke the
-real capability. The integration runner remains separately guarded and cannot be enabled through an
-environment switch in the production executable.
+`RMPPlatform.FoundationTrashClient` contains the only direct Foundation
+`trashItem(at:resultingItemURL:)` call. Production wiring constructs it only after parsing, root
+policy, single-input validation, and Trash Plan validation succeed. The compile-time-isolated
+`rmp-test` target reaches that adapter only through `WhitelistedTrashClient`, which accepts opaque
+targets produced by its planning authorization pass, revalidates the complete Test Safety Context
+and target immediately before the system call, and returns read-only verification evidence. Pure
+tests inject Trash spies and never invoke the real capability. The integration runner remains
+separately guarded and cannot be enabled through an environment switch in the production executable.
 
 ## 7. Development commands
 
@@ -406,8 +408,12 @@ FoundationTrashClient, `rmp-test`, Git hooks, workflows, release configuration, 
 standards.
 
 Repository policy also enforces the test Trash boundary statically: the Foundation
-`trashItem(at:resultingItemURL:)` API may appear only in `WhitelistedTrashClient.swift`, and the
-injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy test.
+`trashItem(at:resultingItemURL:)` API may appear only in `FoundationTrashClient.swift`.
+`FoundationTrashClient` construction is limited to production wiring, the whitelist wrapper, and its
+private platform implementation. The adapter test may obtain only an `any TrashClient` existential
+through `makeInjectedFoundationTrashClient(systemTrash:)`; concrete production type references,
+aliases, metatypes, and constructor references remain forbidden in all tests. The injectable
+`WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy test.
 `make check-system-trash-boundary` runs this check directly, and `make check` includes it.
 
 Unresolved critical or high-risk findings block merge. Medium-risk findings are fixed or explicitly

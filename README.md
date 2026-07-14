@@ -3,12 +3,14 @@
 `macos-rm-plus` is a macOS command-line tool. The core command is `rmp`.
 It will move files and directories to the system Trash instead of permanently deleting them.
 
-The current operational slice supports safe Trash Plan previews through the complete v0.1-compatible
-command-line parser:
+The current operational slice supports safe Trash Plan previews and one real top-level Trash move
+through the complete v0.1-compatible command-line parser:
 
 ```sh
 rmp -Rfv --dry-run report.txt build
 rmp --dry-run -- -leading-hyphen
+rmp report.txt
+rmp --confirm=never build
 ```
 
 Dry-run mode inspects only the supplied top-level entries, reports each entry kind in input order,
@@ -23,8 +25,14 @@ rejected, and `--strict-options` rejects all no-effect Compatibility Options. Ru
 concise native help, `rmp --help -a` for the compatibility matrix, and add `-zh` for Chinese help.
 Help and version commands complete without constructing the platform filesystem adapter or inspecting
 Trash Inputs.
-Actual Trash moves remain unavailable until the system Trash capability is implemented; non-dry-run
-operations fail closed.
+
+One ordinary file, symbolic link, or broken symbolic link can be moved without a prompt; a directory
+currently requires `--confirm=never` because interactive confirmation is implemented in the next
+operational slice. Actual moves pass one top-level entry to the macOS Foundation Trash API and report
+the exact system-returned destination path. Root execution, Protected Paths, multiple non-dry-run
+inputs, and still-required confirmation fail before a Trash call. A system Trash failure never falls
+back to permanent deletion or direct Trash-directory manipulation, and reports `not_moved` only when
+the original entry identity can be confirmed unchanged; otherwise it reports `state_uncertain`.
 
 ## Project status
 

@@ -1344,7 +1344,15 @@ wc -c < verbose-quiet.stderr
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+verbose-quiet.stdout 字节=0；verbose-quiet.stderr 字节=0
+source=absent（移动后）
+人工: file-verbose-quiet 放回原处成功
+验证: source=present 于 TEST_DIR/file-verbose-quiet；内容 verbose-quiet
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-54：组合短选项 `-fv`

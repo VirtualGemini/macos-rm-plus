@@ -2018,7 +2018,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout 含 用法：rmp [选项] <路径>...、原生选项：、rmp --help -a -zh
+stderr: 空
+结果: PASS
 ```
 
 ## TC-81：中文兼容帮助

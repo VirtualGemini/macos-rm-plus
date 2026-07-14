@@ -997,7 +997,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: missing_input: Trash Input does not exist: "missing-force-interactive"
+exit=1
+结果: PASS
 ```
 
 ## TC-40：`--interactive --force` 对 missing path 的覆盖

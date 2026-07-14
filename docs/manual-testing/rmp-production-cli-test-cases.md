@@ -2341,7 +2341,12 @@ test -f file-middle-a && test -f file-middle-b && echo 'sources=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: unsupported_input_count for "file-middle-a", "file-middle-b": single-item execution requires exactly one Trash Input
+exit=2
+sources=present（-f 识别为选项；两文件均未移动）
+结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
 
 ## TC-95：`--` 位于两个路径之间

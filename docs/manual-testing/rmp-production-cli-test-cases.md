@@ -1292,7 +1292,12 @@ cat quiet-error.stderr
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=1
+stdout 字节=0
+stderr: rmp: missing_input: Trash Input does not exist: "missing-quiet"
+结果: PASS
 ```
 
 ## TC-52：输出顺序 `--quiet --verbose`

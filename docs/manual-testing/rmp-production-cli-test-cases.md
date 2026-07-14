@@ -2040,7 +2040,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+stdout 含 接受但无效果 / 接受但会警告 / 不支持
+结果: PASS
 ```
 
 ## TC-82：孤立帮助修饰符 `-a`

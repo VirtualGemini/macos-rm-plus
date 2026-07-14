@@ -2742,7 +2742,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+exit=3
+结果: PASS（--non-interactive 不能绕过）
 ```
 
 ## TC-111：root 执行不能被 force 绕过

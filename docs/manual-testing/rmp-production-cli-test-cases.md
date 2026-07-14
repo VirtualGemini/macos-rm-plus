@@ -1620,7 +1620,15 @@ test ! -e file-strict-native && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-strict-native" to Trash at "/Users/virtualgemini/.Trash/file-strict-native".
+exit=0
+source=absent（移动后）
+人工: file-strict-native 放回原处成功
+验证: source=present 于 TEST_DIR/file-strict-native；内容 strict-native
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-65：兼容选项 `-R`

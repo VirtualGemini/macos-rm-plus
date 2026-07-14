@@ -1681,7 +1681,7 @@ stderr: 空
 source=absent（移动后）
 人工: file-compat-d 放回原处成功
 验证: source=present 于 TEST_DIR/file-compat-d；内容 compat-d
-残留: file-quiet 21-12-05-525 仍在废纸篓
+残留: file-quiet 21-12-05-525 仍在废纸篓；另见 file-compat-x 环境污染残留
 结果: PASS
 ```
 

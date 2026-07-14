@@ -1264,7 +1264,15 @@ test ! -e file-quiet && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+exit=0
+quiet-success.stdout 字节=0；quiet-success.stderr 字节=0
+source=absent（移动后）
+人工: 废纸篓可见 file-quiet（内容 quiet-success）；放回原处成功
+验证: source=present 于 TEST_DIR/file-quiet；内容 quiet-success
+环境污染备注: 首次执行因 zsh 只读变量 status 在 rmp 成功后脚本报错，随后重跑，导致废纸篓额外残留 file-quiet 21-12-05-525（时间戳式重名）。该残留不是产品第二份输出逻辑；file-quiet 放回后该残留仍在。
+结果: PASS（--quiet 成功静默 + 主对象放回）；残留待清理
 ```
 
 ## TC-51：`--quiet` 不抑制错误

@@ -2477,7 +2477,16 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 3 items to Trash:
+  [file] "line\nbreak"
+  [file] "quote\"name"
+  [file] "back\\slash"
+exit=0
+三对象均仍在原处
+结果: PASS
 ```
 
 ## TC-100：只读普通文件

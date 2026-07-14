@@ -419,7 +419,15 @@ cat target-file
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+重测: 是（首轮在 put-back 前未先核对 target；本轮按正确顺序重跑）
+stdout: Moved "link-file" to Trash at "/Users/virtualgemini/.Trash/link-file".
+exit=0
+放回前验证: link=absent；target=present 内容 target；废纸篓 link-file 仍为 symlink → TEST_DIR/target-file
+人工: 废纸篓可见 link-file（种类=替身）；放回原处成功
+放回后验证: link=present（symlink→target-file）；target=present 内容 target；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-15：失效符号链接

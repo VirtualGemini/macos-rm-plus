@@ -1757,7 +1757,17 @@ test ! -e directory-rfv && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-rfv" to Trash at "/Users/virtualgemini/.Trash/directory-Rfv".
+exit=0
+source=absent（移动后）
+放回前: 单一目录对象；内部 sub/file=nested
+人工: directory-Rfv 放回原处成功；结构 directory-Rfv/sub/file
+验证: TEST_DIR/directory-Rfv/sub/file 存在；内容 nested
+说明: APFS 大小写不敏感，显示名折叠为 directory-Rfv（与 TC-06 同名冲突）
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-70：重复警告选项 `-PP`

@@ -2312,7 +2312,16 @@ test ! -e ./-f && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "./-f" to Trash at "/Users/virtualgemini/.Trash/-f".
+exit=0
+source=absent（移动后）
+人工: -f 放回原处成功
+验证: source=present 于 TEST_DIR/-f；内容 relative-hyphen
+说明: ./-f 被当作路径，未解析为 force
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-94：选项位于两个路径之间

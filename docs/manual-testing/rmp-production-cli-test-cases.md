@@ -954,7 +954,11 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: missing_input: Trash Input does not exist: "missing-fi"
+exit=1
+结果: PASS（-i 关闭 -f 的 missing 忽略）
 ```
 
 ## TC-38：`-i -f` 对 missing path 的覆盖

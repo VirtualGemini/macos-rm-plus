@@ -3656,7 +3656,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：由受控自动化测试覆盖；本轮不破坏系统受保护身份）
 ```
 
 ## TC-151：`-P` 与 dry-run 的输出通道

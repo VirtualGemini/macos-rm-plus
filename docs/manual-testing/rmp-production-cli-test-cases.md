@@ -3302,7 +3302,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: -zh is only valid with --help
+exit=2
+stdout: 空
+结果: PASS
 ```
 
 ## TC-135：目录默认真实执行

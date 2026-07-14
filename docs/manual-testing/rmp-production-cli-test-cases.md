@@ -1517,7 +1517,15 @@ test ! -e file-non-interactive && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-non-interactive" to Trash at "/Users/virtualgemini/.Trash/file-non-interactive".
+exit=0
+source=absent（移动后）
+人工: file-non-interactive 放回原处成功
+验证: source=present 于 TEST_DIR/file-non-interactive；内容 non-interactive-file
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-61：`--non-interactive` 目录

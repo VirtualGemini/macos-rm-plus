@@ -51,6 +51,7 @@ killall Finder
 ## TC-install：安装测试版本 & 搭建测试环境
 
 ```sh
+REPO_ROOT="$PWD"
 make build-release
 mkdir -p "$HOME/.local/bin"
 install -m 755 .build/release/rmp "$HOME/.local/bin/rmp"
@@ -3408,7 +3409,7 @@ TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 ```sh
 CLANG_MODULE_CACHE_PATH=/tmp/rmp-clang-module-cache \
 SWIFTPM_MODULECACHE_OVERRIDE=/tmp/rmp-swiftpm-module-cache \
-make test-unit
+make -C "$REPO_ROOT" test-unit
 printf 'exit=%s\n' "$?"
 ```
 
@@ -3419,7 +3420,11 @@ printf 'exit=%s\n' "$?"
 ```text
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-结果: SKIP（状态：由受控自动化测试覆盖；本轮不在真机生产 CLI 强制系统调用失败）
+真实生产 CLI: SKIP（无法安全、确定地强制 macOS Trash API 失败并保证源对象身份不变）
+风险: 真实故障注入需要干扰废纸篓权限、磁盘状态或文件系统调用，影响范围可能超出测试对象。
+潜在危害: 测试对象可能被实际移动或处于无法确认的状态；错误的权限或磁盘操作还可能导致废纸篓及其他应用异常。
+受控自动化: PASS（目标测试通过；make test-unit exit=0；全套 106 tests in 8 suites passed）
+结果: SKIP（未执行生产 CLI 真实故障注入；错误处理分支已由受控自动化测试验证）
 ```
 
 ## TC-140：系统 Trash 调用失败后的状态无法确认
@@ -3429,7 +3434,7 @@ TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 ```sh
 CLANG_MODULE_CACHE_PATH=/tmp/rmp-clang-module-cache \
 SWIFTPM_MODULECACHE_OVERRIDE=/tmp/rmp-swiftpm-module-cache \
-make test-unit
+make -C "$REPO_ROOT" test-unit
 printf 'exit=%s\n' "$?"
 ```
 
@@ -3440,7 +3445,11 @@ printf 'exit=%s\n' "$?"
 ```text
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-结果: SKIP（状态：由受控自动化测试覆盖；本轮不在真机生产 CLI 构造 state_uncertain）
+真实生产 CLI: SKIP（无法安全、确定地同时制造 Trash API 失败和源对象复查失败）
+风险: 真实复现需要并发替换或移动源对象、撤销访问权限，或在调用期间卸载文件系统，结果天然不可预测。
+潜在危害: 源对象可能被移动、替换、遗失或变得不可访问，且程序无法可靠判断最终位置；卸载或权限变更还可能干扰其他进程。
+受控自动化: PASS（目标测试通过；make test-unit exit=0；全套 106 tests in 8 suites passed）
+结果: SKIP（未执行生产 CLI 真实故障注入；state_uncertain 分支已由受控自动化测试验证）
 ```
 
 ## TC-141：只有选项终止符
@@ -3655,7 +3664,7 @@ source=present
 ```sh
 CLANG_MODULE_CACHE_PATH=/tmp/rmp-clang-module-cache \
 SWIFTPM_MODULECACHE_OVERRIDE=/tmp/rmp-swiftpm-module-cache \
-make test-unit
+make -C "$REPO_ROOT" test-unit
 printf 'exit=%s\n' "$?"
 ```
 
@@ -3666,7 +3675,11 @@ printf 'exit=%s\n' "$?"
 ```text
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-结果: SKIP（状态：由受控自动化测试覆盖；本轮不破坏系统受保护身份）
+真实生产 CLI: SKIP（无法安全、确定地令根目录、当前目录或用户主目录的文件系统身份读取失败）
+风险: 真实复现可能需要破坏受保护目录的权限、挂载状态或可达性，影响系统级安全边界。
+潜在危害: 可能导致当前会话或其他应用无法访问主目录和工作目录、文件系统异常，严重时影响登录或系统正常运行。
+受控自动化: PASS（目标测试通过；make test-unit exit=0；全套 106 tests in 8 suites passed）
+结果: SKIP（未破坏系统受保护身份；fail-closed 和零 Trash 调用已由受控自动化测试验证）
 ```
 
 ## TC-151：`-P` 与 dry-run 的输出通道

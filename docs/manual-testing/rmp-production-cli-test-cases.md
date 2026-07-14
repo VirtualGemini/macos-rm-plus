@@ -2950,7 +2950,12 @@ test -f file-quiet-json && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stderr: rmp: conflicting options --json and --quiet
+exit=2
+source=present
+结果: PASS
 ```
 
 ## TC-120：兼容选项 `-r` 位于严格模式之前

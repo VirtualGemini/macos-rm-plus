@@ -1445,7 +1445,12 @@ test -f file-json-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Would move 1 item to Trash: / [file] "file-json-dry"（人类可读，非 JSON）
+exit=0
+source=present
+结果: PASS（符合当前行为；不能作为 JSON 支持通过）
 ```
 
 ## TC-59：`--quiet --dry-run`

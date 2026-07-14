@@ -2506,7 +2506,15 @@ test ! -e file-readonly && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-readonly" to Trash at "/Users/virtualgemini/.Trash/file-readonly".
+exit=0
+source=absent（移动后）；废纸篓内 mode=444
+人工: file-readonly 放回原处成功；权限仍为只读
+验证: source=present 于 TEST_DIR/file-readonly；mode=444；内容 readonly
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-101：不支持类型的 dry-run

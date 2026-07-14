@@ -2533,7 +2533,14 @@ test -p fifo-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 1 item to Trash:
+  [other] "fifo-dry"
+exit=0
+source=present（fifo 未移动）
+结果: PASS
 ```
 
 ## TC-102：不支持类型的真实执行

@@ -67,7 +67,15 @@ cd "$TEST_DIR"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+分支: test/rmp-production-cli
+预清理: 清空废纸篓；FXRecentFolders 移除 tmp.Dpnt129azc；killall Finder；废纸篓计数=0
+make build-release: 成功
+command -v rmp: /Users/virtualgemini/.local/bin/rmp
+rmp --version: rmp 0.1.0（exit=0）
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+废纸篓计数: 0
+结果: PASS
 ```
 
 ## TC-01：普通文件 dry-run

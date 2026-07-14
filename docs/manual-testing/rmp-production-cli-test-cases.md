@@ -94,7 +94,14 @@ test -f file-dry && echo 'source=present'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout:
+Would move 1 item to Trash:
+  [file] "file-dry"
+exit=0
+source=present
+结果: PASS
 ```
 
 ## TC-02：普通文件真实移动

@@ -1787,7 +1787,16 @@ cat repeated-P.stderr
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-PP" to Trash at "/Users/virtualgemini/.Trash/file-PP".
+exit=0
+stderr: -P warning 出现两次（逐次警告）
+source=absent（移动后）
+人工: file-PP 放回原处成功
+验证: source=present 于 TEST_DIR/file-PP；内容 PP
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-71：不支持的兼容选项 `-W`

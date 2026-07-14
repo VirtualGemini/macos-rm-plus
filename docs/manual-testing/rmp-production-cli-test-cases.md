@@ -3438,7 +3438,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：由受控自动化测试覆盖；本轮不在真机生产 CLI 构造 state_uncertain）
 ```
 
 ## TC-141：只有选项终止符

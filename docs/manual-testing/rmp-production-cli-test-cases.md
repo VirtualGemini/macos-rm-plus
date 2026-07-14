@@ -2835,7 +2835,12 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: 空
+stderr: 空
+exit=0
+结果: PASS
 ```
 
 ## TC-115：重复原生短选项

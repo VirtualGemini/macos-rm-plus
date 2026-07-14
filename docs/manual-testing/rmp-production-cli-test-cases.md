@@ -196,7 +196,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "directory-rf" to Trash at "/Users/virtualgemini/.Trash/directory-rf".
+exit=0
+source=absent（移动后）
+废纸篓: directory-rf 为单一文件夹对象；内部 sub/file 完整（内容 nested）
+人工: 废纸篓可见且结构正确；放回原处成功
+验证: source=present 于 TEST_DIR/directory-rf；sub/file=nested；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-06：组合短选项 `-Rfv`

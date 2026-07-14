@@ -2285,7 +2285,15 @@ test ! -e ./- && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "-" to Trash at "/Users/virtualgemini/.Trash/-".
+exit=0
+source=absent（移动后）
+人工: 废纸篓名为 - 的项放回原处成功
+验证: source=present 于 TEST_DIR/-；内容 dash-file
+残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-93：相对路径前缀避开选项解析

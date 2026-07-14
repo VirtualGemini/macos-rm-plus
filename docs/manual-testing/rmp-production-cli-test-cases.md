@@ -1568,7 +1568,15 @@ test ! -e file-stop-single && echo 'source=absent'
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+stdout: Moved "file-stop-single" to Trash at "/Users/virtualgemini/.Trash/file-stop-single".
+exit=0
+source=absent（移动后）
+人工: file-stop-single 放回原处成功
+验证: source=present 于 TEST_DIR/file-stop-single；内容 stop-single
+残留: file-quiet 21-12-05-525 仍在废纸篓
+结果: PASS
 ```
 
 ## TC-63：`--stop-on-error` 多对象真实执行

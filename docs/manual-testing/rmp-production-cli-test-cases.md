@@ -474,7 +474,13 @@ printf 'cwd-exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+root-exit=3 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+home-exit=3 stderr: rmp: protected_path (home-directory): Protected Path rejected: "/Users/virtualgemini"
+cwd-exit=3 stderr: rmp: protected_path (current-directory): Protected Path rejected: ".../tmp.tbyfgQFr3V"
+stdout 均为空；废纸篓计数=0
+结果: PASS
 ```
 
 ## TC-17：`-f` 不能绕过保护

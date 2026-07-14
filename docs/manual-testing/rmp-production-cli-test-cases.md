@@ -545,7 +545,9 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-
+日期: 2026-07-14
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+结果: SKIP（状态：暂不支持，09 完成前应安全失败；本轮按「不支持的暂不测试」跳过。相近安全失败已在 TC-63/TC-136 覆盖）
 ```
 
 ## TC-20：交互确认

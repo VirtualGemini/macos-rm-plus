@@ -1723,8 +1723,9 @@ source=absent（移动后）
 环境处理: 已备份 Finder plist，定点移除 tmp.tbyfgQFr3V，重启偏好缓存和 Finder
 复测自动阶段: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x".；exit=0；source=absent
 复测放回前验证: 精确系统返回路径存在；内容 compat-x
-复测人工: PENDING（等待 Finder 可见性与“放回原处”检查）
-结果: PENDING（首次人工放回受环境污染；清理后自动复测 PASS）
+复测人工: Finder 中仅有一个 file-compat-x；“放回原处”成功，并正确打开本轮 tmp.SB2caTD3aG
+复测放回后验证: TEST_DIR/file-compat-x 存在；内容 compat-x；废纸篓中的目标已消失
+结果: PASS（首次人工放回受环境污染；清理旧 Finder 元数据后复测恢复到正确 TEST_DIR）
 ```
 
 ## TC-68：组合兼容选项 `-rdx`

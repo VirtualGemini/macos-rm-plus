@@ -295,6 +295,17 @@ rmp --help -a -zh
 
 按输入顺序对每个顶层项目确认。拒绝一个项目不阻止处理后续项目，除非启用 `--stop-on-error`。
 
+确认提示写入 stderr。忽略首尾空白并进行大小写折叠后，仅 `y` 和 `yes` 表示批准；空回答、`n`
+和 `no` 表示拒绝，其他回答无效，无法取得下一行输入表示确认中断。程序不对无效或中断回答猜测
+用户意图，也不因此发起 Trash 调用。上述失败分别使用 `confirmation_declined`、
+`confirmation_invalid_response` 和 `confirmation_interrupted` 稳定错误码并返回退出码 1。
+`--non-interactive` 或非 TTY stdin 使用 `confirmation_required`，不得读取或阻塞。
+逐项确认中的无效回答按拒绝处理并继续后续输入；确认输入中断会停止继续提示，因为已无法可靠
+取得后续批准。
+
+批量确认摘要只统计待处理的顶层输入和其中的目录数量。逐项确认只显示当前顶层输入的类型与
+转义路径；两者都不得递归扫描目录内容或计算目录大小。
+
 ## 10. 安全需求
 
 ### 10.1 系统废纸篓 API
@@ -418,8 +429,8 @@ Moved 3 items to Trash; 1 failed.
 所有执行失败诊断必须包含稳定的机器可读错误码和受影响的源路径。系统调用前拒绝的不支持输入使用
 `rejected` 状态；`not_moved` 与 `state_uncertain` 仅用于系统废纸篓调用失败后的最终状态分类。
 当前构建尚未实现非 dry-run JSON 时，必须以稳定的 `unsupported_output_mode` 码和源路径 fail-closed。
-当前单项执行收到多个输入时，必须以稳定的 `unsupported_input_count` 码列出全部受影响源路径并
-fail-closed。
+当前确认切片可以将已批准的多个顶层输入按输入顺序交给系统 Trash 能力；完整的 missing、
+partial-success 和 skipped 批量结果模型仍由有序批处理切片实现。
 
 ## 13. JSON 输出契约
 

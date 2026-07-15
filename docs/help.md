@@ -3,7 +3,7 @@
 The supported operational forms are:
 
 ```text
-rmp [OPTIONS] [--] <PATH>
+rmp [OPTIONS] [--] <PATH>...
 rmp [OPTIONS] --dry-run [--] <PATH>...
 ```
 
@@ -12,14 +12,26 @@ top-level Trash Plan to stdout in input order. Each line contains the entry kind
 control characters are escaped so paths containing newlines remain unambiguous. Dry-run mode never
 moves, deletes, overwrites, or sends an item to Trash.
 
-Non-dry-run execution currently accepts exactly one top-level file, directory, symbolic link, or
-broken symbolic link. One ordinary file or link proceeds under smart confirmation; a directory must
-use `--confirm=never` until interactive confirmation is available. Modes that still require a prompt
-fail closed with `confirmation_required` and make no Trash call. Successful execution uses the macOS
-Foundation Trash API and reports its exact resulting destination path. Failure never triggers
-permanent deletion, direct Trash-directory access, overwrite, or automatic move-back.
-Quiet mode suppresses a successful single-item result but never an error. Non-dry-run JSON output
-fails closed until the versioned schema is implemented; it never emits human output on stdout while
+Smart confirmation proceeds without a prompt for one ordinary file or link and asks once for
+multiple top-level inputs or any directory. `never` proceeds without prompting, `once` asks once for
+the complete top-level summary, and `each` asks before each input. `-I` asks once when more than three
+top-level inputs are supplied or a planned input is a directory. Confirmation summaries count only
+top-level inputs and directories and never inspect directory contents or calculate sizes.
+
+Prompts are written to stderr. After surrounding whitespace is ignored, only case-insensitive `y` or
+`yes` approves an input. Empty, `n`, or `no` responses decline; other text is invalid; and end of
+input is interrupted. These outcomes report `confirmation_declined`,
+`confirmation_invalid_response`, or `confirmation_interrupted`, respectively, with exit code 1 and
+no unapproved Trash call. Invalid per-input responses continue like a rejection; interrupted input
+stops further prompts because no later approval can be read. `--non-interactive`, a non-TTY stdin,
+or an unavailable prompt capability reports `confirmation_required` without reading input or
+blocking.
+
+All paths are planned before confirmation, and approved inputs are passed to the macOS Foundation
+Trash API serially in input order. Each success reports its exact resulting destination path.
+Failure never triggers permanent deletion, direct Trash-directory access, overwrite, or automatic
+move-back. Quiet mode suppresses successful results but never an error. Non-dry-run JSON output fails
+closed until the versioned schema is implemented; it never emits human output on stdout while
 claiming to be JSON.
 
 Native options set confirmation (`-f`, `-i`, `-I`, `--confirm`), missing-path

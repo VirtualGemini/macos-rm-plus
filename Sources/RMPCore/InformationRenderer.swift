@@ -23,12 +23,12 @@ enum InformationRenderer {
     Native options:
       -f, --force             Never confirm and ignore missing paths
       -i, --interactive       Confirm each top-level Trash Input
-      -I                       Confirm once for a large or directory-containing operation
+      -I                       Confirm once for >3 inputs or any directory
       -v, --verbose           Report every top-level result
           --confirm=<MODE>    smart, never, once, or each
           --ignore-missing    Ignore missing paths only
           --dry-run           Print the Trash Plan without moving anything
-          --non-interactive   Never read from the terminal
+          --non-interactive   Fail if confirmation would require terminal input
           --quiet             Suppress normal output
           --json              Emit the complete result as JSON
           --stop-on-error     Stop after the first failed Trash Input
@@ -39,6 +39,7 @@ enum InformationRenderer {
 
     Examples:
       rmp report.txt
+      rmp --confirm=once build report.txt
       rmp --dry-run build report.txt
       rmp -- -leading-hyphen
 
@@ -68,12 +69,12 @@ enum InformationRenderer {
     原生选项：
       -f, --force             不确认并忽略不存在的路径
       -i, --interactive       逐个确认顶层废纸篓输入
-      -I                       对较大批次或包含目录的操作确认一次
+      -I                       超过 3 个输入或包含目录时整批确认一次
       -v, --verbose           输出每个顶层结果
           --confirm=<模式>    smart、never、once 或 each
           --ignore-missing    仅忽略不存在的路径
           --dry-run           输出废纸篓计划但不移动任何项目
-          --non-interactive   禁止读取终端
+          --non-interactive   需要终端确认时直接失败
           --quiet             抑制正常输出
           --json              输出完整 JSON 结果
           --stop-on-error     首次失败后停止
@@ -84,6 +85,7 @@ enum InformationRenderer {
 
     示例：
       rmp report.txt
+      rmp --confirm=once build report.txt
       rmp --dry-run build report.txt
       rmp -- -leading-hyphen
 

@@ -20,6 +20,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
+- Add deterministic `smart`, `never`, `once`, and `each` confirmation with top-level-only summaries,
+  `-f`/`-i`/`-I` precedence, non-interactive and non-TTY fail-closed behavior, stable declined,
+  invalid, and interrupted diagnostics, and zero unapproved Trash calls.
 - Add one-item system Trash execution for files, directories, symbolic links, and broken symbolic
   links with root and Protected Path refusal, exact system-returned destinations, stable failure
   codes, and honest `not_moved` versus `state_uncertain` reporting without destructive fallback.

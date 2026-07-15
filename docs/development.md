@@ -74,6 +74,11 @@ The architectural decision is recorded in
 `RMPCore` must not invoke the filesystem, terminal, clock, environment, or Foundation Trash API
 directly. Those capabilities cross explicit interfaces implemented in `RMPPlatform`.
 
+Interactive confirmation crosses the `ConfirmationPrompt` Interface. RMPCore decides whether a
+prompt is required and interprets raw answers; `RMPPlatform.StandardInputConfirmationPrompt` only
+checks stdin TTY state, writes the question to stderr, and reads one line. Non-interactive and
+non-TTY paths are rejected before the adapter reads stdin.
+
 Trash Plan previews follow the same boundary: `RMPCore` receives only injected top-level entry and
 directory-identity inspection capabilities, while `RMPPlatform` supplies the read-only Foundation
 adapter. The production dry-run path has no Trash, move, overwrite, or deletion capability.
@@ -83,6 +88,10 @@ platform-adapter factory is invoked; operation commands create their adapter onl
 global validation. Compatibility diagnostics stay in the CLI result envelope and never enter the
 native Trash Operation request passed to planning or execution modules. The module responsibilities
 and Interfaces are recorded in ADR-0001.
+
+Confirmation tests run through the public `CLIApplication` input/output seam with fake filesystem,
+prompt, and Trash capabilities. Platform prompt tests inject TTY, writer, and line-reader functions;
+the pure suite never reads its real stdin and never invokes the real Trash API.
 
 ## 4. Canonical language
 
@@ -166,8 +175,8 @@ and Interfaces are recorded in ADR-0001.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `95.05%`, ratcheted upward with single-item system Trash
-  execution without changing the coverage metric definition.
+- The v1 production coverage baseline is `95.39%`, ratcheted upward with deterministic confirmation
+  policy without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.

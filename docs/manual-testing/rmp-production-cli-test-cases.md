@@ -1709,17 +1709,15 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stdout: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x 21-55-21-877".
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+stdout: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x".
 exit=0
 stderr: 空
 source=absent（移动后）
-说明: 废纸篓已有环境污染残留 file-compat-x，系统同名重命名为 file-compat-x 21-55-21-877
-人工: file-compat-x 21-55-21-877 放回原处成功
-验证: TEST_DIR 出现 'file-compat-x 21-55-21-877'（保留系统重命名）；内容 compat-x
-残留: 旧 file-compat-x 与 file-quiet 21-12-05-525 仍在废纸篓
-结果: PASS（-x 兼容接受；同名重命名为系统 Trash 行为）
+放回前验证: 精确系统返回路径存在；内容 compat-x；清洁环境下未发生同名重命名
+人工: PENDING（等待 Finder 可见性与“放回原处”检查）
+结果: PENDING（自动阶段 PASS；等待人工审核）
 ```
 
 ## TC-68：组合兼容选项 `-rdx`

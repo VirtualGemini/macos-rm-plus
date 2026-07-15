@@ -1145,8 +1145,10 @@ stdout: Moved "file-If" to Trash at "/Users/virtualgemini/.Trash/file-If".
 exit=0
 source=absent（移动后）
 放回前验证: 精确系统返回路径存在；内容 If；本轮系统保留名称 file-If
-人工: PENDING（等待 Finder 可见性与“放回原处”检查）
-结果: PENDING（自动阶段 PASS；等待人工审核）
+人工: Finder 显示 file-if；“放回原处”执行成功，并正确打开本轮 tmp.SB2caTD3aG
+放回后验证: 终端目录枚举名为 file-If；file-if 与 file-If 均解析到该文件；内容 If；废纸篓中的目标已消失
+环境结论: APFS/Finder 大小写展示差异仍存在；上一轮易挥发 tmp 路径展示异常未复现
+结果: PASS（功能：进入废纸篓并回到正确 TEST_DIR；大小写展示差异见备注）
 ```
 
 ## TC-46：`-i --confirm=never`

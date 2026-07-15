@@ -316,6 +316,35 @@ CI repeats all enforceable checks. Local hooks are convenience and may never be 
 The documentation-impact checker is a POSIX shell command and uses macOS `plutil` to read the
 JSON-compatible `.docs-impact.yml`; hooks do not compile helper programs on demand.
 
+### Mandatory commit-history validation
+
+`make check` and `make ci` validate the checked-out source tree. They do **not** replace validation
+of every commit that the pull request makes reachable. CI validates the complete commit range, so a
+later revert or corrective commit does not excuse an earlier commit with an invalid message or
+documentation-impact declaration.
+
+Immediately after creating a commit, validate that commit before continuing:
+
+```sh
+./scripts/check-commits.sh "$(git rev-parse HEAD^)" HEAD
+```
+
+Before pushing, opening a pull request, or declaring a pull request ready, validate the complete
+range against the target branch:
+
+```sh
+BASE_SHA="$(git merge-base origin/main HEAD)"
+HEAD_SHA="$(git rev-parse HEAD)"
+./scripts/check-commits.sh "$BASE_SHA" "$HEAD_SHA"
+```
+
+This range check is a blocking release criterion. Do not rely on CI to discover missing
+`Signed-off-by`, `Docs-Impact`, breaking-change, or documentation-coverage metadata. If any reachable
+commit fails, stop and repair the branch history; adding a later valid commit or revert leaves the
+invalid commit in the range and does not fix the failure. Coordinate any published-history rewrite
+and protect the remote update with an exact `--force-with-lease` expectation so unknown remote work
+cannot be overwritten.
+
 ## 9. Commit convention
 
 Allowed types:

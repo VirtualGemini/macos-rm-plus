@@ -68,13 +68,14 @@ cd "$TEST_DIR"
 反馈：
 
 ```text
-日期: 2026-07-14
+日期: 2026-07-15
 分支: test/rmp-production-cli
-预清理: 清空废纸篓；FXRecentFolders 移除 tmp.Dpnt129azc；killall Finder；废纸篓计数=0
+预清理: 用户确认清空废纸篓；终端复核废纸篓计数=0
+环境备注: FXRecentFolders 仍含上一轮 tmp.tbyfgQFr3V；按用户决定不作为重建隔离环境的阻塞项
 make build-release: 成功
 command -v rmp: /Users/virtualgemini/.local/bin/rmp
 rmp --version: rmp 0.1.0（exit=0）
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
 废纸篓计数: 0
 结果: PASS
 ```
@@ -1138,16 +1139,16 @@ test ! -e file-If && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stdout: Moved "file-If" to Trash at "/Users/virtualgemini/.Trash/file-if".
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+stdout: Moved "file-If" to Trash at "/Users/virtualgemini/.Trash/file-If".
 exit=0
 source=absent（移动后）
-放回前: 废纸篓有项；内容 If；系统路径名大小写可能规范化为 file-if
-人工: 废纸篓可见 file-if；放回后文件内容为 If
-放回后验证: readdir 名为 file-if（APFS 默认大小写不敏感，file-If 与 file-if 同一 inode）；内容 If；位于 TEST_DIR；废纸篓计数=0
-Finder 备注: 放回时 Finder 未按预期打开 tmp 目录视图，而是以该文件名呈现（路径仍正确落在 TEST_DIR）。归类为 Finder/卷大小写不敏感展示问题，非 rmp 移动失败；rmp 仅调用 FileManager.trashItem。
-结果: PASS（功能：进入废纸篓并回到 TEST_DIR；展示/大小写见备注）
+放回前验证: 精确系统返回路径存在；内容 If；本轮系统保留名称 file-If
+人工: Finder 显示 file-if；“放回原处”执行成功，并正确打开本轮 tmp.SB2caTD3aG
+放回后验证: 终端目录枚举名为 file-If；file-if 与 file-If 均解析到该文件；内容 If；废纸篓中的目标已消失
+环境结论: APFS/Finder 大小写展示差异仍存在；上一轮易挥发 tmp 路径展示异常未复现
+结果: PASS（功能：进入废纸篓并回到正确 TEST_DIR；大小写展示差异见备注）
 ```
 
 ## TC-46：`-i --confirm=never`
@@ -1259,8 +1260,8 @@ source=absent（移动后）
 ```sh
 printf quiet-success > file-quiet
 rmp --quiet file-quiet > quiet-success.stdout 2> quiet-success.stderr
-status=$?
-printf 'exit=%s\n' "$status"
+exit_code=$?
+printf 'exit=%s\n' "$exit_code"
 wc -c < quiet-success.stdout
 wc -c < quiet-success.stderr
 test ! -e file-quiet && echo 'source=absent'
@@ -1271,15 +1272,16 @@ test ! -e file-quiet && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
 exit=0
 quiet-success.stdout 字节=0；quiet-success.stderr 字节=0
 source=absent（移动后）
-人工: 废纸篓可见 file-quiet（内容 quiet-success）；放回原处成功
-验证: source=present 于 TEST_DIR/file-quiet；内容 quiet-success
-环境污染备注: 首次执行因 zsh 只读变量 status 在 rmp 成功后脚本报错，随后重跑，导致废纸篓额外残留 file-quiet 21-12-05-525（时间戳式重名）。该残留不是产品第二份输出逻辑；file-quiet 放回后该残留仍在。
-结果: PASS（--quiet 成功静默 + 主对象放回）；残留待清理
+放回前验证: 精确系统返回路径 /Users/virtualgemini/.Trash/file-quiet 存在；内容 quiet-success；修正后的命令仅执行一次
+人工: Finder 中仅有一个 file-quiet，无时间戳同名残留；文件可见；“放回原处”成功，并正确打开本轮 tmp.SB2caTD3aG
+放回后验证: TEST_DIR/file-quiet 存在；内容 quiet-success；废纸篓中的目标已消失
+环境结论: 修正 zsh 退出码变量并单次执行后，未再产生误重跑或额外残留
+结果: PASS（--quiet 成功静默 + 主对象放回）
 ```
 
 ## TC-51：`--quiet` 不抑制错误
@@ -1707,17 +1709,23 @@ printf 'exit=%s\n' "$?"
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stdout: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x 21-55-21-877".
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+stdout: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x".
 exit=0
 stderr: 空
 source=absent（移动后）
-说明: 废纸篓已有环境污染残留 file-compat-x，系统同名重命名为 file-compat-x 21-55-21-877
-人工: file-compat-x 21-55-21-877 放回原处成功
-验证: TEST_DIR 出现 'file-compat-x 21-55-21-877'（保留系统重命名）；内容 compat-x
-残留: 旧 file-compat-x 与 file-quiet 21-12-05-525 仍在废纸篓
-结果: PASS（-x 兼容接受；同名重命名为系统 Trash 行为）
+放回前验证: 精确系统返回路径存在；内容 compat-x；清洁环境下未发生同名重命名
+人工: Finder 中仅有一个 file-compat-x；可见并执行“放回原处”成功
+终端复核: 本轮 TEST_DIR/tmp.SB2caTD3aG 中没有 file-compat-x；废纸篓目标已消失
+实际恢复位置: 上一轮 TEST_DIR/tmp.tbyfgQFr3V/file-compat-x；内容 compat-x；birth=2026-07-15 22:38:08
+环境结论: Finder 使用了 FXRecentFolders 中残留的 tmp.tbyfgQFr3V 放回元数据；归类为环境污染，非 rmp 移动失败
+环境处理: 已备份 Finder plist，定点移除 tmp.tbyfgQFr3V，重启偏好缓存和 Finder
+复测自动阶段: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x".；exit=0；source=absent
+复测放回前验证: 精确系统返回路径存在；内容 compat-x
+复测人工: Finder 中仅有一个 file-compat-x；“放回原处”成功，并正确打开本轮 tmp.SB2caTD3aG
+复测放回后验证: TEST_DIR/file-compat-x 存在；内容 compat-x；废纸篓中的目标已消失
+结果: PASS（首次人工放回受环境污染；清理旧 Finder 元数据后复测恢复到正确 TEST_DIR）
 ```
 
 ## TC-68：组合兼容选项 `-rdx`
@@ -1764,16 +1772,15 @@ test ! -e directory-rfv && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stdout: Moved "directory-rfv" to Trash at "/Users/virtualgemini/.Trash/directory-Rfv".
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+stdout: Moved "directory-rfv" to Trash at "/Users/virtualgemini/.Trash/directory-rfv".
 exit=0
 source=absent（移动后）
-放回前: 单一目录对象；内部 sub/file=nested
-人工: directory-Rfv 放回原处成功；结构 directory-Rfv/sub/file
-验证: TEST_DIR/directory-Rfv/sub/file 存在；内容 nested
-说明: APFS 大小写不敏感，显示名折叠为 directory-Rfv（与 TC-06 同名冲突）
-残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+放回前验证: 精确系统返回路径为单一目录对象；内部 sub/file=nested；本轮系统保留名称 directory-rfv
+人工: Finder 显示 directory-rfv；确认单一目录对象和内部结构正确；“放回原处”成功，并正确打开本轮 tmp.SB2caTD3aG
+放回后验证: TEST_DIR/directory-rfv/sub/file 存在；内容 nested；废纸篓中的目标已消失
+环境结论: 本轮未出现 directory-rfv / directory-Rfv 大小写折叠或同名冲突
 结果: PASS
 ```
 
@@ -2799,14 +2806,15 @@ test ! -e collision-file && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-first: Moved "collision-file" to Trash at ".../collision-file". exit=0 内容 first
-second: Moved "collision-file" to Trash at ".../collision-file 22-21-20-292". exit=0 内容 second
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+first: Moved "collision-file" to Trash at "/Users/virtualgemini/.Trash/collision-file". exit=0 内容 first
+second: Moved "collision-file" to Trash at "/Users/virtualgemini/.Trash/collision-file 22-28-24-986". exit=0 内容 second
 source=absent（两次移动后）
-人工: 两项均放回原处成功
-验证: TEST_DIR/collision-file=first；TEST_DIR/collision-file 22-21-20-292=second
-残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
+放回前验证: 两个精确系统返回路径均存在；内容分别为 first 和 second；未发生覆盖
+人工: Finder 中两项均可见；依次“放回原处”均成功
+放回后验证: TEST_DIR/collision-file=first；TEST_DIR/collision-file 22-28-24-986=second；废纸篓中的两个目标均已消失
+环境结论: 清洁废纸篓下仍由系统对第二个同名项目重命名；未覆盖首个项目，无历史残留干扰
 结果: PASS（系统同名重命名，未覆盖）
 ```
 

@@ -2799,15 +2799,14 @@ test ! -e collision-file && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-first: Moved "collision-file" to Trash at ".../collision-file". exit=0 内容 first
-second: Moved "collision-file" to Trash at ".../collision-file 22-21-20-292". exit=0 内容 second
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+first: Moved "collision-file" to Trash at "/Users/virtualgemini/.Trash/collision-file". exit=0 内容 first
+second: Moved "collision-file" to Trash at "/Users/virtualgemini/.Trash/collision-file 22-28-24-986". exit=0 内容 second
 source=absent（两次移动后）
-人工: 两项均放回原处成功
-验证: TEST_DIR/collision-file=first；TEST_DIR/collision-file 22-21-20-292=second
-残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
-结果: PASS（系统同名重命名，未覆盖）
+放回前验证: 两个精确系统返回路径均存在；内容分别为 first 和 second；未发生覆盖
+人工: PENDING（等待 Finder 可见性与两项“放回原处”检查）
+结果: PENDING（自动阶段 PASS；等待人工审核）
 ```
 
 ## TC-113：空字符串路径

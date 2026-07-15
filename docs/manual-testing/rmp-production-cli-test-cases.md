@@ -1260,8 +1260,8 @@ source=absent（移动后）
 ```sh
 printf quiet-success > file-quiet
 rmp --quiet file-quiet > quiet-success.stdout 2> quiet-success.stderr
-status=$?
-printf 'exit=%s\n' "$status"
+exit_code=$?
+printf 'exit=%s\n' "$exit_code"
 wc -c < quiet-success.stdout
 wc -c < quiet-success.stderr
 test ! -e file-quiet && echo 'source=absent'
@@ -1272,15 +1272,14 @@ test ! -e file-quiet && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
 exit=0
 quiet-success.stdout 字节=0；quiet-success.stderr 字节=0
 source=absent（移动后）
-人工: 废纸篓可见 file-quiet（内容 quiet-success）；放回原处成功
-验证: source=present 于 TEST_DIR/file-quiet；内容 quiet-success
-环境污染备注: 首次执行因 zsh 只读变量 status 在 rmp 成功后脚本报错，随后重跑，导致废纸篓额外残留 file-quiet 21-12-05-525（时间戳式重名）。该残留不是产品第二份输出逻辑；file-quiet 放回后该残留仍在。
-结果: PASS（--quiet 成功静默 + 主对象放回）；残留待清理
+放回前验证: 精确系统返回路径 /Users/virtualgemini/.Trash/file-quiet 存在；内容 quiet-success；修正后的命令仅执行一次
+人工: PENDING（等待 Finder 可见性与“放回原处”检查）
+结果: PENDING（自动阶段 PASS；等待人工审核）
 ```
 
 ## TC-51：`--quiet` 不抑制错误

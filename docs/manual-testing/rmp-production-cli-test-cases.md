@@ -1771,8 +1771,10 @@ stdout: Moved "directory-rfv" to Trash at "/Users/virtualgemini/.Trash/directory
 exit=0
 source=absent（移动后）
 放回前验证: 精确系统返回路径为单一目录对象；内部 sub/file=nested；本轮系统保留名称 directory-rfv
-人工: PENDING（等待 Finder 可见性与“放回原处”检查）
-结果: PENDING（自动阶段 PASS；等待人工审核）
+人工: Finder 显示 directory-rfv；确认单一目录对象和内部结构正确；“放回原处”成功，并正确打开本轮 tmp.SB2caTD3aG
+放回后验证: TEST_DIR/directory-rfv/sub/file 存在；内容 nested；废纸篓中的目标已消失
+环境结论: 本轮未出现 directory-rfv / directory-Rfv 大小写折叠或同名冲突
+结果: PASS
 ```
 
 ## TC-70：重复警告选项 `-PP`

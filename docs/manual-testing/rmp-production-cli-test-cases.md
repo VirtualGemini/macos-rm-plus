@@ -1720,8 +1720,11 @@ source=absent（移动后）
 终端复核: 本轮 TEST_DIR/tmp.SB2caTD3aG 中没有 file-compat-x；废纸篓目标已消失
 实际恢复位置: 上一轮 TEST_DIR/tmp.tbyfgQFr3V/file-compat-x；内容 compat-x；birth=2026-07-15 22:38:08
 环境结论: Finder 使用了 FXRecentFolders 中残留的 tmp.tbyfgQFr3V 放回元数据；归类为环境污染，非 rmp 移动失败
-环境处理: 已备份 Finder plist，定点移除 tmp.tbyfgQFr3V，重启偏好缓存和 Finder；等待重新执行 TC-67
-结果: RETRY（自动移动 PASS；人工放回被旧 Finder 元数据污染）
+环境处理: 已备份 Finder plist，定点移除 tmp.tbyfgQFr3V，重启偏好缓存和 Finder
+复测自动阶段: Moved "file-compat-x" to Trash at "/Users/virtualgemini/.Trash/file-compat-x".；exit=0；source=absent
+复测放回前验证: 精确系统返回路径存在；内容 compat-x
+复测人工: PENDING（等待 Finder 可见性与“放回原处”检查）
+结果: PENDING（首次人工放回受环境污染；清理后自动复测 PASS）
 ```
 
 ## TC-68：组合兼容选项 `-rdx`

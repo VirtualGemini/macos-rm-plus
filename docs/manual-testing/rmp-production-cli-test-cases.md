@@ -1278,8 +1278,10 @@ exit=0
 quiet-success.stdout 字节=0；quiet-success.stderr 字节=0
 source=absent（移动后）
 放回前验证: 精确系统返回路径 /Users/virtualgemini/.Trash/file-quiet 存在；内容 quiet-success；修正后的命令仅执行一次
-人工: PENDING（等待 Finder 可见性与“放回原处”检查）
-结果: PENDING（自动阶段 PASS；等待人工审核）
+人工: Finder 中仅有一个 file-quiet，无时间戳同名残留；文件可见；“放回原处”成功，并正确打开本轮 tmp.SB2caTD3aG
+放回后验证: TEST_DIR/file-quiet 存在；内容 quiet-success；废纸篓中的目标已消失
+环境结论: 修正 zsh 退出码变量并单次执行后，未再产生误重跑或额外残留
+结果: PASS（--quiet 成功静默 + 主对象放回）
 ```
 
 ## TC-51：`--quiet` 不抑制错误

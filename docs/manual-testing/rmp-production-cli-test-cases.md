@@ -1765,17 +1765,14 @@ test ! -e directory-rfv && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stdout: Moved "directory-rfv" to Trash at "/Users/virtualgemini/.Trash/directory-Rfv".
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+stdout: Moved "directory-rfv" to Trash at "/Users/virtualgemini/.Trash/directory-rfv".
 exit=0
 source=absent（移动后）
-放回前: 单一目录对象；内部 sub/file=nested
-人工: directory-Rfv 放回原处成功；结构 directory-Rfv/sub/file
-验证: TEST_DIR/directory-Rfv/sub/file 存在；内容 nested
-说明: APFS 大小写不敏感，显示名折叠为 directory-Rfv（与 TC-06 同名冲突）
-残留: file-compat-x、file-quiet 21-12-05-525 仍在废纸篓
-结果: PASS
+放回前验证: 精确系统返回路径为单一目录对象；内部 sub/file=nested；本轮系统保留名称 directory-rfv
+人工: PENDING（等待 Finder 可见性与“放回原处”检查）
+结果: PENDING（自动阶段 PASS；等待人工审核）
 ```
 
 ## TC-70：重复警告选项 `-PP`

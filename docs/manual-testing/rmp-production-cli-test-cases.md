@@ -2805,8 +2805,10 @@ first: Moved "collision-file" to Trash at "/Users/virtualgemini/.Trash/collision
 second: Moved "collision-file" to Trash at "/Users/virtualgemini/.Trash/collision-file 22-28-24-986". exit=0 内容 second
 source=absent（两次移动后）
 放回前验证: 两个精确系统返回路径均存在；内容分别为 first 和 second；未发生覆盖
-人工: PENDING（等待 Finder 可见性与两项“放回原处”检查）
-结果: PENDING（自动阶段 PASS；等待人工审核）
+人工: Finder 中两项均可见；依次“放回原处”均成功
+放回后验证: TEST_DIR/collision-file=first；TEST_DIR/collision-file 22-28-24-986=second；废纸篓中的两个目标均已消失
+环境结论: 清洁废纸篓下仍由系统对第二个同名项目重命名；未覆盖首个项目，无历史残留干扰
+结果: PASS（系统同名重命名，未覆盖）
 ```
 
 ## TC-113：空字符串路径

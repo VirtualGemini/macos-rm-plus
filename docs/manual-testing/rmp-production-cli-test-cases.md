@@ -2758,11 +2758,11 @@ exit=3
 
 ## TC-111：root 执行不能被 force 绕过
 
-状态：需要单独人工授权的环境测试；常规测试跳过。
+状态：支持；需要单独人工授权的 root/sudo 环境测试。
 
 ```sh
 printf root-safe > root-safe-file
-sudo "$(command -v rmp)" -f "$PWD/root-safe-file"
+sudo "$HOME/.local/bin/rmp" -f "$PWD/root-safe-file"
 printf 'exit=%s\n' "$?"
 test -f root-safe-file && echo 'source=present'
 ```
@@ -2772,9 +2772,12 @@ test -f root-safe-file && echo 'source=present'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-结果: SKIP（状态：需要单独人工授权的环境测试；常规测试跳过；本轮不执行 sudo）
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.hUTlkLMaoh
+stderr: rmp: root_execution: refusing to move Trash Input "/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.hUTlkLMaoh/root-safe-file" while running as root because Trash ownership and recovery would be unsafe
+exit=3
+source=present
+结果: PASS（root 执行不能被 -f 绕过；在规划和 Trash 调用前拒绝）
 ```
 
 ## TC-112：废纸篓同名目标由系统重命名
@@ -3383,11 +3386,11 @@ exit=2
 
 ## TC-138：root 下的 dry-run
 
-状态：需要单独人工授权的环境测试；当前实现只拒绝 root 的真实移动。
+状态：支持；需要单独人工授权的 root/sudo 环境测试。当前实现只拒绝 root 的真实移动。
 
 ```sh
 printf root-dry > root-dry-file
-sudo "$(command -v rmp)" --dry-run "$PWD/root-dry-file"
+sudo "$HOME/.local/bin/rmp" --dry-run "$PWD/root-dry-file"
 printf 'exit=%s\n' "$?"
 test -f root-dry-file && echo 'source=present'
 ```
@@ -3397,9 +3400,15 @@ test -f root-dry-file && echo 'source=present'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-结果: SKIP（状态：需要单独人工授权的 root/sudo 环境；本轮不执行）
+日期: 2026-07-15
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.hUTlkLMaoh
+stdout:
+Would move 1 item to Trash:
+  [file] "/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.hUTlkLMaoh/root-dry-file"
+stderr: 空
+exit=0
+source=present
+结果: PASS（root dry-run 仅展示计划，不调用 Trash）
 ```
 
 ## TC-139：系统 Trash 调用失败且源对象未变化

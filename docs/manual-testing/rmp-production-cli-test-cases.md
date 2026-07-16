@@ -744,8 +744,9 @@ TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
 stdout: Moved "file-I" to Trash at "/Users/virtualgemini/.Trash/file-I".
 exit=0
 source=absent（移动后）
-人工: 待用户确认废纸篓可见 file-I 并执行“放回原处”
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓可见 file-I；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 conditional-once
+结果: PASS
 ```
 
 ## TC-27：`--confirm=smart` 普通文件

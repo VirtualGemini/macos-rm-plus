@@ -74,14 +74,14 @@ cd "$TEST_DIR"
 反馈：
 
 ```text
-日期: 2026-07-15
+日期: 2026-07-16
 分支: test/rmp-production-cli
 预清理: 用户确认清空废纸篓；终端复核废纸篓计数=0
-环境备注: FXRecentFolders 仍含上一轮 tmp.tbyfgQFr3V；按用户决定不作为重建隔离环境的阻塞项
+环境备注: TC-02 误测对象已由用户放回；终端验证旧原路径和内容正确；新一轮使用全新隔离目录
 make build-release: 成功
 command -v rmp: /Users/virtualgemini/.local/bin/rmp
 rmp --version: rmp 0.1.0（exit=0）
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
 废纸篓计数: 0
 结果: PASS
 ```

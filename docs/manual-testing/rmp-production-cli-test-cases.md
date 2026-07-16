@@ -1170,14 +1170,14 @@ test ! -e file-fI && echo 'source=absent'
 ```text
 日期: 2026-07-16
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+重测: 是（首次运行与 TC-07 放回的 file-fi 在大小写不敏感卷上冲突；无效运行及恢复已单独提交）
+隔离处理: 将旧 fixture file-fi 改名为 tc07-file-fi-restored；确认 collision-name=available
 确认提示: 无
-stdout: Moved "file-fI" to Trash at "/Users/virtualgemini/.Trash/file-fi".
+stdout: Moved "file-fI" to Trash at "/Users/virtualgemini/.Trash/file-fI".
 exit=0
 source=absent（移动后）
-环境问题: 本轮 TEST_DIR 已有 TC-07 放回的 file-fi；当前卷大小写不敏感，file-fI 与 file-fi 发生 fixture 命名冲突
-人工: 用户确认 Finder 显示名为 file-fi；“放回原处”成功并回到本轮 TEST_DIR
-验证: 终端目录枚举名为 file-fi；内容已被本用例的 printf 更新为 fI
-结果: INVALID（环境 fixture 冲突，不记产品回归；隔离旧 fixture 后重跑 TC-44）
+人工: 待用户确认废纸篓可见本次独立的 file-fI 并执行“放回原处”
+结果: PENDING（等待人工审核）
 ```
 
 ## TC-45：组合顺序 `-If`

@@ -878,12 +878,15 @@ test ! -e file-confirm-each && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-confirm-each": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move [file] "file-confirm-each" to Trash? [y/N]
+输入: y
+stdout: Moved "file-confirm-each" to Trash at "/Users/virtualgemini/.Trash/file-confirm-each".
+exit=0
+source=absent（移动后）
+人工: 待用户确认废纸篓可见 file-confirm-each 并执行“放回原处”
+结果: PENDING（等待人工审核）
 ```
 
 ## TC-32：无效确认值

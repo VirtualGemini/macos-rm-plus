@@ -22,3 +22,28 @@ production standard-input adapter. Core behavior tests cover the complete mode, 
 compatibility-precedence, summary, and safety matrix with fake prompt and Trash capabilities.
 `make check` passed with 124 pure tests and 95.70% production line coverage; no real Trash API call
 was executed.
+
+## Regression coverage audit — 2026-07-16
+
+The post-merge baseline remains green: 124 tests in 8 suites passed, with 95.70% production line
+coverage. The confirmation implementation itself is well covered (`CLIApplication.swift` and
+`CommandParser.swift` at 100%; `TrashExecution.swift` at 98.05%).
+
+The real-host regression replaced the stale pre-08 feedback for TC-04, TC-07, TC-20, TC-25, TC-26,
+TC-28, TC-30, TC-31, TC-44, TC-47, TC-55, TC-61, and TC-135. Comparing those exact invocations with
+the automated suite found five composition gaps despite the high line coverage:
+
+- TC-04: accepted `-r` combined with smart directory confirmation;
+- TC-44: combined `-fI` left-to-right precedence at the execution seam;
+- TC-47: `--confirm=never -i` restoring per-input confirmation;
+- TC-55: `-iv` retaining both per-input confirmation and verbose success output;
+- TC-61: default smart directory confirmation failing closed under `--non-interactive`.
+
+All five gaps were added through `CLIApplication.run(arguments:)` with fake prompt and Trash
+boundaries in `ConfirmationManualRegressionTests.swift`. Each test was mutation-checked to verify it
+turns red for the corresponding regression before the production behavior was restored.
+
+The final suite passed with 129 tests in 8 suites. Production line coverage remains 95.70%; the new
+tests deepen behavioral composition coverage rather than executing previously untouched production
+lines. Swift Format, SwiftLint, SPDX, and dangerous-test-command checks all passed. No automated test
+called the real system Trash capability.

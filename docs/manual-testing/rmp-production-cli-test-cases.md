@@ -74,14 +74,14 @@ cd "$TEST_DIR"
 反馈：
 
 ```text
-日期: 2026-07-15
+日期: 2026-07-16
 分支: test/rmp-production-cli
 预清理: 用户确认清空废纸篓；终端复核废纸篓计数=0
-环境备注: FXRecentFolders 仍含上一轮 tmp.tbyfgQFr3V；按用户决定不作为重建隔离环境的阻塞项
+环境备注: TC-02 误测对象已由用户放回；终端验证旧原路径和内容正确；新一轮使用全新隔离目录
 make build-release: 成功
 command -v rmp: /Users/virtualgemini/.local/bin/rmp
 rmp --version: rmp 0.1.0（exit=0）
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.SB2caTD3aG
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
 废纸篓计数: 0
 结果: PASS
 ```
@@ -183,12 +183,16 @@ test ! -e directory-r && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "directory-r": confirmation is required before this Trash Input can be moved
-exit=1
-dir=present nested=present（未进废纸篓）
-结果: PASS（交互确认 08 暂不支持，安全失败符合预期）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move 1 item, including 1 directory, to Trash? [y/N]
+输入: y
+stdout: Moved "directory-r" to Trash at "/Users/virtualgemini/.Trash/directory-r".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓中可见单一目录对象 directory-r，内部 sub/file 完整；“放回原处”成功并回到本轮 TEST_DIR
+验证: directory=present；nested=present；sub/file 内容为 nested
+结果: PASS
 ```
 
 ## TC-05：`rmp -rf directory`
@@ -260,12 +264,16 @@ test ! -e file-fi && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-fi": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（-i 覆盖 -f；交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move [file] "file-fi" to Trash? [y/N]
+输入: y
+stdout: Moved "file-fi" to Trash at "/Users/virtualgemini/.Trash/file-fi".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见 file-fi；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 fi
+结果: PASS
 ```
 
 ## TC-08：组合顺序 `-if`
@@ -582,9 +590,15 @@ test -f interactive-file && echo 'source=present'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-结果: SKIP（状态：暂不支持交互确认 08；本轮跳过。相近 confirmation_required 已在 TC-04/TC-07/TC-25 等覆盖）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr 提示: Move [file] "interactive-file" to Trash? [y/N]
+输入: n
+stderr 结果: rmp: confirmation_declined for "interactive-file": confirmation was declined; the Trash Input was not moved
+exit=1
+source=present；内容为 interactive
+人工: 用户确认废纸篓未新增 interactive-file，废纸篓保持为空
+结果: PASS
 ```
 
 ## TC-21：JSON 输出
@@ -696,12 +710,16 @@ test ! -e file-interactive-long && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-interactive-long": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓，命令立即结束）
-结果: PASS（交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move [file] "file-interactive-long" to Trash? [y/N]
+输入: y
+stdout: Moved "file-interactive-long" to Trash at "/Users/virtualgemini/.Trash/file-interactive-long".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见 file-interactive-long；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 interactive-long
+结果: PASS
 ```
 
 ## TC-26：条件式确认短选项 `-I`
@@ -720,12 +738,15 @@ test ! -e file-I && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-I": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓，命令立即结束）
-结果: PASS（交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+确认提示: 无
+stdout: Moved "file-I" to Trash at "/Users/virtualgemini/.Trash/file-I".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见 file-I；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 conditional-once
+结果: PASS
 ```
 
 ## TC-27：`--confirm=smart` 普通文件
@@ -771,12 +792,16 @@ test ! -e directory-confirm-smart && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "directory-confirm-smart": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（目录未进废纸篓）
-结果: PASS（目录确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move 1 item, including 1 directory, to Trash? [y/N]
+输入: y
+stdout: Moved "directory-confirm-smart" to Trash at "/Users/virtualgemini/.Trash/directory-confirm-smart".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见单一目录对象 directory-confirm-smart；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present（目录已恢复）
+结果: PASS
 ```
 
 ## TC-29：`--confirm=never` 目录
@@ -824,12 +849,16 @@ test ! -e file-confirm-once && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-confirm-once": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move 1 item, including 0 directories, to Trash? [y/N]
+输入: y
+stdout: Moved "file-confirm-once" to Trash at "/Users/virtualgemini/.Trash/file-confirm-once".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见 file-confirm-once；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 confirm-once
+结果: PASS
 ```
 
 ## TC-31：`--confirm=each`
@@ -849,12 +878,16 @@ test ! -e file-confirm-each && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-confirm-each": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move [file] "file-confirm-each" to Trash? [y/N]
+输入: y
+stdout: Moved "file-confirm-each" to Trash at "/Users/virtualgemini/.Trash/file-confirm-each".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见 file-confirm-each；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 confirm-each
+结果: PASS
 ```
 
 ## TC-32：无效确认值
@@ -1135,12 +1168,17 @@ test ! -e file-fI && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-fI": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（-I 覆盖 -f；交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+重测: 是（首次运行与 TC-07 放回的 file-fi 在大小写不敏感卷上冲突；无效运行及恢复已单独提交）
+隔离处理: 将旧 fixture file-fi 改名为 tc07-file-fi-restored；确认 collision-name=available
+确认提示: 无
+stdout: Moved "file-fI" to Trash at "/Users/virtualgemini/.Trash/file-fI".
+exit=0
+source=absent（移动后）
+人工: 用户确认 Finder 显示名为 file-fI；“放回原处”成功并回到本轮 TEST_DIR
+验证: 终端目录枚举名为 file-fI；source=present；内容为 fI
+结果: PASS
 ```
 
 ## TC-45：组合顺序 `-If`
@@ -1214,12 +1252,16 @@ test ! -e file-never-i && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-never-i": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（后面的 -i 覆盖 never；交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move [file] "file-never-i" to Trash? [y/N]
+输入: y
+stdout: Moved "file-never-i" to Trash at "/Users/virtualgemini/.Trash/file-never-i".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见 file-never-i；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 never-i
+结果: PASS
 ```
 
 ## TC-48：短选项 `-v`
@@ -1428,12 +1470,16 @@ test ! -e file-iv && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-iv": confirmation is required before this Trash Input can be moved
-exit=1
-source=present
-结果: PASS（交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move [file] "file-iv" to Trash? [y/N]
+输入: y
+stdout: Moved "file-iv" to Trash at "/Users/virtualgemini/.Trash/file-iv".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见 file-iv；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 iv
+结果: PASS
 ```
 
 ## TC-56：`--json --verbose`
@@ -1575,12 +1621,14 @@ test -d directory-non-interactive && echo 'source=present'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "directory-non-interactive": confirmation is required before this Trash Input can be moved
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+确认提示: 无；命令立即返回
+stderr: rmp: confirmation_required for "directory-non-interactive": confirmation is required before these Trash Inputs can be moved
 exit=1
 source=present
-结果: PASS（目录确认 08 暂不支持，安全失败）
+人工: 用户确认废纸篓未新增 directory-non-interactive，废纸篓保持为空
+结果: PASS
 ```
 
 ## TC-62：`--stop-on-error` 单对象执行
@@ -3364,12 +3412,16 @@ test ! -e directory-default && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "directory-default": confirmation is required before this Trash Input can be moved
-exit=1
-source=present
-结果: PASS（默认确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move 1 item, including 1 directory, to Trash? [y/N]
+输入: y
+stdout: Moved "directory-default" to Trash at "/Users/virtualgemini/.Trash/directory-default".
+exit=0
+source=absent（移动后）
+人工: 用户确认废纸篓可见单一目录对象 directory-default；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present（目录已恢复）
+结果: PASS
 ```
 
 ## TC-136：无选项多对象真实执行

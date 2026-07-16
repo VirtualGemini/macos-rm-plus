@@ -856,8 +856,9 @@ stderr: Move 1 item, including 0 directories, to Trash? [y/N]
 stdout: Moved "file-confirm-once" to Trash at "/Users/virtualgemini/.Trash/file-confirm-once".
 exit=0
 source=absent（移动后）
-人工: 待用户确认废纸篓可见 file-confirm-once 并执行“放回原处”
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓可见 file-confirm-once；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 confirm-once
+结果: PASS
 ```
 
 ## TC-31：`--confirm=each`

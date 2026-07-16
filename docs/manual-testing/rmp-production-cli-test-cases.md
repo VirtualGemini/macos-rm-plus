@@ -190,8 +190,9 @@ stderr: Move 1 item, including 1 directory, to Trash? [y/N]
 stdout: Moved "directory-r" to Trash at "/Users/virtualgemini/.Trash/directory-r".
 exit=0
 source=absent（移动后）
-人工: 待用户确认废纸篓中的 directory-r 为单一目录对象、内部 sub/file 完整，并执行“放回原处”
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓中可见单一目录对象 directory-r，内部 sub/file 完整；“放回原处”成功并回到本轮 TEST_DIR
+验证: directory=present；nested=present；sub/file 内容为 nested
+结果: PASS
 ```
 
 ## TC-05：`rmp -rf directory`

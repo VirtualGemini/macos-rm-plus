@@ -12,6 +12,7 @@ scripts/check-breaking-change-approvals.sh @VirtualGemini
 scripts/check-doc-impact*.sh @VirtualGemini
 scripts/check-commits.sh @VirtualGemini
 scripts/lib/commit-message.sh @VirtualGemini
+scripts/lib/maintainers.sh @VirtualGemini
 scripts/validate-commit-message.sh @VirtualGemini
 .github/maintainers.txt @VirtualGemini
 .scratch/*/issues/*.md @VirtualGemini

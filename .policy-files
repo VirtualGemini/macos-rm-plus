@@ -25,6 +25,7 @@ scripts/check-system-trash-boundary.sh
 scripts/check-tool-versions.sh
 scripts/install-dev-tools.sh
 scripts/lib/commit-message.sh
+scripts/lib/maintainers.sh
 scripts/lib/tool-versions.sh
 scripts/report-coverage.sh
 scripts/run-swiftlint.sh

@@ -6,8 +6,9 @@ ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/rmp-policy-change-tests.XXXXXX")
 trap 'rm -rf "$TEMP_DIR"' EXIT HUP INT TERM
 repo="$TEMP_DIR/repo"
-mkdir -p "$repo/scripts" "$repo/.github"
+mkdir -p "$repo/scripts/lib" "$repo/.github"
 cp "$ROOT/scripts/check-policy-changes.sh" "$repo/scripts/"
+cp "$ROOT/scripts/lib/maintainers.sh" "$repo/scripts/lib/"
 printf '%s\n' 'Makefile' '.coverage-baseline' '.coverage-metric-version' >"$repo/.policy-files"
 printf '%s\n' '@maintainer' >"$repo/.github/maintainers.txt"
 printf '%s\n' 'original' >"$repo/Makefile"

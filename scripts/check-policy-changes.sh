@@ -4,22 +4,21 @@
 set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
+. "$ROOT/scripts/lib/maintainers.sh"
 base=$1
 head=$2
 merge_base=$(git merge-base "$base" "$head")
 changed=$(git diff --name-only --diff-filter=ACMRD "$merge_base" "$head")
 policy=$(git show "$base:.policy-files")
-maintainers=$(git show "$base:.github/maintainers.txt")
-maintainer_count=$(printf '%s\n' "$maintainers" | awk '
-  /^@[A-Za-z0-9-]+$/ { count++ }
-  END { print count + 0 }')
+maintainers=$(trusted_maintainers_from_ref "$base")
+maintainer_count=$(printf '%s\n' "$maintainers" | count_maintainers)
 requires_approval=0
 base_metric=
 head_metric=
 trusted_pr_author=0
 
 if [ -n "${POLICY_PR_AUTHOR-}" ] \
-  && printf '%s\n' "$maintainers" | grep -Fxq "@$POLICY_PR_AUTHOR"; then
+  && printf '%s\n' "$maintainers" | maintainers_contain_login "$POLICY_PR_AUTHOR"; then
   trusted_pr_author=1
 fi
 
@@ -67,7 +66,7 @@ approved=$(printf '%s\n' "$reviews" | awk -v head="$(git rev-parse "$head")" '
   { state[$1] = $2; commit[$1] = $3 }
   END { for (user in state) if (state[user] == "APPROVED" && commit[user] == head) print "@" user }')
 for reviewer in $approved; do
-  if printf '%s\n' "$maintainers" | grep -Fxq "$reviewer"; then exit 0; fi
+  if printf '%s\n' "$maintainers" | maintainers_contain_login "${reviewer#@}"; then exit 0; fi
 done
 echo "error: policy executor changes require trusted maintainer approval of the current PR head" >&2
 exit 1

@@ -386,10 +386,11 @@ Docs-Impact-Reason: internal refactor with unchanged behavior
 Docs-Impact-Approved-By: @reviewer-login
 ```
 
-The documentation-impact approver must be a reviewer other than the PR author. CI queries GitHub's
-pull-request reviews and requires the named handle's latest review state to be `APPROVED`. Submitting
-or dismissing a review reruns CI, so an author or Agent cannot create an exemption with a trailer
-alone.
+CI normally requires the named documentation-impact approver's latest pull-request review to be
+`APPROVED`, and the approver must differ from the PR and commit authors. When the trusted target base
+lists exactly one maintainer, that maintainer may instead approve their own exemption by matching the
+authenticated PR author and the trailer handle. This exception never trusts commit names or email
+addresses and does not grant merge permission.
 
 Breaking changes use `type!:` or `type(scope)!:` and require approval before implementation starts.
 The approval ticket must already exist on the trusted target-branch base before the first breaking
@@ -502,15 +503,16 @@ Examples:
 - release or installation changes affect README, this guide, and the changelog.
 - domain terminology affects `CONTEXT.md`.
 
-`Docs-Impact: none` requires a reason and an independently named reviewer. Breaking changes can
-never claim no documentation impact, whether declared with `!` or a `BREAKING-CHANGE:` trailer. CI
-validates additions, copies, modifications, renames, and deletions in every commit, then validates
-the aggregate base-to-head pull-request diff so documentation may be synchronized anywhere in the
-same pull request without falling behind the resulting code version.
+`Docs-Impact: none` requires a reason and a named approver, subject to the sole-maintainer exception
+in the commit convention. Breaking changes can never claim no documentation impact, whether declared
+with `!` or a `BREAKING-CHANGE:` trailer. CI validates additions, copies, modifications, renames, and
+deletions in every commit, then validates the aggregate base-to-head pull-request diff so
+documentation may be synchronized anywhere in the same pull request without falling behind the
+resulting code version.
 
-For aggregate validation, files changed exclusively by independently approved `Docs-Impact: none`
-commits do not trigger matrix rules; documents changed anywhere in the PR may satisfy rules triggered
-by non-exempt commits. This preserves both a real exemption path and version-level synchronization.
+For aggregate validation, files changed exclusively by validly approved `Docs-Impact: none` commits
+do not trigger matrix rules; documents changed anywhere in the PR may satisfy rules triggered by
+non-exempt commits. This preserves both a real exemption path and version-level synchronization.
 The aggregate file set is calculated from the merge base to the PR head, preventing unrelated target
 branch documentation changes from satisfying the PR. Deleted documents and tests never count as
 updated evidence. All RMPCore and RMPPlatform changes trigger the safety evidence rule rather than

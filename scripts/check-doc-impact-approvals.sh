@@ -6,6 +6,7 @@ set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 . "$ROOT/scripts/lib/commit-message.sh"
+. "$ROOT/scripts/lib/maintainers.sh"
 
 if [ "$#" -ne 2 ]; then
   echo "usage: $0 <base-sha> <head-sha>" >&2
@@ -15,6 +16,9 @@ fi
 base=$1
 head=$2
 required_reviews=
+maintainers=$(trusted_maintainers_from_ref "$base")
+maintainer_count=$(printf '%s\n' "$maintainers" | count_maintainers)
+sole_maintainer=$(printf '%s\n' "$maintainers" | sole_maintainer_login)
 
 for commit in $(git rev-list --reverse "$base..$head"); do
   message=$(git show -s --format=%B "$commit")
@@ -51,6 +55,11 @@ failed=0
 
 while IFS='|' read -r reviewer commit; do
   if [ -z "$reviewer" ]; then
+    continue
+  fi
+  if [ "$maintainer_count" -eq 1 ] \
+    && [ "$reviewer" = "$pr_author" ] \
+    && [ "$reviewer" = "$sole_maintainer" ]; then
     continue
   fi
   if [ -n "${DOCS_IMPACT_COMMIT_AUTHOR-}" ]; then

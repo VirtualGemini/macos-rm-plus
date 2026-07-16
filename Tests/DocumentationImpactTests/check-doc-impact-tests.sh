@@ -26,13 +26,14 @@ assert_contains() {
 }
 
 repo="$TEMP_DIR/repo"
-mkdir -p "$repo/scripts/lib" "$repo/Sources/rmp"
+mkdir -p "$repo/.github" "$repo/scripts/lib" "$repo/Sources/rmp"
 cp "$ROOT/.docs-impact.yml" "$repo/.docs-impact.yml"
 cp "$ROOT/.policy-files" "$repo/.policy-files"
 cp "$ROOT/scripts/check-doc-impact.sh" "$repo/scripts/check-doc-impact.sh"
 cp "$ROOT/scripts/check-doc-impact-approvals.sh" "$repo/scripts/check-doc-impact-approvals.sh"
 cp "$ROOT/scripts/validate-commit-message.sh" "$repo/scripts/validate-commit-message.sh"
 cp "$ROOT/scripts/lib/commit-message.sh" "$repo/scripts/lib/commit-message.sh"
+cp "$ROOT/scripts/lib/maintainers.sh" "$repo/scripts/lib/maintainers.sh"
 
 git -C "$repo" init -q
 git -C "$repo" config user.name "Documentation Impact Tests"
@@ -43,6 +44,7 @@ printf '%s\n' '# Test spec' >"$repo/spec.md"
 printf '%s\n' '# Test changelog' >"$repo/CHANGELOG.md"
 printf '%s\n' '# Development' >"$repo/docs-development.md"
 printf '%s\n' '// scaffold' >"$repo/Sources/rmp/main.swift"
+printf '%s\n' '@example-reviewer' >"$repo/.github/maintainers.txt"
 
 cat >"$repo/.docs-impact.yml" <<'EOF'
 {
@@ -243,6 +245,64 @@ git -C "$repo" commit -qm "refactor: add internal fixture" \
 Docs-Impact-Reason: no documented behavior changed
 Docs-Impact-Approved-By: @example-reviewer"
 approval_head=$(git -C "$repo" rev-parse HEAD)
+
+if ! DOCS_IMPACT_PR_AUTHOR=example-reviewer DOCS_IMPACT_COMMIT_AUTHOR=example-reviewer \
+  DOCS_IMPACT_APPROVED_REVIEWS="another-reviewer|$approval_head" \
+  "$repo/scripts/check-doc-impact-approvals.sh" "$approval_base" "$approval_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "PR validation rejected a documentation exemption from the sole maintainer"
+fi
+
+if DOCS_IMPACT_PR_AUTHOR=example-contributor DOCS_IMPACT_COMMIT_AUTHOR=example-reviewer \
+  DOCS_IMPACT_APPROVED_REVIEWS="another-reviewer|$approval_head" \
+  "$repo/scripts/check-doc-impact-approvals.sh" "$approval_base" "$approval_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "untrusted PR author bypassed approval by using the maintainer's commit identity"
+fi
+assert_contains "$TEMP_DIR/stderr" \
+  "commit author @example-reviewer cannot approve their own Docs-Impact: none"
+
+git -C "$repo" switch -q --detach "$approval_base"
+printf '%s\n' '# contributor fixture' >"$repo/contributor.txt"
+git -C "$repo" add contributor.txt
+git -C "$repo" commit -qm "refactor: add contributor fixture" \
+  -m "Docs-Impact: none
+Docs-Impact-Reason: no documented behavior changed
+Docs-Impact-Approved-By: @example-contributor"
+contributor_head=$(git -C "$repo" rev-parse HEAD)
+
+if DOCS_IMPACT_PR_AUTHOR=example-contributor DOCS_IMPACT_COMMIT_AUTHOR=example-contributor \
+  DOCS_IMPACT_APPROVED_REVIEWS="another-reviewer|$contributor_head" \
+  "$repo/scripts/check-doc-impact-approvals.sh" "$approval_base" "$contributor_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "untrusted PR author self-approved a documentation exemption"
+fi
+assert_contains "$TEMP_DIR/stderr" \
+  "PR author @example-contributor cannot approve Docs-Impact: none"
+
+git -C "$repo" switch -q --detach "$approval_base"
+printf '%s\n' '@second-maintainer' >>"$repo/.github/maintainers.txt"
+git -C "$repo" add .github/maintainers.txt
+git -C "$repo" commit -qm "chore: add second maintainer"
+multi_maintainer_base=$(git -C "$repo" rev-parse HEAD)
+printf '%s\n' '# multi-maintainer fixture' >"$repo/multi-maintainer.txt"
+git -C "$repo" add multi-maintainer.txt
+git -C "$repo" commit -qm "refactor: add multi-maintainer fixture" \
+  -m "Docs-Impact: none
+Docs-Impact-Reason: no documented behavior changed
+Docs-Impact-Approved-By: @example-reviewer"
+multi_maintainer_head=$(git -C "$repo" rev-parse HEAD)
+
+if DOCS_IMPACT_PR_AUTHOR=example-reviewer DOCS_IMPACT_COMMIT_AUTHOR=example-reviewer \
+  DOCS_IMPACT_APPROVED_REVIEWS="another-reviewer|$multi_maintainer_head" \
+  "$repo/scripts/check-doc-impact-approvals.sh" \
+  "$multi_maintainer_base" "$multi_maintainer_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "maintainer self-approved while another maintainer was available"
+fi
+assert_contains "$TEMP_DIR/stderr" "PR author @example-reviewer cannot approve Docs-Impact: none"
+git -C "$repo" switch -q --detach "$approval_head"
 
 if DOCS_IMPACT_PR_AUTHOR=example-author DOCS_IMPACT_COMMIT_AUTHOR=example-author \
   DOCS_IMPACT_APPROVED_REVIEWS="another-reviewer|$approval_head" \

@@ -799,8 +799,9 @@ stderr: Move 1 item, including 1 directory, to Trash? [y/N]
 stdout: Moved "directory-confirm-smart" to Trash at "/Users/virtualgemini/.Trash/directory-confirm-smart".
 exit=0
 source=absent（移动后）
-人工: 待用户确认废纸篓可见 directory-confirm-smart 并执行“放回原处”
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓可见单一目录对象 directory-confirm-smart；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present（目录已恢复）
+结果: PASS
 ```
 
 ## TC-29：`--confirm=never` 目录

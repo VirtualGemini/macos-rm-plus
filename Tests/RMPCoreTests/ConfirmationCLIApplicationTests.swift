@@ -351,6 +351,35 @@ func unavailableInteractiveInputFailsClosedWithoutReading() {
   #expect(probes.receivedTrashPaths == ["report.txt"])
 }
 
+@Test("Non-interactive smart directory confirmation fails before prompting or Trash access")
+func nonInteractiveSmartDirectoryFailsClosed() {
+  let probes = ApplicationProbes()
+  let prompt = ApplicationConfirmationPrompt(responses: [.answer("yes")])
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: [
+          "build": .entry(.init(kind: .directory, identity: .init(device: 1, inode: 62)))
+        ]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 },
+    makeConfirmationPrompt: {
+      probes.confirmationPromptFactoryCalls += 1
+      return prompt
+    }
+  )
+
+  let result = application.run(arguments: ["--non-interactive", "build"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardError.contains("confirmation_required"))
+  #expect(probes.confirmationPromptFactoryCalls == 0)
+  #expect(prompt.receivedPrompts.isEmpty)
+  #expect(probes.receivedTrashPaths.isEmpty)
+}
+
 @Test("An unavailable Confirmation Prompt fails closed without Trash access")
 func unavailableConfirmationPromptFailsClosed() {
   let probes = ApplicationProbes()

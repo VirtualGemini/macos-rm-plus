@@ -1168,12 +1168,15 @@ test ! -e file-fI && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-fI": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（-I 覆盖 -f；交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+确认提示: 无
+stdout: Moved "file-fI" to Trash at "/Users/virtualgemini/.Trash/file-fi".
+exit=0
+source=absent（移动后）
+环境问题: 本轮 TEST_DIR 已有 TC-07 放回的 file-fi；当前卷大小写不敏感，file-fI 与 file-fi 发生 fixture 命名冲突
+人工: 待用户确认废纸篓对象并执行“放回原处”；恢复后需隔离旧 fixture 并重跑 TC-44
+结果: PENDING（本次运行因 fixture 冲突无效）
 ```
 
 ## TC-45：组合顺序 `-If`

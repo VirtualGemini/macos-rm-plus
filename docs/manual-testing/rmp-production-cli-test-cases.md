@@ -271,8 +271,9 @@ stderr: Move [file] "file-fi" to Trash? [y/N]
 stdout: Moved "file-fi" to Trash at "/Users/virtualgemini/.Trash/file-fi".
 exit=0
 source=absent（移动后）
-人工: 待用户确认废纸篓可见 file-fi 并执行“放回原处”
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓可见 file-fi；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 fi
+结果: PASS
 ```
 
 ## TC-08：组合顺序 `-if`

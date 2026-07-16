@@ -129,6 +129,34 @@ func conditionalOnceSkipsPromptForThreeFiles() {
   #expect(probes.receivedTrashPaths == ["one", "two", "three"])
 }
 
+@Test("Compatibility -fI restores conditional confirmation without prompting for one file")
+func forceThenConditionalConfirmationSkipsPromptForOneFile() {
+  let probes = ApplicationProbes()
+  let prompt = ApplicationConfirmationPrompt(responses: [])
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: [
+          "report.txt": .entry(.init(kind: .file, identity: .init(device: 1, inode: 59)))
+        ]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 },
+    makeConfirmationPrompt: {
+      probes.confirmationPromptFactoryCalls += 1
+      return prompt
+    }
+  )
+
+  let result = application.run(arguments: ["-fI", "report.txt"])
+
+  #expect(result.exitCode == 0)
+  #expect(probes.confirmationPromptFactoryCalls == 0)
+  #expect(prompt.receivedPrompts.isEmpty)
+  #expect(probes.receivedTrashPaths == ["report.txt"])
+}
+
 @Test("Compatibility -I prompts for more than three inputs or any directory")
 func conditionalOncePromptsAtDocumentedThresholds() {
   let probes = ApplicationProbes()

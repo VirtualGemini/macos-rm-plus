@@ -1176,8 +1176,9 @@ TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
 stdout: Moved "file-fI" to Trash at "/Users/virtualgemini/.Trash/file-fI".
 exit=0
 source=absent（移动后）
-人工: 待用户确认废纸篓可见本次独立的 file-fI 并执行“放回原处”
-结果: PENDING（等待人工审核）
+人工: 用户确认 Finder 显示名为 file-fI；“放回原处”成功并回到本轮 TEST_DIR
+验证: 终端目录枚举名为 file-fI；source=present；内容为 fI
+结果: PASS
 ```
 
 ## TC-45：组合顺序 `-If`

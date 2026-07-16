@@ -58,6 +58,30 @@ func smartConfirmationPromptsForDirectory() {
   #expect(probes.receivedTrashPaths == ["build"])
 }
 
+@Test("Compatibility -r preserves smart directory confirmation")
+func compatibilityRecursiveOptionPreservesSmartDirectoryConfirmation() {
+  let probes = ApplicationProbes()
+  let prompt = ApplicationConfirmationPrompt(responses: [.answer("yes")])
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: [
+          "build": .entry(.init(kind: .directory, identity: .init(device: 1, inode: 58)))
+        ]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 },
+    makeConfirmationPrompt: { prompt }
+  )
+
+  let result = application.run(arguments: ["-r", "build"])
+
+  #expect(result.exitCode == 0)
+  #expect(prompt.receivedPrompts == ["Move 1 item, including 1 directory, to Trash? [y/N] "])
+  #expect(probes.receivedTrashPaths == ["build"])
+}
+
 @Test("Once confirmation accepts a case-insensitive affirmative response")
 func onceConfirmationAcceptsAffirmativeResponse() {
   let probes = ApplicationProbes()

@@ -1621,12 +1621,14 @@ test -d directory-non-interactive && echo 'source=present'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "directory-non-interactive": confirmation is required before this Trash Input can be moved
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+确认提示: 无；命令立即返回
+stderr: rmp: confirmation_required for "directory-non-interactive": confirmation is required before these Trash Inputs can be moved
 exit=1
 source=present
-结果: PASS（目录确认 08 暂不支持，安全失败）
+人工: 待用户确认废纸篓未新增 directory-non-interactive
+结果: PENDING（等待人工审核）
 ```
 
 ## TC-62：`--stop-on-error` 单对象执行

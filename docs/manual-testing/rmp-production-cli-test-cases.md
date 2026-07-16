@@ -590,9 +590,15 @@ test -f interactive-file && echo 'source=present'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-结果: SKIP（状态：暂不支持交互确认 08；本轮跳过。相近 confirmation_required 已在 TC-04/TC-07/TC-25 等覆盖）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr 提示: Move [file] "interactive-file" to Trash? [y/N]
+输入: n
+stderr 结果: rmp: confirmation_declined for "interactive-file": confirmation was declined; the Trash Input was not moved
+exit=1
+source=present；内容为 interactive
+人工: 待用户确认废纸篓未新增 interactive-file
+结果: PENDING（等待人工审核）
 ```
 
 ## TC-21：JSON 输出

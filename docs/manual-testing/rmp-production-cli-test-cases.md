@@ -1175,8 +1175,9 @@ stdout: Moved "file-fI" to Trash at "/Users/virtualgemini/.Trash/file-fi".
 exit=0
 source=absent（移动后）
 环境问题: 本轮 TEST_DIR 已有 TC-07 放回的 file-fi；当前卷大小写不敏感，file-fI 与 file-fi 发生 fixture 命名冲突
-人工: 待用户确认废纸篓对象并执行“放回原处”；恢复后需隔离旧 fixture 并重跑 TC-44
-结果: PENDING（本次运行因 fixture 冲突无效）
+人工: 用户确认 Finder 显示名为 file-fi；“放回原处”成功并回到本轮 TEST_DIR
+验证: 终端目录枚举名为 file-fi；内容已被本用例的 printf 更新为 fI
+结果: INVALID（环境 fixture 冲突，不记产品回归；隔离旧 fixture 后重跑 TC-44）
 ```
 
 ## TC-45：组合顺序 `-If`

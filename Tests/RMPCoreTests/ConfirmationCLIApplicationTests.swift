@@ -284,6 +284,31 @@ func interactiveOptionOverridesExplicitNeverAtExecution() {
   #expect(probes.receivedTrashPaths == ["report.txt"])
 }
 
+@Test("Compatibility -iv keeps per-input confirmation and verbose success output")
+func interactiveVerboseOptionConfirmsAndReportsMove() {
+  let probes = ApplicationProbes()
+  let prompt = ApplicationConfirmationPrompt(responses: [.answer("yes")])
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: [
+          "report.txt": .entry(.init(kind: .file, identity: .init(device: 1, inode: 61)))
+        ]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 },
+    makeConfirmationPrompt: { prompt }
+  )
+
+  let result = application.run(arguments: ["-iv", "report.txt"])
+
+  #expect(result.exitCode == 0)
+  #expect(prompt.receivedPrompts == ["Move [file] \"report.txt\" to Trash? [y/N] "])
+  #expect(result.standardOutput.contains("Moved \"report.txt\" to Trash"))
+  #expect(probes.receivedTrashPaths == ["report.txt"])
+}
+
 @Test("Non-interactive and non-TTY confirmation never read or block")
 func unavailableInteractiveInputFailsClosedWithoutReading() {
   let probes = ApplicationProbes()

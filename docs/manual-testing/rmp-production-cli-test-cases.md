@@ -1627,8 +1627,8 @@ TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
 stderr: rmp: confirmation_required for "directory-non-interactive": confirmation is required before these Trash Inputs can be moved
 exit=1
 source=present
-人工: 待用户确认废纸篓未新增 directory-non-interactive
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓未新增 directory-non-interactive，废纸篓保持为空
+结果: PASS
 ```
 
 ## TC-62：`--stop-on-error` 单对象执行

@@ -1252,12 +1252,15 @@ test ! -e file-never-i && echo 'source=absent'
 反馈：
 
 ```text
-日期: 2026-07-14
-TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-stderr: rmp: confirmation_required for "file-never-i": confirmation is required before this Trash Input can be moved
-exit=1
-source=present（未进废纸篓）
-结果: PASS（后面的 -i 覆盖 never；交互确认 08 暂不支持，安全失败）
+日期: 2026-07-16
+TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.D7KjLFwhRm
+stderr: Move [file] "file-never-i" to Trash? [y/N]
+输入: y
+stdout: Moved "file-never-i" to Trash at "/Users/virtualgemini/.Trash/file-never-i".
+exit=0
+source=absent（移动后）
+人工: 待用户确认废纸篓可见 file-never-i 并执行“放回原处”
+结果: PENDING（等待人工审核）
 ```
 
 ## TC-48：短选项 `-v`

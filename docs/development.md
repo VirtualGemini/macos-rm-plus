@@ -244,13 +244,14 @@ reports the random `.rmp-create-*` staging entry that may remain, and never sile
 succeeded.
 
 `RMPPlatform.FoundationTrashClient` contains the only direct Foundation
-`trashItem(at:resultingItemURL:)` call. Production wiring constructs it only after parsing, root
-policy, single-input validation, and Trash Plan validation succeed. The compile-time-isolated
-`rmp-test` target reaches that adapter only through `WhitelistedTrashClient`, which accepts opaque
-targets produced by its planning authorization pass, revalidates the complete Test Safety Context
-and target immediately before the system call, and returns read-only verification evidence. Pure
-tests inject Trash spies and never invoke the real capability. The integration runner remains
-separately guarded and cannot be enabled through an environment switch in the production executable.
+`trashItem(at:resultingItemURL:)` call. The production execution path constructs it only after
+parsing, root policy, output-mode, Trash Plan, and confirmation checks succeed, and only for an
+individual Trash Input approved for execution. The compile-time-isolated `rmp-test` target reaches
+that adapter only through `WhitelistedTrashClient`, which accepts opaque targets produced by its
+planning authorization pass, revalidates the complete Test Safety Context and target immediately
+before the system call, and returns read-only verification evidence. Pure tests inject Trash spies
+and never invoke the real capability. The integration runner remains separately guarded and cannot
+be enabled through an environment switch in the production executable.
 
 ## 7. Development commands
 

@@ -597,8 +597,8 @@ stderr 提示: Move [file] "interactive-file" to Trash? [y/N]
 stderr 结果: rmp: confirmation_declined for "interactive-file": confirmation was declined; the Trash Input was not moved
 exit=1
 source=present；内容为 interactive
-人工: 待用户确认废纸篓未新增 interactive-file
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓未新增 interactive-file，废纸篓保持为空
+结果: PASS
 ```
 
 ## TC-21：JSON 输出

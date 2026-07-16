@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards** — does the code conform to this repo's documented coding standards?
 - **Spec** — does the code faithfully implement the originating issue / PRD / spec?
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
+Both axes run as **parallel sub-agents** so they don't pollute each other's context. The primary agent then independently verifies their findings and the completeness of the review before reporting.
 
 The issue tracker should have been provided to you — run `/setup-matt-pocock-skills` if `docs/agents/issue-tracker.md` is missing.
 
@@ -73,9 +73,29 @@ Send a single message with two `Agent` tool calls. Use the `general-purpose` sub
 
 If the spec is missing, skip the Spec sub-agent and note this in the final report.
 
-### 5. Aggregate
+### 5. Verify the sub-agent reports
 
-Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings — the two axes are deliberately separate (see _Why two axes_).
+Treat each sub-agent report as an untrusted lead, not review evidence. The primary agent owns the final review and must reach high confidence — approximately 99% — through checkable verification rather than accepting the sub-agents' confidence.
+
+For every reported finding:
+
+1. Open the cited file and inspect the relevant code in context, not only the quoted diff hunk.
+2. Reproduce the claim against the diff, applicable standard, or quoted spec requirement.
+3. Confirm the consequence is real and that addressing it would have concrete corrective value.
+4. Keep the finding only when its location, evidence, and impact are all supported; otherwise correct or discard it.
+
+Then perform an independent completeness pass over the full diff:
+
+- Account for every changed file on both applicable axes.
+- Trace every spec requirement to implemented evidence or a finding.
+- Check relevant callers, tests, error paths, and boundary behaviour that the changed hunks depend on.
+- Add supported findings the sub-agents missed.
+
+Verification is complete only when every retained finding has primary-source evidence and every changed file and spec requirement has been accounted for. If repository access or missing evidence prevents this, state the limitation and do not claim a complete review.
+
+### 6. Report
+
+Present the verified findings under `## Standards` and `## Spec`. Rewrite them from the primary evidence; do not present sub-agent text verbatim. Do **not** merge or rerank findings across axes — the two axes are deliberately separate (see _Why two axes_).
 
 End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes — that's the reranking the separation exists to prevent.
 

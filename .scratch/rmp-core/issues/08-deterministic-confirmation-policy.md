@@ -39,5 +39,11 @@ the automated suite found five composition gaps despite the high line coverage:
 - TC-55: `-iv` retaining both per-input confirmation and verbose success output;
 - TC-61: default smart directory confirmation failing closed under `--non-interactive`.
 
-These gaps should be added through `CLIApplication.run(arguments:)` with fake prompt and Trash
-boundaries so the exact public command behavior is covered without a real system Trash call.
+All five gaps were added through `CLIApplication.run(arguments:)` with fake prompt and Trash
+boundaries in `ConfirmationManualRegressionTests.swift`. Each test was mutation-checked to verify it
+turns red for the corresponding regression before the production behavior was restored.
+
+The final suite passed with 129 tests in 8 suites. Production line coverage remains 95.70%; the new
+tests deepen behavioral composition coverage rather than executing previously untouched production
+lines. Swift Format, SwiftLint, SPDX, and dangerous-test-command checks all passed. No automated test
+called the real system Trash capability.

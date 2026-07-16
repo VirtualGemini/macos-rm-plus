@@ -717,8 +717,9 @@ stderr: Move [file] "file-interactive-long" to Trash? [y/N]
 stdout: Moved "file-interactive-long" to Trash at "/Users/virtualgemini/.Trash/file-interactive-long".
 exit=0
 source=absent（移动后）
-人工: 待用户确认废纸篓可见 file-interactive-long 并执行“放回原处”
-结果: PENDING（等待人工审核）
+人工: 用户确认废纸篓可见 file-interactive-long；“放回原处”成功并回到本轮 TEST_DIR
+验证: source=present；内容为 interactive-long
+结果: PASS
 ```
 
 ## TC-26：条件式确认短选项 `-I`

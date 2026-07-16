@@ -11,20 +11,23 @@ Within `RMPCore`, command handling is layered through narrow module Interfaces:
   Operation requests.
 - `DryRunApplication` is an internal use-case module. It accepts an already parsed native request and
   returns a command result; it does not parse command-line arguments.
-- `SingleTrashApplication` is the internal non-dry-run use-case module for the one-input execution
-  slice. It plans first, rejects still-required confirmation or unsupported output before capability
-  construction, and then delegates one planned input to `SingleTrashExecutor`.
+- `TrashOperationApplication` is the internal non-dry-run use-case module for the current confirmation
+  slice. It plans every top-level input before prompting, applies batch or per-input confirmation,
+  and delegates only approved inputs to `SingleTrashExecutor` in input order.
 - `SingleTrashExecutor` records the exact system-returned destination or classifies a failure as
   `not_moved` versus `state_uncertain` by re-inspecting the original entry through the filesystem
   seam. Its only mutation-capable dependency is the narrow `TrashClient` Interface.
 - `TrashPlanner` is an internal domain module. It inspects top-level Trash Inputs through the injected
   filesystem seam and returns a Trash Plan without CLI compatibility concepts.
 
-Platform adapters are supplied to `CLIApplication` through explicit `makeFileSystem` and
-`makeTrashClient` factories. Information commands finish without invoking either factory. Dry-run
-commands invoke only the read-only filesystem factory. Actual single-item commands reject root,
-multiple inputs, and unsupported output before filesystem construction; planning and confirmation
-validation then complete before the Trash factory is invoked. `RMPPlatform.FoundationTrashClient`
-contains the Foundation system Trash call, while the compile-time-isolated test executable reaches it
-only through `WhitelistedTrashClient`. Compatibility diagnostics remain beside the parsed command in
-the CLI envelope rather than entering a Trash Operation request or Trash Plan.
+Platform adapters are supplied to `CLIApplication` through explicit `makeFileSystem`,
+`makeTrashClient`, and `makeConfirmationPrompt` factories. Information commands finish without
+invoking these factories. Dry-run commands invoke only the read-only filesystem factory. Actual
+commands reject root and unsupported output before filesystem construction, plan all inputs before
+prompting, and construct the Trash capability only for approved inputs.
+`RMPPlatform.StandardInputConfirmationPrompt` checks stdin TTY state, writes prompts to stderr, and
+maps terminal lines or interruption into raw confirmation responses; approval remains pure RMPCore
+policy. `RMPPlatform.FoundationTrashClient` contains the Foundation system Trash call, while the
+compile-time-isolated test executable reaches it only through `WhitelistedTrashClient`.
+Compatibility diagnostics remain beside the parsed command in the CLI envelope rather than entering
+a Trash Operation request or Trash Plan.

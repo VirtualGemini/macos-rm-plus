@@ -3,12 +3,14 @@
 public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
   private let makeFileSystem: () -> FileSystem
   private let makeTrashClient: (() -> any TrashClient)?
+  private let makeConfirmationPrompt: (() -> any ConfirmationPrompt)?
   private let effectiveUserID: () -> UInt32
   private let renderer = DryRunRenderer()
 
   public init(makeFileSystem: @escaping () -> FileSystem) {
     self.makeFileSystem = makeFileSystem
     makeTrashClient = nil
+    makeConfirmationPrompt = nil
     effectiveUserID = { 1 }
   }
 
@@ -19,6 +21,19 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
   ) {
     self.makeFileSystem = makeFileSystem
     self.makeTrashClient = makeTrashClient
+    makeConfirmationPrompt = nil
+    self.effectiveUserID = effectiveUserID
+  }
+
+  public init(
+    makeFileSystem: @escaping () -> FileSystem,
+    makeTrashClient: @escaping () -> any TrashClient,
+    effectiveUserID: @escaping () -> UInt32,
+    makeConfirmationPrompt: @escaping () -> any ConfirmationPrompt
+  ) {
+    self.makeFileSystem = makeFileSystem
+    self.makeTrashClient = makeTrashClient
+    self.makeConfirmationPrompt = makeConfirmationPrompt
     self.effectiveUserID = effectiveUserID
   }
 
@@ -52,9 +67,10 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
     _ request: TrashOperationRequest, warnings: [CompatibilityWarning]
   ) -> CommandResult {
     if !request.dryRun, effectiveUserID() == 0 {
-      let source = request.paths.first.map(renderer.renderPath) ?? "<unknown>"
+      let sources = request.paths.map(renderer.renderPath).joined(separator: ", ")
+      let inputNoun = request.paths.count == 1 ? "Trash Input" : "Trash Inputs"
       let message =
-        "rmp: \(TrashErrorCode.rootExecution.rawValue): refusing to move Trash Input \(source) "
+        "rmp: \(TrashErrorCode.rootExecution.rawValue): refusing to move \(inputNoun) \(sources) "
         + "while running as root because Trash ownership and recovery would be unsafe\n"
       return .init(
         standardOutput: "",
@@ -70,24 +86,13 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
         exitCode: result.exitCode
       )
     }
-    guard request.paths.count == 1 else {
+    guard request.output != .json else {
       let sources = request.paths.map(renderer.renderPath).joined(separator: ", ")
       return .init(
         standardOutput: "",
         standardError:
           renderWarnings(warnings)
-          + "rmp: \(TrashErrorCode.unsupportedInputCount.rawValue) for \(sources): "
-          + "single-item execution requires exactly one Trash Input\n",
-        exitCode: 2
-      )
-    }
-    guard request.output != .json else {
-      let source = renderer.renderPath(request.paths[0])
-      return .init(
-        standardOutput: "",
-        standardError:
-          renderWarnings(warnings)
-          + "rmp: \(TrashErrorCode.unsupportedOutputMode.rawValue) for \(source): "
+          + "rmp: \(TrashErrorCode.unsupportedOutputMode.rawValue) for \(sources): "
           + "JSON Trash Operation results are not available in this build\n",
         exitCode: 2
       )
@@ -100,9 +105,10 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
         exitCode: 2
       )
     }
-    let result = SingleTrashApplication(
+    let result = TrashOperationApplication(
       fileSystem: makeFileSystem(),
-      makeTrashClient: makeTrashClient
+      makeTrashClient: makeTrashClient,
+      makeConfirmationPrompt: makeConfirmationPrompt
     ).run(request: request)
     return .init(
       standardOutput: result.standardOutput,

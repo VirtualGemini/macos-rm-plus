@@ -9,7 +9,8 @@ let arguments = Array(CommandLine.arguments.dropFirst())
 let result = CLIApplication(
   makeFileSystem: { FoundationTrashPlanningFileSystem() },
   makeTrashClient: { FoundationTrashClient() },
-  effectiveUserID: { UInt32(geteuid()) }
+  effectiveUserID: { UInt32(geteuid()) },
+  makeConfirmationPrompt: { StandardInputConfirmationPrompt() }
 ).run(arguments: arguments)
 FileHandle.standardOutput.write(Data(result.standardOutput.utf8))
 FileHandle.standardError.write(Data(result.standardError.utf8))

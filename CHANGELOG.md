@@ -10,7 +10,7 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 - Reserve `not_moved` and `state_uncertain` for post-system-call outcome classification, report
   pre-capability unsupported inputs as `rejected`, and include stable codes plus affected source
-  paths when unsupported output modes or input counts fail closed.
+  paths when unsupported output modes fail closed.
 - Prevent tests, including the Foundation adapter injection suite, from constructing the production
   system Trash capability directly; injected adapter tests receive only an existential Trash client,
   so the production metatype and initializer cannot be recovered.
@@ -20,7 +20,10 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
-- Add one-item system Trash execution for files, directories, symbolic links, and broken symbolic
+- Add deterministic `smart`, `never`, `once`, and `each` confirmation with top-level-only summaries,
+  `-f`/`-i`/`-I` precedence, non-interactive and non-TTY fail-closed behavior, stable declined,
+  invalid, and interrupted diagnostics, and zero unapproved Trash calls.
+- Add per-input system Trash execution for files, directories, symbolic links, and broken symbolic
   links with root and Protected Path refusal, exact system-returned destinations, stable failure
   codes, and honest `not_moved` versus `state_uncertain` reporting without destructive fallback.
 - Add the complete v0.1 command-line parser with deterministic left-to-right precedence, combined

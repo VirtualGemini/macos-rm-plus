@@ -22,6 +22,11 @@ _Avoid_: Delete target, removal target
 A path that safety policy forbids rmp from moving to Trash regardless of confirmation or force options.
 _Avoid_: Dangerous path, blocked file
 
+**Confirmation Prompt**:
+The injected terminal boundary that reports whether stdin is a TTY, writes one confirmation question
+to stderr, and returns an answer or interruption without deciding whether a Trash Input is approved.
+_Avoid_: Confirmation dialog, terminal reader
+
 **Compatibility Option**:
 A historical command-line option accepted to preserve familiar invocation forms even when it has no native Trash meaning.
 Compatibility help classifies each one as accepted with no effect, accepted with a warning, or
@@ -34,7 +39,7 @@ The planned, moved, failed, or skipped outcome for one Trash Input.
 Pre-capability validation failures use `rejected`; they do not claim that a post-call filesystem
 identity check occurred.
 Operation-scope rejections carry stable codes and identify every affected top-level source path.
-Single-item execution distinguishes `not_moved`, used only when the original directory entry's kind
+Trash execution distinguishes `not_moved`, used only when the original directory entry's kind
 and filesystem identity can be confirmed unchanged after a system Trash failure, from
 `state_uncertain`, used whenever the final source state cannot be established reliably. A moved
 result records the exact destination path returned by the system Trash API.

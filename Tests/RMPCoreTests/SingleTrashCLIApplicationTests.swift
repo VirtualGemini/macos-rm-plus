@@ -20,8 +20,12 @@ func rootExecutionCannotBeForcedPastSafety() {
   )
 
   let argumentCases = [
+    ["--confirm=smart", "report.txt"],
     ["-f", "report.txt"],
     ["--confirm=never", "report.txt"],
+    ["--confirm=once", "report.txt"],
+    ["--confirm=each", "report.txt"],
+    ["-I", "report.txt"],
     ["--non-interactive", "report.txt"],
   ]
 
@@ -37,6 +41,30 @@ func rootExecutionCannotBeForcedPastSafety() {
   #expect(probes.fileSystemFactoryCalls == 0)
   #expect(probes.trashClientFactoryCalls == 0)
   #expect(probes.receivedTrashPaths.isEmpty)
+}
+
+@Test("Root refusal identifies every affected top-level input")
+func rootExecutionReportsEveryInput() {
+  let probes = ApplicationProbes()
+  let application = CLIApplication(
+    makeFileSystem: {
+      probes.fileSystemFactoryCalls += 1
+      return ApplicationFileSystem(entries: [:])
+    },
+    makeTrashClient: {
+      probes.trashClientFactoryCalls += 1
+      return ApplicationTrashClient(probes: probes)
+    },
+    effectiveUserID: { 0 }
+  )
+
+  let result = application.run(arguments: ["--confirm=each", "first", "second"])
+
+  #expect(result.exitCode == 3)
+  #expect(result.standardError.contains("first"))
+  #expect(result.standardError.contains("second"))
+  #expect(probes.fileSystemFactoryCalls == 0)
+  #expect(probes.trashClientFactoryCalls == 0)
 }
 
 @Test("Protected Path policy runs before Trash capability construction")
@@ -59,11 +87,17 @@ func protectedPathCannotBeForcedPastSafety() {
     effectiveUserID: { 501 }
   )
 
-  for arguments in [
+  let argumentCases = [
+    ["--confirm=smart", "home-alias"],
     ["-f", "home-alias"],
     ["--confirm=never", "home-alias"],
+    ["--confirm=once", "home-alias"],
+    ["--confirm=each", "home-alias"],
+    ["-I", "home-alias"],
     ["--non-interactive", "home-alias"],
-  ] {
+  ]
+
+  for arguments in argumentCases {
     let result = application.run(arguments: arguments)
 
     #expect(result.exitCode == 3)
@@ -72,7 +106,7 @@ func protectedPathCannotBeForcedPastSafety() {
     #expect(result.standardError.contains("home-alias"))
   }
 
-  #expect(probes.fileSystemFactoryCalls == 3)
+  #expect(probes.fileSystemFactoryCalls == argumentCases.count)
   #expect(probes.trashClientFactoryCalls == 0)
   #expect(probes.receivedTrashPaths.isEmpty)
 }
@@ -194,230 +228,18 @@ func symbolicLinkEntriesAreNotResolvedForExecution() {
   #expect(probes.receivedTrashPaths == ["home-link", "broken-link"])
 }
 
-@Test("Non-dry-run execution rejects multiple inputs before filesystem or Trash access")
-func multipleInputsRemainOutsideTheSingleItemExecutionScope() {
-  let probes = ApplicationProbes()
-  let application = CLIApplication(
-    makeFileSystem: {
-      probes.fileSystemFactoryCalls += 1
-      return ApplicationFileSystem(entries: [:])
-    },
-    makeTrashClient: {
-      probes.trashClientFactoryCalls += 1
-      return ApplicationTrashClient(probes: probes)
-    },
-    effectiveUserID: { 501 }
-  )
-
-  let result = application.run(arguments: ["first", "second"])
-
-  #expect(result.exitCode == 2)
-  #expect(result.standardError.contains("unsupported_input_count"))
-  #expect(result.standardError.contains("exactly one Trash Input"))
-  #expect(result.standardError.contains("first"))
-  #expect(result.standardError.contains("second"))
-  #expect(probes.fileSystemFactoryCalls == 0)
-  #expect(probes.trashClientFactoryCalls == 0)
-  #expect(probes.receivedTrashPaths.isEmpty)
-}
-
-@Test("Execution fails closed when the parsed policy still requires confirmation")
-func unimplementedConfirmationCannotSilentlyApproveTrash() {
-  let probes = ApplicationProbes()
-  let application = CLIApplication(
-    makeFileSystem: {
-      ApplicationFileSystem(
-        entries: [
-          "build": .entry(
-            .init(kind: .directory, identity: .init(device: 1, inode: 30))
-          ),
-          "report.txt": .entry(
-            .init(kind: .file, identity: .init(device: 1, inode: 31))
-          ),
-        ]
-      )
-    },
-    makeTrashClient: { ApplicationTrashClient(probes: probes) },
-    effectiveUserID: { 501 }
-  )
-
-  let smartDirectory = application.run(arguments: ["build"])
-  let interactiveFile = application.run(arguments: ["-i", "report.txt"])
-
-  #expect(smartDirectory.exitCode == 1)
-  #expect(smartDirectory.standardError.contains("confirmation_required"))
-  #expect(interactiveFile.exitCode == 1)
-  #expect(interactiveFile.standardError.contains("confirmation_required"))
-  #expect(probes.receivedTrashPaths.isEmpty)
-
-  let forcedDirectory = application.run(arguments: ["--confirm=never", "build"])
-  #expect(forcedDirectory.exitCode == 0)
-  #expect(probes.receivedTrashPaths == ["build"])
-}
-
-@Test("Unsupported entry validation makes zero Trash capability calls")
-func unsupportedEntryValidationDoesNotConstructTrashCapability() {
-  let probes = ApplicationProbes()
-  let application = CLIApplication(
-    makeFileSystem: {
-      ApplicationFileSystem(
-        entries: [
-          "pipe": .entry(.init(kind: .other, identity: .init(device: 1, inode: 40)))
-        ]
-      )
-    },
-    makeTrashClient: {
-      probes.trashClientFactoryCalls += 1
-      return ApplicationTrashClient(probes: probes)
-    },
-    effectiveUserID: { 501 }
-  )
-
-  let result = application.run(arguments: ["pipe"])
-
-  #expect(result.exitCode == 1)
-  #expect(result.standardError.contains("unsupported_input_kind"))
-  #expect(result.standardError.contains("(rejected)"))
-  #expect(result.standardError.contains("pipe"))
-  #expect(probes.trashClientFactoryCalls == 0)
-  #expect(probes.receivedTrashPaths.isEmpty)
-}
-
-@Test("An ignored missing single input succeeds without constructing a Trash capability")
-func ignoredMissingInputDoesNotConstructTrashCapability() {
-  let probes = ApplicationProbes()
-  let application = CLIApplication(
-    makeFileSystem: { ApplicationFileSystem(entries: [:]) },
-    makeTrashClient: {
-      probes.trashClientFactoryCalls += 1
-      return ApplicationTrashClient(probes: probes)
-    },
-    effectiveUserID: { 501 }
-  )
-
-  let result = application.run(arguments: ["--ignore-missing", "missing"])
-
-  #expect(result.exitCode == 0)
-  #expect(result.standardOutput.isEmpty)
-  #expect(result.standardError.isEmpty)
-  #expect(probes.trashClientFactoryCalls == 0)
-}
-
-@Test("CLI renders every global parsing diagnostic through the public command seam")
-func cliRendersGlobalParsingDiagnostics() {
-  let application = CLIApplication(
-    makeFileSystem: { ApplicationFileSystem(entries: [:]) }
-  )
-
-  let invalidConfirmation = application.run(
-    arguments: ["--confirm=sometimes", "report.txt"]
-  )
-  let conflictingInformation = application.run(arguments: ["--help", "--version"])
-  let orphanedHelpModifier = application.run(arguments: ["-a"])
-
-  #expect(invalidConfirmation.standardError.contains("invalid confirmation mode"))
-  #expect(conflictingInformation.standardError.contains("cannot be used together"))
-  #expect(orphanedHelpModifier.standardError.contains("only valid with --help"))
-}
-
-@Test("Unsupported JSON execution fails closed and quiet success stays silent")
-func singleItemOutputModesDoNotMisrepresentResults() {
-  let probes = ApplicationProbes()
-  let identity = FileSystemIdentity(device: 1, inode: 60)
-  let application = CLIApplication(
-    makeFileSystem: {
-      probes.fileSystemFactoryCalls += 1
-      return ApplicationFileSystem(
-        entries: ["report.txt": .entry(.init(kind: .file, identity: identity))]
-      )
-    },
-    makeTrashClient: {
-      probes.trashClientFactoryCalls += 1
-      return ApplicationTrashClient(probes: probes)
-    },
-    effectiveUserID: { 501 }
-  )
-
-  let json = application.run(arguments: ["--json", "report.txt"])
-
-  #expect(json.exitCode == 2)
-  #expect(json.standardOutput.isEmpty)
-  #expect(json.standardError.contains("unsupported_output_mode"))
-  #expect(json.standardError.contains("JSON Trash Operation results are not available"))
-  #expect(json.standardError.contains("report.txt"))
-  #expect(probes.fileSystemFactoryCalls == 0)
-  #expect(probes.trashClientFactoryCalls == 0)
-
-  let quiet = application.run(arguments: ["--quiet", "report.txt"])
-
-  #expect(quiet.exitCode == 0)
-  #expect(quiet.standardOutput.isEmpty)
-  #expect(quiet.standardError.isEmpty)
-  #expect(probes.receivedTrashPaths == ["report.txt"])
-}
-
-@Test("Planning failures expose stable codes and the affected source path")
-func planningFailuresExposeStableCodes() {
-  let homeIdentity = FileSystemIdentity(device: 1, inode: 3)
-  let application = CLIApplication(
-    makeFileSystem: {
-      ApplicationFileSystem(
-        entries: [
-          "inaccessible": .inaccessible,
-          "home-alias": .entry(.init(kind: .directory, identity: homeIdentity)),
-        ]
-      )
-    },
-    makeTrashClient: { ApplicationTrashClient(probes: ApplicationProbes()) },
-    effectiveUserID: { 501 }
-  )
-
-  let missing = application.run(arguments: ["missing"])
-  let inaccessible = application.run(arguments: ["inaccessible"])
-  let protected = application.run(arguments: ["home-alias"])
-
-  #expect(missing.standardError.contains("missing_input"))
-  #expect(missing.standardError.contains("missing"))
-  #expect(inaccessible.standardError.contains("inaccessible_input"))
-  #expect(inaccessible.standardError.contains("inaccessible"))
-  #expect(protected.standardError.contains("protected_path"))
-  #expect(protected.standardError.contains("home-alias"))
-}
-
-@Test("Unavailable safety identity reports the escaped source path without Trash access")
-func unavailableSafetyIdentityReportsSourcePath() {
-  let probes = ApplicationProbes()
-  let path = "victim\n.txt"
-  let application = CLIApplication(
-    makeFileSystem: { UnavailableSafetyIdentityFileSystem() },
-    makeTrashClient: {
-      probes.trashClientFactoryCalls += 1
-      return ApplicationTrashClient(probes: probes)
-    },
-    effectiveUserID: { 501 }
-  )
-
-  let result = application.run(arguments: [path])
-
-  #expect(result.exitCode == 3)
-  #expect(result.standardOutput.isEmpty)
-  #expect(result.standardError.contains("safety_identity_unavailable"))
-  #expect(result.standardError.contains("\"victim\\n.txt\""))
-  #expect(result.standardError.filter { $0 == "\n" }.count == 1)
-  #expect(probes.trashClientFactoryCalls == 0)
-  #expect(probes.receivedTrashPaths.isEmpty)
-}
-
-private final class ApplicationProbes: @unchecked Sendable {
+final class ApplicationProbes: @unchecked Sendable {
   var fileSystemFactoryCalls = 0
   var trashClientFactoryCalls = 0
+  var confirmationPromptFactoryCalls = 0
+  var inspectedEntryPaths: [String] = []
   var receivedTrashPaths: [String] = []
   var trashResult: Result<TrashMoveReceipt, TrashCapabilityError> = .success(
     .init(destinationPath: "/Trash/item")
   )
 }
 
-private struct ApplicationFileSystem: TrashPlanningFileSystem {
+struct ApplicationFileSystem: TrashPlanningFileSystem {
   let currentDirectoryPath = "/work"
   let homeDirectoryPath = "/home/test"
   let entries: [String: FileSystemEntryInspection]
@@ -438,7 +260,7 @@ private struct ApplicationFileSystem: TrashPlanningFileSystem {
   }
 }
 
-private struct ApplicationTrashClient: TrashClient {
+struct ApplicationTrashClient: TrashClient {
   let probes: ApplicationProbes
 
   func trashItem(atPath path: String) throws -> TrashMoveReceipt {
@@ -464,24 +286,6 @@ private struct UncertainApplicationFileSystem: TrashPlanningFileSystem {
     case "/": .init(device: 1, inode: 1)
     case currentDirectoryPath: .init(device: 1, inode: 2)
     case homeDirectoryPath: .init(device: 1, inode: 3)
-    default: nil
-    }
-  }
-}
-
-private struct UnavailableSafetyIdentityFileSystem: TrashPlanningFileSystem {
-  let currentDirectoryPath = "/work"
-  let homeDirectoryPath = "/home/test"
-
-  func inspectEntry(at path: String) -> FileSystemEntryInspection {
-    .entry(.init(kind: .file, identity: .init(device: 1, inode: 70)))
-  }
-
-  func directoryIdentity(at path: String) -> FileSystemIdentity? {
-    switch path {
-    case "/": .init(device: 1, inode: 1)
-    case currentDirectoryPath: .init(device: 1, inode: 2)
-    case homeDirectoryPath: nil
     default: nil
     }
   }

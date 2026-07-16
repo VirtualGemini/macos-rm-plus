@@ -73,20 +73,35 @@ func informationCommandsBypassFilesystemCapabilities() {
   #expect(fileSystem.inspectionCount == 0)
 }
 
-@Test("Information commands do not construct the platform filesystem adapter")
-func informationCommandsDoNotConstructFilesystemAdapter() {
+@Test("Information commands do not construct platform adapters")
+func informationCommandsDoNotConstructPlatformAdapters() {
   let probe = AdapterFactoryProbe()
-  let application = CLIApplication(makeFileSystem: {
-    probe.creationCount += 1
-    return CountingTrashPlanningFileSystem()
-  })
+  let application = CLIApplication(
+    makeFileSystem: {
+      probe.fileSystemCreations += 1
+      return CountingTrashPlanningFileSystem()
+    },
+    makeTrashClient: {
+      probe.trashClientCreations += 1
+      return InformationTrashClient()
+    },
+    effectiveUserID: { 501 },
+    makeConfirmationPrompt: {
+      probe.confirmationPromptCreations += 1
+      return InformationConfirmationPrompt()
+    }
+  )
 
   #expect(application.run(arguments: ["--help"]).exitCode == 0)
   #expect(application.run(arguments: ["--version"]).exitCode == 0)
-  #expect(probe.creationCount == 0)
+  #expect(probe.fileSystemCreations == 0)
+  #expect(probe.trashClientCreations == 0)
+  #expect(probe.confirmationPromptCreations == 0)
 
   _ = application.run(arguments: ["--dry-run", "report.txt"])
-  #expect(probe.creationCount == 1)
+  #expect(probe.fileSystemCreations == 1)
+  #expect(probe.trashClientCreations == 0)
+  #expect(probe.confirmationPromptCreations == 0)
 }
 
 @Test("Help surfaces distinguish native and Compatibility Options in English and Chinese")
@@ -113,6 +128,16 @@ func helpSurfacesExplainCompatibilityConsistently() {
   #expect(compatibilityChinese.contains("不支持"))
 }
 
+@Test("Primary help keeps exactly three examples in both languages")
+func primaryHelpKeepsThreeExamples() {
+  let application = CLIApplication(makeFileSystem: { CountingTrashPlanningFileSystem() })
+  let primary = application.run(arguments: ["--help"]).standardOutput
+  let primaryChinese = application.run(arguments: ["--help", "-zh"]).standardOutput
+
+  #expect(primary.split(separator: "\n").count { $0.hasPrefix("  rmp ") } == 3)
+  #expect(primaryChinese.split(separator: "\n").count { $0.hasPrefix("  rmp ") } == 3)
+}
+
 private final class CountingTrashPlanningFileSystem: TrashPlanningFileSystem {
   let currentDirectoryPath = "/work"
   let homeDirectoryPath = "/home/user"
@@ -130,5 +155,21 @@ private final class CountingTrashPlanningFileSystem: TrashPlanningFileSystem {
 }
 
 private final class AdapterFactoryProbe {
-  var creationCount = 0
+  var fileSystemCreations = 0
+  var trashClientCreations = 0
+  var confirmationPromptCreations = 0
+}
+
+private struct InformationTrashClient: TrashClient {
+  func trashItem(atPath path: String) throws -> TrashMoveReceipt {
+    TrashMoveReceipt(destinationPath: path)
+  }
+}
+
+private struct InformationConfirmationPrompt: ConfirmationPrompt {
+  let isInputTTY = false
+
+  func readResponse(prompt: String) -> ConfirmationResponse {
+    .interrupted
+  }
 }

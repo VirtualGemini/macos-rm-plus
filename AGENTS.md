@@ -1,5 +1,7 @@
 ## Agent skills
 
+Before changing the repository, read and follow the complete `docs/development.md`.
+
 ### Issue tracker
 
 Issues are tracked as local Markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.

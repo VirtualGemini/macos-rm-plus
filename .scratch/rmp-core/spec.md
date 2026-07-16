@@ -299,7 +299,7 @@ rmp --help -a -zh
 和 `no` 表示拒绝，其他回答无效，无法取得下一行输入表示确认中断。程序不对无效或中断回答猜测
 用户意图，也不因此发起 Trash 调用。上述失败分别使用 `confirmation_declined`、
 `confirmation_invalid_response` 和 `confirmation_interrupted` 稳定错误码并返回退出码 1。
-`--non-interactive` 或非 TTY stdin 使用 `confirmation_required`，不得读取或阻塞。
+`--non-interactive`、非 TTY stdin 或不可用的确认能力使用 `confirmation_required`，不得读取或阻塞。
 逐项确认中的无效回答按拒绝处理并继续后续输入；确认输入中断会停止继续提示，因为已无法可靠
 取得后续批准。
 

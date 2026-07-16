@@ -38,7 +38,7 @@ _Avoid_: Legacy flag, ignored flag
 The planned, moved, failed, or skipped outcome for one Trash Input.
 Pre-capability validation failures use `rejected`; they do not claim that a post-call filesystem
 identity check occurred.
-Operation-scope rejections carry stable codes.
+Operation-scope rejections carry stable codes and identify every affected top-level source path.
 Trash execution distinguishes `not_moved`, used only when the original directory entry's kind
 and filesystem identity can be confirmed unchanged after a system Trash failure, from
 `state_uncertain`, used whenever the final source state cannot be established reliably. A moved

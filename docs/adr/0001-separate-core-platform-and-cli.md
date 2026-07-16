@@ -11,7 +11,7 @@ Within `RMPCore`, command handling is layered through narrow module Interfaces:
   Operation requests.
 - `DryRunApplication` is an internal use-case module. It accepts an already parsed native request and
   returns a command result; it does not parse command-line arguments.
-- `SingleTrashApplication` is the internal non-dry-run use-case module for the current confirmation
+- `TrashOperationApplication` is the internal non-dry-run use-case module for the current confirmation
   slice. It plans every top-level input before prompting, applies batch or per-input confirmation,
   and delegates only approved inputs to `SingleTrashExecutor` in input order.
 - `SingleTrashExecutor` records the exact system-returned destination or classifies a failure as

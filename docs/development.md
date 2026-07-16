@@ -175,8 +175,8 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `95.39%`, ratcheted upward with deterministic confirmation
-  policy without changing the coverage metric definition.
+- The v1 production coverage baseline is `95.70%`, ratcheted upward with deterministic confirmation
+  policy and review remediation without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.

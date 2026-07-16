@@ -2,6 +2,12 @@
 
 本文件用于真实 macOS 主机测试。命令均使用安装后的 `rmp`，不使用 `.build/...` 路径。
 
+每个用例的“状态”和“预期”描述当前分支行为。带日期的“反馈”是当时版本的历史记录；行为切片
+完成后，旧反馈可能不再代表当前预期，只有重新执行并记录的新反馈才能替代它。
+
+含确认提示的命令必须单独逐行执行，不得把整个代码块一次性粘贴到终端。否则排在 `rmp` 后面的
+Shell 文本可能被标准输入读取为确认回答，制造无效响应或错误结果。
+
 ## 注意事项：环境污染与「放回原处」
 
 真机测试依赖系统废纸篓与 Finder。「放回原处」失败**不一定**是 `rmp` 产品缺陷；常见原因是测试环境污染。`rmp` 只调用 `FileManager.trashItem`，不维护 Finder 的放回路径。
@@ -160,16 +166,19 @@ dir=present nested=present（未进废纸篓）
 
 ## TC-04：`rmp -r directory`
 
-状态：选项支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 mkdir -p directory-r/sub
 printf nested > directory-r/sub/file
+# 出现批量确认提示后输入 y 并按回车
 rmp -r directory-r
 printf 'exit=%s\n' "$?"
+test ! -e directory-r && echo 'source=absent'
 ```
 
-预期退出码：1。stderr 包含 `confirmation_required`；目录仍在原处，不进入废纸篓。
+预期退出码：0。`-r` 被兼容接受；stderr 显示一个顶层目录的确认摘要，输入 `y` 后整个目录
+作为单一对象进入废纸篓，内部内容保持完整。
 
 反馈：
 
@@ -236,15 +245,17 @@ source=absent（移动后）
 
 ## TC-07：组合顺序 `-fi`
 
-状态：解析支持；确认执行暂不支持（08）。
+状态：支持。
 
 ```sh
 printf fi > file-fi
+# 出现逐项确认提示后输入 y 并按回车
 rmp -fi file-fi
 printf 'exit=%s\n' "$?"
+test ! -e file-fi && echo 'source=absent'
 ```
 
-预期：后面的 `-i` 覆盖 `-f`；退出码 1；包含 `confirmation_required`；文件仍存在。
+预期：后面的 `-i` 覆盖 `-f`；stderr 显示逐项确认，输入 `y` 后退出码 0，文件进入废纸篓。
 
 反馈：
 
@@ -533,16 +544,17 @@ source=present（unknown-file 未移动）
 
 ## TC-19：多输入真实执行
 
-状态：暂不支持，09 完成前应安全失败。
+状态：确认切片支持成功的多输入串行执行；完整批量结果模型仍由 09 实现。
 
 ```sh
 printf a > batch-a
 printf b > batch-b
 rmp -f batch-a batch-b
 printf 'exit=%s\n' "$?"
+test ! -e batch-a && test ! -e batch-b && echo 'sources=absent'
 ```
 
-预期：退出码 2；stderr 包含 `unsupported_input_count`；两个文件都仍存在。
+预期：退出码 0；`-f` 关闭确认，两个文件按命令行顺序进入废纸篓，stdout 依次报告两个结果。
 
 反馈：
 
@@ -554,15 +566,18 @@ TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 
 ## TC-20：交互确认
 
-状态：暂不支持，08 完成前应安全失败且不阻塞。
+状态：支持。
 
 ```sh
 printf interactive > interactive-file
+# 出现逐项确认提示后输入 n 并按回车
 rmp -i interactive-file
 printf 'exit=%s\n' "$?"
+test -f interactive-file && echo 'source=present'
 ```
 
-预期：命令立即结束；退出码 1；stderr 包含 `confirmation_required`；文件仍存在。如果命令等待输入，按 `Ctrl-C` 终止并将该用例记为失败。
+预期：stderr 显示逐项确认；输入 `n` 后退出码 1，并包含 `confirmation_declined`；文件仍存在且
+没有 Trash 调用。必须在真实 TTY 中执行，不得用管道提供回答。
 
 反馈：
 
@@ -666,16 +681,17 @@ exit=0
 
 ## TC-25：长选项 `--interactive`
 
-状态：解析支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 printf interactive-long > file-interactive-long
+# 出现逐项确认提示后输入 y 并按回车
 rmp --interactive file-interactive-long
 printf 'exit=%s\n' "$?"
-test -f file-interactive-long && echo 'source=present'
+test ! -e file-interactive-long && echo 'source=absent'
 ```
 
-预期退出码：1。stderr 包含 `confirmation_required`；命令不等待输入，文件仍在原处。
+预期退出码：0。stderr 显示逐项确认；输入 `y` 后文件进入废纸篓。
 
 反馈：
 
@@ -690,16 +706,16 @@ source=present（未进废纸篓，命令立即结束）
 
 ## TC-26：条件式确认短选项 `-I`
 
-状态：解析支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 printf conditional-once > file-I
 rmp -I file-I
 printf 'exit=%s\n' "$?"
-test -f file-I && echo 'source=present'
+test ! -e file-I && echo 'source=absent'
 ```
 
-预期退出码：1。stderr 包含 `confirmation_required`；当前构建不会静默批准，文件仍在原处。
+预期退出码：0。单个普通文件未达到 `-I` 的条件式 once 阈值，因此不提示并进入废纸篓。
 
 反馈：
 
@@ -740,16 +756,17 @@ source=absent（移动后）
 
 ## TC-28：`--confirm=smart` 目录
 
-状态：解析支持；目录确认暂不支持（08）。
+状态：支持。
 
 ```sh
 mkdir directory-confirm-smart
+# 出现批量确认提示后输入 y 并按回车
 rmp --confirm=smart directory-confirm-smart
 printf 'exit=%s\n' "$?"
-test -d directory-confirm-smart && echo 'source=present'
+test ! -e directory-confirm-smart && echo 'source=absent'
 ```
 
-预期退出码：1。stderr 包含 `confirmation_required`；目录仍在原处，不进入废纸篓。
+预期退出码：0。smart 为目录显示一次顶层摘要；输入 `y` 后目录作为单一对象进入废纸篓。
 
 反馈：
 
@@ -792,16 +809,17 @@ source=absent（移动后）
 
 ## TC-30：`--confirm=once`
 
-状态：解析支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 printf confirm-once > file-confirm-once
+# 出现批量确认提示后输入 y 并按回车
 rmp --confirm=once file-confirm-once
 printf 'exit=%s\n' "$?"
-test -f file-confirm-once && echo 'source=present'
+test ! -e file-confirm-once && echo 'source=absent'
 ```
 
-预期退出码：1。stderr 包含 `confirmation_required`；文件仍在原处。
+预期退出码：0。stderr 显示一次顶层摘要；输入 `y` 后文件进入废纸篓。
 
 反馈：
 
@@ -816,16 +834,17 @@ source=present（未进废纸篓）
 
 ## TC-31：`--confirm=each`
 
-状态：解析支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 printf confirm-each > file-confirm-each
+# 出现逐项确认提示后输入 y 并按回车
 rmp --confirm=each file-confirm-each
 printf 'exit=%s\n' "$?"
-test -f file-confirm-each && echo 'source=present'
+test ! -e file-confirm-each && echo 'source=absent'
 ```
 
-预期退出码：1。stderr 包含 `confirmation_required`；文件仍在原处。
+预期退出码：0。stderr 显示当前文件的逐项确认；输入 `y` 后文件进入废纸篓。
 
 反馈：
 
@@ -1101,16 +1120,17 @@ exit=1
 
 ## TC-44：组合顺序 `-fI`
 
-状态：解析支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 printf fI > file-fI
 rmp -fI file-fI
 printf 'exit=%s\n' "$?"
-test -f file-fI && echo 'source=present'
+test ! -e file-fI && echo 'source=absent'
 ```
 
-预期退出码：1。后面的 `-I` 将确认策略改为条件式 once；stderr 包含 `confirmation_required`，文件仍在原处。
+预期退出码：0。后面的 `-I` 将确认策略改为条件式 once；单个普通文件未达到提示阈值，因此
+不提示并进入废纸篓。
 
 反馈：
 
@@ -1179,16 +1199,17 @@ source=absent（移动后）
 
 ## TC-47：`--confirm=never -i`
 
-状态：解析支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 printf never-i > file-never-i
+# 出现逐项确认提示后输入 y 并按回车
 rmp --confirm=never -i file-never-i
 printf 'exit=%s\n' "$?"
-test -f file-never-i && echo 'source=present'
+test ! -e file-never-i && echo 'source=absent'
 ```
 
-预期退出码：1。后面的 `-i` 覆盖 never；stderr 包含 `confirmation_required`，文件仍在原处。
+预期退出码：0。后面的 `-i` 覆盖 never；stderr 显示逐项确认，输入 `y` 后文件进入废纸篓。
 
 反馈：
 
@@ -1392,16 +1413,17 @@ source=absent（移动后）
 
 ## TC-55：组合短选项 `-iv`
 
-状态：解析支持；交互确认暂不支持（08）。
+状态：支持。
 
 ```sh
 printf iv > file-iv
+# 出现逐项确认提示后输入 y 并按回车
 rmp -iv file-iv
 printf 'exit=%s\n' "$?"
-test -f file-iv && echo 'source=present'
+test ! -e file-iv && echo 'source=absent'
 ```
 
-预期退出码：1。`-i` 需要确认，`-v` 不绕过确认；stderr 包含 `confirmation_required`。
+预期退出码：0。`-i` 显示逐项确认，`-v` 不绕过确认；输入 `y` 后 stdout 报告移动结果。
 
 反馈：
 
@@ -1539,7 +1561,7 @@ source=absent（移动后）
 
 ## TC-61：`--non-interactive` 目录
 
-状态：支持安全失败；交互确认暂不支持（08）。
+状态：支持安全失败。
 
 ```sh
 mkdir directory-non-interactive
@@ -1590,17 +1612,18 @@ source=absent（移动后）
 
 ## TC-63：`--stop-on-error` 多对象真实执行
 
-状态：解析支持；多对象真实执行暂不支持（09）。
+状态：成功的多对象执行受支持；失败后的 skipped 结果语义仍由 09 实现。
 
 ```sh
 printf stop-a > file-stop-a
 printf stop-b > file-stop-b
+# 出现批量确认提示后输入 y 并按回车
 rmp --stop-on-error file-stop-a file-stop-b
 printf 'exit=%s\n' "$?"
-test -f file-stop-a && test -f file-stop-b && echo 'sources=present'
+test ! -e file-stop-a && test ! -e file-stop-b && echo 'sources=absent'
 ```
 
-预期退出码：2。stderr 包含 `unsupported_input_count`；两个文件都不移动。
+预期退出码：0。两个成功输入按顺序进入废纸篓；由于没有失败，`--stop-on-error` 不会提前停止。
 
 反馈：
 
@@ -2340,17 +2363,17 @@ source=absent（移动后）
 
 ## TC-94：选项位于两个路径之间
 
-状态：解析支持；多对象真实执行暂不支持（09）。
+状态：支持。
 
 ```sh
 printf middle-a > file-middle-a
 printf middle-b > file-middle-b
 rmp file-middle-a -f file-middle-b
 printf 'exit=%s\n' "$?"
-test -f file-middle-a && test -f file-middle-b && echo 'sources=present'
+test ! -e file-middle-a && test ! -e file-middle-b && echo 'sources=absent'
 ```
 
-预期退出码：2。`-f` 被识别为选项而不是路径；stderr 包含 `unsupported_input_count`，两个文件都不移动。
+预期退出码：0。`-f` 被识别为选项而不是路径并关闭确认；两个文件按输入顺序进入废纸篓。
 
 反馈：
 
@@ -2365,17 +2388,19 @@ sources=present（-f 识别为选项；两文件均未移动）
 
 ## TC-95：`--` 位于两个路径之间
 
-状态：解析支持；多对象真实执行暂不支持（09）。
+状态：支持。
 
 ```sh
 printf boundary-a > file-boundary-a
 printf boundary-b > file-boundary-b
+# 出现批量确认提示后输入 y 并按回车
 rmp file-boundary-a -- file-boundary-b
 printf 'exit=%s\n' "$?"
-test -f file-boundary-a && test -f file-boundary-b && echo 'sources=present'
+test ! -e file-boundary-a && test ! -e file-boundary-b && echo 'sources=absent'
 ```
 
-预期退出码：2。`--` 结束选项解析但不成为路径；stderr 包含 `unsupported_input_count`，两个文件都不移动。
+预期退出码：0。`--` 结束选项解析但不成为路径；smart 显示一次两输入摘要，输入 `y` 后两个
+文件按顺序进入废纸篓。
 
 反馈：
 
@@ -3324,16 +3349,17 @@ stdout: 空
 
 ## TC-135：目录默认真实执行
 
-状态：目录识别支持；默认确认暂不支持（08）。
+状态：支持。
 
 ```sh
 mkdir directory-default
+# 出现批量确认提示后输入 y 并按回车
 rmp directory-default
 printf 'exit=%s\n' "$?"
-test -d directory-default && echo 'source=present'
+test ! -e directory-default && echo 'source=absent'
 ```
 
-预期退出码：1。默认 smart 策略要求确认；stderr 包含 `confirmation_required`，目录仍在原处。
+预期退出码：0。默认 smart 策略显示一次目录摘要；输入 `y` 后目录作为单一对象进入废纸篓。
 
 反馈：
 
@@ -3348,17 +3374,18 @@ source=present
 
 ## TC-136：无选项多对象真实执行
 
-状态：暂不支持，09 完成前应安全失败。
+状态：确认切片支持成功的多输入串行执行；完整批量结果模型仍由 09 实现。
 
 ```sh
 printf plain-a > plain-batch-a
 printf plain-b > plain-batch-b
+# 出现批量确认提示后输入 y 并按回车
 rmp plain-batch-a plain-batch-b
 printf 'exit=%s\n' "$?"
-test -f plain-batch-a && test -f plain-batch-b && echo 'sources=present'
+test ! -e plain-batch-a && test ! -e plain-batch-b && echo 'sources=absent'
 ```
 
-预期退出码：2。stderr 包含 `unsupported_input_count` 和两个源路径；两个文件都不移动。
+预期退出码：0。smart 显示一次两输入摘要；输入 `y` 后两个文件按命令行顺序进入废纸篓。
 
 反馈：
 
@@ -3727,9 +3754,9 @@ source=present
 结果: PASS
 ```
 
-## TC-152：多对象与 JSON 的错误优先级
+## TC-152：多对象 JSON fail-closed 诊断
 
-状态：多对象真实执行暂不支持（09）；在 JSON 执行检查前安全失败。
+状态：支持安全失败；JSON 结果由 10 实现。
 
 ```sh
 printf json-batch-a > json-batch-a
@@ -3739,7 +3766,8 @@ printf 'exit=%s\n' "$?"
 test -f json-batch-a && test -f json-batch-b && echo 'sources=present'
 ```
 
-预期退出码：2。stderr 包含 `unsupported_input_count` 和两个源路径，不包含 `unsupported_output_mode`；两个文件都不移动。
+预期退出码：2。stderr 包含 `unsupported_output_mode` 以及两个源路径；两个文件都不移动，且不构造
+文件系统或 Trash capability。
 
 反馈：
 

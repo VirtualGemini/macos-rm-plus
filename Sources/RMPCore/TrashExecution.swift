@@ -20,7 +20,6 @@ public enum TrashErrorCode: String, Equatable, Sendable {
   case rootExecution = "root_execution"
   case safetyIdentityUnavailable = "safety_identity_unavailable"
   case systemTrashFailed = "trash_system_call_failed"
-  case unsupportedInputCount = "unsupported_input_count"
   case unsupportedInputKind = "unsupported_input_kind"
   case unsupportedOutputMode = "unsupported_output_mode"
 }
@@ -137,7 +136,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
 
 }
 
-struct SingleTrashApplication<FileSystem: TrashPlanningFileSystem> {
+struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
   private let fileSystem: FileSystem
   private let makeTrashClient: () -> any TrashClient
   private let makeConfirmationPrompt: (() -> any ConfirmationPrompt)?
@@ -207,23 +206,11 @@ struct SingleTrashApplication<FileSystem: TrashPlanningFileSystem> {
     switch decision(from: prompt.readResponse(prompt: batchPrompt(for: plan))) {
     case .approved:
       return execute(plan)
-    case .declined:
+    case let .rejected(code, reason, _):
       return confirmationFailure(
-        code: .confirmationDeclined,
+        code: code,
         inputs: plan.inputs,
-        explanation: "confirmation was declined; no Trash Inputs were moved"
-      )
-    case .invalid:
-      return confirmationFailure(
-        code: .confirmationInvalidResponse,
-        inputs: plan.inputs,
-        explanation: "confirmation response was invalid; no Trash Inputs were moved"
-      )
-    case .interrupted:
-      return confirmationFailure(
-        code: .confirmationInterrupted,
-        inputs: plan.inputs,
-        explanation: "confirmation input was interrupted; no Trash Inputs were moved"
+        explanation: "\(reason); no Trash Inputs were moved"
       )
     }
   }
@@ -240,27 +227,13 @@ struct SingleTrashApplication<FileSystem: TrashPlanningFileSystem> {
       case .approved:
         itemResult = execute(input, output: plan.output)
         inputWasInterrupted = false
-      case .declined:
+      case let .rejected(code, reason, stopsFurtherPrompts):
         itemResult = confirmationFailure(
-          code: .confirmationDeclined,
+          code: code,
           inputs: [input],
-          explanation: "confirmation was declined; the Trash Input was not moved"
+          explanation: "\(reason); the Trash Input was not moved"
         )
-        inputWasInterrupted = false
-      case .invalid:
-        itemResult = confirmationFailure(
-          code: .confirmationInvalidResponse,
-          inputs: [input],
-          explanation: "confirmation response was invalid; the Trash Input was not moved"
-        )
-        inputWasInterrupted = false
-      case .interrupted:
-        itemResult = confirmationFailure(
-          code: .confirmationInterrupted,
-          inputs: [input],
-          explanation: "confirmation input was interrupted; the Trash Input was not moved"
-        )
-        inputWasInterrupted = true
+        inputWasInterrupted = stopsFurtherPrompts
       }
       operationResult = merge(operationResult, itemResult)
       if inputWasInterrupted || (plan.stopOnError && itemResult.exitCode != 0) { break }
@@ -346,9 +319,27 @@ struct SingleTrashApplication<FileSystem: TrashPlanningFileSystem> {
 
 private enum ConfirmationDecision {
   case approved
-  case declined
-  case invalid
-  case interrupted
+  case rejected(
+    code: TrashErrorCode,
+    reason: String,
+    stopsFurtherPrompts: Bool
+  )
+
+  static let declined = rejected(
+    code: .confirmationDeclined,
+    reason: "confirmation was declined",
+    stopsFurtherPrompts: false
+  )
+  static let invalid = rejected(
+    code: .confirmationInvalidResponse,
+    reason: "confirmation response was invalid",
+    stopsFurtherPrompts: false
+  )
+  static let interrupted = rejected(
+    code: .confirmationInterrupted,
+    reason: "confirmation input was interrupted",
+    stopsFurtherPrompts: true
+  )
 }
 
 private struct SingleTrashRenderer {

@@ -87,12 +87,12 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
       )
     }
     guard request.output != .json else {
-      let source = renderer.renderPath(request.paths[0])
+      let sources = request.paths.map(renderer.renderPath).joined(separator: ", ")
       return .init(
         standardOutput: "",
         standardError:
           renderWarnings(warnings)
-          + "rmp: \(TrashErrorCode.unsupportedOutputMode.rawValue) for \(source): "
+          + "rmp: \(TrashErrorCode.unsupportedOutputMode.rawValue) for \(sources): "
           + "JSON Trash Operation results are not available in this build\n",
         exitCode: 2
       )
@@ -105,7 +105,7 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
         exitCode: 2
       )
     }
-    let result = SingleTrashApplication(
+    let result = TrashOperationApplication(
       fileSystem: makeFileSystem(),
       makeTrashClient: makeTrashClient,
       makeConfirmationPrompt: makeConfirmationPrompt

@@ -128,6 +128,16 @@ func helpSurfacesExplainCompatibilityConsistently() {
   #expect(compatibilityChinese.contains("不支持"))
 }
 
+@Test("Primary help keeps exactly three examples in both languages")
+func primaryHelpKeepsThreeExamples() {
+  let application = CLIApplication(makeFileSystem: { CountingTrashPlanningFileSystem() })
+  let primary = application.run(arguments: ["--help"]).standardOutput
+  let primaryChinese = application.run(arguments: ["--help", "-zh"]).standardOutput
+
+  #expect(primary.split(separator: "\n").count { $0.hasPrefix("  rmp ") } == 3)
+  #expect(primaryChinese.split(separator: "\n").count { $0.hasPrefix("  rmp ") } == 3)
+}
+
 private final class CountingTrashPlanningFileSystem: TrashPlanningFileSystem {
   let currentDirectoryPath = "/work"
   let homeDirectoryPath = "/home/user"

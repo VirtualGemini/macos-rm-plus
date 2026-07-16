@@ -6,10 +6,10 @@ import Testing
 
 @Test("Unsupported entry validation makes zero Trash capability calls")
 func unsupportedEntryValidationDoesNotConstructTrashCapability() {
-  let probes = FailureApplicationProbes()
+  let probes = ApplicationProbes()
   let application = CLIApplication(
     makeFileSystem: {
-      FailureApplicationFileSystem(
+      ApplicationFileSystem(
         entries: [
           "pipe": .entry(.init(kind: .other, identity: .init(device: 1, inode: 40)))
         ]
@@ -17,7 +17,7 @@ func unsupportedEntryValidationDoesNotConstructTrashCapability() {
     },
     makeTrashClient: {
       probes.trashClientFactoryCalls += 1
-      return FailureApplicationTrashClient(probes: probes)
+      return ApplicationTrashClient(probes: probes)
     },
     effectiveUserID: { 501 }
   )
@@ -34,12 +34,12 @@ func unsupportedEntryValidationDoesNotConstructTrashCapability() {
 
 @Test("An ignored missing single input succeeds without constructing a Trash capability")
 func ignoredMissingInputDoesNotConstructTrashCapability() {
-  let probes = FailureApplicationProbes()
+  let probes = ApplicationProbes()
   let application = CLIApplication(
-    makeFileSystem: { FailureApplicationFileSystem(entries: [:]) },
+    makeFileSystem: { ApplicationFileSystem(entries: [:]) },
     makeTrashClient: {
       probes.trashClientFactoryCalls += 1
-      return FailureApplicationTrashClient(probes: probes)
+      return ApplicationTrashClient(probes: probes)
     },
     effectiveUserID: { 501 }
   )
@@ -55,7 +55,7 @@ func ignoredMissingInputDoesNotConstructTrashCapability() {
 @Test("CLI renders every global parsing diagnostic through the public command seam")
 func cliRendersGlobalParsingDiagnostics() {
   let application = CLIApplication(
-    makeFileSystem: { FailureApplicationFileSystem(entries: [:]) }
+    makeFileSystem: { ApplicationFileSystem(entries: [:]) }
   )
 
   let invalidConfirmation = application.run(
@@ -71,18 +71,18 @@ func cliRendersGlobalParsingDiagnostics() {
 
 @Test("Unsupported JSON execution fails closed and quiet success stays silent")
 func singleItemOutputModesDoNotMisrepresentResults() {
-  let probes = FailureApplicationProbes()
+  let probes = ApplicationProbes()
   let identity = FileSystemIdentity(device: 1, inode: 60)
   let application = CLIApplication(
     makeFileSystem: {
       probes.fileSystemFactoryCalls += 1
-      return FailureApplicationFileSystem(
+      return ApplicationFileSystem(
         entries: ["report.txt": .entry(.init(kind: .file, identity: identity))]
       )
     },
     makeTrashClient: {
       probes.trashClientFactoryCalls += 1
-      return FailureApplicationTrashClient(probes: probes)
+      return ApplicationTrashClient(probes: probes)
     },
     effectiveUserID: { 501 }
   )
@@ -105,19 +105,36 @@ func singleItemOutputModesDoNotMisrepresentResults() {
   #expect(probes.receivedTrashPaths == ["report.txt"])
 }
 
+@Test("Unsupported JSON execution identifies every affected Trash Input")
+func unsupportedJSONExecutionReportsEveryInput() {
+  let application = CLIApplication(
+    makeFileSystem: { ApplicationFileSystem(entries: [:]) },
+    makeTrashClient: { ApplicationTrashClient(probes: ApplicationProbes()) },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: ["--json", "first", "second"])
+
+  #expect(result.exitCode == 2)
+  #expect(result.standardOutput.isEmpty)
+  #expect(result.standardError.contains("unsupported_output_mode"))
+  #expect(result.standardError.contains("\"first\""))
+  #expect(result.standardError.contains("\"second\""))
+}
+
 @Test("Planning failures expose stable codes and the affected source path")
 func planningFailuresExposeStableCodes() {
   let homeIdentity = FileSystemIdentity(device: 1, inode: 3)
   let application = CLIApplication(
     makeFileSystem: {
-      FailureApplicationFileSystem(
+      ApplicationFileSystem(
         entries: [
           "inaccessible": .inaccessible,
           "home-alias": .entry(.init(kind: .directory, identity: homeIdentity)),
         ]
       )
     },
-    makeTrashClient: { FailureApplicationTrashClient(probes: FailureApplicationProbes()) },
+    makeTrashClient: { ApplicationTrashClient(probes: ApplicationProbes()) },
     effectiveUserID: { 501 }
   )
 
@@ -135,13 +152,13 @@ func planningFailuresExposeStableCodes() {
 
 @Test("Unavailable safety identity reports the escaped source path without Trash access")
 func unavailableSafetyIdentityReportsSourcePath() {
-  let probes = FailureApplicationProbes()
+  let probes = ApplicationProbes()
   let path = "victim\n.txt"
   let application = CLIApplication(
     makeFileSystem: { SafetyIdentityUnavailableFileSystem() },
     makeTrashClient: {
       probes.trashClientFactoryCalls += 1
-      return FailureApplicationTrashClient(probes: probes)
+      return ApplicationTrashClient(probes: probes)
     },
     effectiveUserID: { 501 }
   )
@@ -155,42 +172,6 @@ func unavailableSafetyIdentityReportsSourcePath() {
   #expect(result.standardError.filter { $0 == "\n" }.count == 1)
   #expect(probes.trashClientFactoryCalls == 0)
   #expect(probes.receivedTrashPaths.isEmpty)
-}
-
-private final class FailureApplicationProbes: @unchecked Sendable {
-  var fileSystemFactoryCalls = 0
-  var trashClientFactoryCalls = 0
-  var receivedTrashPaths: [String] = []
-}
-
-private struct FailureApplicationFileSystem: TrashPlanningFileSystem {
-  let currentDirectoryPath = "/work"
-  let homeDirectoryPath = "/home/test"
-  let entries: [String: FileSystemEntryInspection]
-
-  func inspectEntry(at path: String) -> FileSystemEntryInspection {
-    entries[path] ?? .missing
-  }
-
-  func directoryIdentity(at path: String) -> FileSystemIdentity? {
-    switch path {
-    case "/": return .init(device: 1, inode: 1)
-    case currentDirectoryPath: return .init(device: 1, inode: 2)
-    case homeDirectoryPath: return .init(device: 1, inode: 3)
-    default:
-      guard case let .entry(entry) = entries[path] else { return nil }
-      return entry.identity
-    }
-  }
-}
-
-private struct FailureApplicationTrashClient: TrashClient {
-  let probes: FailureApplicationProbes
-
-  func trashItem(atPath path: String) throws -> TrashMoveReceipt {
-    probes.receivedTrashPaths.append(path)
-    return TrashMoveReceipt(destinationPath: "/Trash/item")
-  }
 }
 
 private struct SafetyIdentityUnavailableFileSystem: TrashPlanningFileSystem {

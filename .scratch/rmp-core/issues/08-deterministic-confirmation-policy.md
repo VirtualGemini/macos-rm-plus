@@ -20,5 +20,5 @@
 Implemented deterministic confirmation through an injected `ConfirmationPrompt` boundary and the
 production standard-input adapter. Core behavior tests cover the complete mode, response, TTY,
 compatibility-precedence, summary, and safety matrix with fake prompt and Trash capabilities.
-`make check` passed with 120 pure tests and 95.39% production line coverage; no real Trash API call
+`make check` passed with 124 pure tests and 95.70% production line coverage; no real Trash API call
 was executed.

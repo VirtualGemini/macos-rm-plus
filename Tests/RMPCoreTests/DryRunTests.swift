@@ -57,6 +57,20 @@ func dryRunApplicationReportsUnknownOptions() {
   #expect(result.standardError == "rmp: unknown option \"--unknown\"\n")
 }
 
+@Test("Dry-run application rejects an empty native Trash Operation request")
+func dryRunApplicationRejectsEmptyNativeRequest() {
+  let result = DryRunApplication(
+    fileSystem: FakeTrashPlanningFileSystem(entries: [:])
+  ).run(request: TrashOperationRequest(paths: []))
+
+  #expect(result.exitCode == 2)
+  #expect(result.standardOutput.isEmpty)
+  #expect(
+    result.standardError
+      == "rmp: no_inputs: --dry-run requires at least one Trash Input\n"
+  )
+}
+
 @Test("CLI compatibility warnings use stderr and usage failures return exit code 2")
 func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
   let fileSystem = FakeTrashPlanningFileSystem(

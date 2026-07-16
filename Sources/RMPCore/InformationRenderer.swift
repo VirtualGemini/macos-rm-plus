@@ -39,7 +39,6 @@ enum InformationRenderer {
 
     Examples:
       rmp report.txt
-      rmp --confirm=once build report.txt
       rmp --dry-run build report.txt
       rmp -- -leading-hyphen
 
@@ -85,7 +84,6 @@ enum InformationRenderer {
 
     示例：
       rmp report.txt
-      rmp --confirm=once build report.txt
       rmp --dry-run build report.txt
       rmp -- -leading-hyphen
 

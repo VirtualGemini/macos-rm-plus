@@ -250,6 +250,34 @@ func unavailableInteractiveInputFailsClosedWithoutReading() {
   #expect(probes.receivedTrashPaths == ["report.txt"])
 }
 
+@Test("An unavailable Confirmation Prompt fails closed without Trash access")
+func unavailableConfirmationPromptFailsClosed() {
+  let probes = ApplicationProbes()
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: [
+          "report.txt": .entry(.init(kind: .file, identity: .init(device: 1, inode: 57)))
+        ]
+      )
+    },
+    makeTrashClient: {
+      probes.trashClientFactoryCalls += 1
+      return ApplicationTrashClient(probes: probes)
+    },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: ["--confirm=once", "report.txt"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardOutput.isEmpty)
+  #expect(result.standardError.contains("confirmation_required"))
+  #expect(result.standardError.contains("report.txt"))
+  #expect(probes.trashClientFactoryCalls == 0)
+  #expect(probes.receivedTrashPaths.isEmpty)
+}
+
 @Test("Confirmation summaries inspect only top-level inputs")
 func confirmationSummaryDoesNotTraverseDirectories() {
   let probes = ApplicationProbes()

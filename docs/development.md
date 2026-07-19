@@ -262,6 +262,14 @@ before the system call, and returns read-only verification evidence. Pure tests 
 and never invoke the real capability. The integration runner remains separately guarded and cannot
 be enabled through an environment switch in the production executable.
 
+`RMPTestKit.PutBackMetadataScanner` and its conditionally compiled command-line probe are read-only
+investigation support. They parse caller-supplied Trash `.DS_Store` data for Finder `ptbL`/`ptbN`
+records and never call the system Trash API or rewrite metadata. The scanner has Swift Testing
+coverage over synthetic bytes. Maintainers may compile the probe from its two `RMPTestKit` source
+files with `RMP_PUT_BACK_METADATA_PROBE` enabled for a disposable-volume investigation; automating
+the cross-volume Trash workflow remains outside the current Test Safety Context, which intentionally
+rejects mount points and cross-volume Trash Inputs.
+
 ## 7. Development commands
 
 ```sh

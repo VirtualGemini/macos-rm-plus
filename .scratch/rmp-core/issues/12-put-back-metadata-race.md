@@ -1,6 +1,6 @@
 # 12 — Put Back entry lost when re-trashing a same-named item soon after Put Back
 
-**Status:** ready-for-human
+**Status:** needs-triage
 
 **Classification:** defect — user-visible product anomaly at the macOS Trash
 integration boundary. Recoverability of `rmp` deletions is degraded relative
@@ -201,7 +201,64 @@ The candidate branch replaces `FoundationTrashClient` with
 queue, and reports a stable system Trash failure when the source URL has no
 returned destination. It has no `FileManager.trashItem` fallback. Pure tests
 cover the callback and failure contract but cannot establish Finder metadata
-coherence; release remains blocked on the manual differential below.
+coherence. The automated pre-acceptance below found no improvement over the
+Foundation baseline, so the candidate is not merge-ready.
+
+### Automated pre-acceptance differential (2026-07-23)
+
+The Foundation baseline at `22d9140` and Workspace candidate at `340984f` were
+built as separately named Release binaries and run against separate disposable
+APFS volumes on macOS 26.5.1 (build 25F80), Finder 26.4. Each binary ran 30
+cycles split evenly across immediate, 1.5-second, and 3-second re-trash delays.
+Every cycle used one stable source path with cycle-specific content.
+
+The harness performed the following without human intervention:
+
+1. Trash the current probe file through the selected production `rmp` binary.
+2. Verify the exact source-to-destination mapping and initial `ptbL`/`ptbN`.
+3. Restore through Finder's real `trash` container and verify path and content.
+4. Re-trash the same basename after the selected delay.
+5. Wait 5 seconds, scan `.DS_Store`, then restore and verify the exact content
+   again.
+
+In this harness, Finder did not enumerate a new external volume through its
+global `trash` container until the already populated volume was remounted. A
+separate warm-up probe established that Finder volume-enumeration state before
+the 30 counted cycles; warm-up results are excluded below.
+
+| Binary | Delay | Correct first metadata | Correct second metadata after 5 s |
+| --- | ---: | ---: | ---: |
+| Foundation baseline | 0 s | 10/10 | 0/10 |
+| Foundation baseline | 1.5 s | 10/10 | 0/10 |
+| Foundation baseline | 3 s | 10/10 | 0/10 |
+| Workspace candidate | 0 s | 10/10 | 0/10 |
+| Workspace candidate | 1.5 s | 10/10 | 0/10 |
+| Workspace candidate | 3 s | 10/10 | 0/10 |
+
+For each binary, all 60 Trash calls returned the exact expected destination,
+all 60 Finder-container restores succeeded, and every restored content hash
+matched. No `rmp` error, timeout, hang, or candidate Automation prompt occurred.
+The only failure was identical for both implementations: every fresh second
+`ptbL`/`ptbN` pair was absent after Finder's deferred persistence window.
+
+Binary SHA-256 values:
+
+- Foundation baseline:
+  `8c96d7b4b8b650dc097a9b49b8af911d92ecf5731ef7d0ee05c28fd1b5ba22da`
+- Workspace candidate:
+  `fa9e749545e21850d44b0ce0398de5796b7a7e62ec632a3d9837c75108c9e12d`
+- Read-only metadata probe:
+  `d5e178b9b1ef8cdc0968a3ead2e51a4714e737a9b668228a63695860544a3d23`
+
+This is strong evidence that `NSWorkspace.recycle` does not improve the
+observable metadata outcome in this Apple Event restore harness. The experiment
+does not establish which process owns or persists the private records. It is
+not the ticket's formal menu-level acceptance because the restore used a Finder
+Apple Event rather than clicking the actual Put Back command; the current host
+reported Accessibility access as disabled. The candidate therefore fails
+automated pre-acceptance and must not be pushed or merged as the fix. A
+maintainer must now choose whether to abandon it or authorize a Finder-delegated
+design.
 
 ### Manual differential acceptance
 
@@ -233,7 +290,11 @@ design; a non-reproducing baseline makes the experiment inconclusive.
 
 ### Human follow-up
 
-- [ ] Run and record the manual differential above.
+- [x] Run and record the automated metadata differential above.
+- [ ] Decide whether to abandon the Workspace candidate or authorize a
+      Finder-delegated design.
+- [ ] If the maintainer wants to investigate a possible Apple Event versus menu
+      discrepancy, run the actual Put Back differential above.
 - [ ] Submit the Foundation/Finder metadata-coherence evidence through Feedback
       Assistant and record the Feedback ID here. No upstream report was sent by
       the implementation agent.
@@ -250,5 +311,9 @@ ticket is the single source of truth.
 2026-07-23 — The maintainer approved an isolated
 `fix/12-put-back-metadata-race` candidate branch, local commits only, with no
 push or merge to local `main`. Agent-runnable work is complete when pure tests,
-policy gates, documentation, and review pass; the ticket remains
-`ready-for-human` until the differential above is recorded.
+policy gates, documentation, and review pass.
+
+2026-07-23 — Automated pre-acceptance produced a valid Foundation baseline but
+the Workspace candidate matched its failure in all 30 cycles. The candidate is
+not merge-ready; status returned to `needs-triage` for a maintainer decision on
+abandoning the candidate versus designing Finder-delegated deletion.

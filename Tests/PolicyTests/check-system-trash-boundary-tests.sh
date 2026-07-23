@@ -19,17 +19,18 @@ mkdir -p \
   "$repo/FutureTarget"
 cp "$ROOT/scripts/check-system-trash-boundary.sh" "$repo/scripts/"
 
-cat >"$repo/Sources/RMPPlatform/WorkspaceTrashClient.swift" <<'EOF'
-NSWorkspace.shared.recycle([sourceURL], completionHandler: completion)
+cat >"$repo/Sources/RMPPlatform/FinderTrashClient.swift" <<'EOF'
+let script = NSAppleScript(source: "tell application id \"com.apple.finder\"")
+let event = NSAppleEventDescriptor.list()
 EOF
 cat >"$repo/Sources/rmp/main.swift" <<'EOF'
-let client = WorkspaceTrashClient()
+let client = FinderTrashClient()
 EOF
 cat >"$repo/TestSupport/RMPTestSafety/WhitelistedTrashClient.swift" <<'EOF'
-let client = WorkspaceTrashClient()
+let client = FinderTrashClient()
 EOF
-cat >"$repo/Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift" <<'EOF'
-let client = makeInjectedWorkspaceTrashClient(workspaceRecycle: spy.call)
+cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
+let client = makeInjectedFinderTrashClient(finderDelete: spy.call)
 EOF
 cat >"$repo/Tests/RMPPlatformTests/WhitelistedTrashClientTests.swift" <<'EOF'
 let client = WhitelistedTrashClient.testingOnly(
@@ -44,46 +45,46 @@ EOF
 
 "$repo/scripts/check-system-trash-boundary.sh"
 
-cat >"$repo/Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift" <<'EOF'
-let client = WorkspaceTrashClient()
+cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
+let client = FinderTrashClient()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash production construction escaped through its injection test" >&2
+  echo "test failure: Finder Trash production construction escaped through its injection test" >&2
   exit 1
 fi
-cat >"$repo/Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift" <<'EOF'
-let client: WorkspaceTrashClient = .init()
+cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
+let client: FinderTrashClient = .init()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash production .init escaped through its injection test" >&2
+  echo "test failure: Finder Trash production .init escaped through its injection test" >&2
   exit 1
 fi
-cat >"$repo/Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift" <<'EOF'
-typealias TemporaryProductionTrashClient = WorkspaceTrashClient
+cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
+typealias TemporaryProductionTrashClient = FinderTrashClient
 let client = TemporaryProductionTrashClient()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: aliased Workspace Trash production construction escaped its injection test" >&2
+  echo "test failure: aliased Finder Trash production construction escaped its injection test" >&2
   exit 1
 fi
-cat >"$repo/Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift" <<'EOF'
-let constructor = WorkspaceTrashClient.init
+cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
+let constructor = FinderTrashClient.init
 let client = constructor()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash production constructor reference escaped its injection test" >&2
+  echo "test failure: Finder Trash production constructor reference escaped its injection test" >&2
   exit 1
 fi
-cat >"$repo/Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift" <<'EOF'
-let injected = WorkspaceTrashClient(workspaceRecycle: spy.call)
+cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
+let injected = FinderTrashClient(finderDelete: spy.call)
 let production = type(of: injected).init()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash metatype construction escaped its injection test" >&2
+  echo "test failure: Finder Trash metatype construction escaped its injection test" >&2
   exit 1
 fi
-cat >"$repo/Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift" <<'EOF'
-let client = makeInjectedWorkspaceTrashClient(workspaceRecycle: spy.call)
+cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
+let client = makeInjectedFinderTrashClient(finderDelete: spy.call)
 EOF
 
 cat >"$repo/TestSupport/rmp-test/main.swift" <<'EOF'
@@ -98,7 +99,7 @@ cat >"$repo/TestSupport/rmp-test/main.swift" <<'EOF'
 NSWorkspace.shared.recycle([target], completionHandler: completion)
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: direct Workspace Trash escaped the capability boundary" >&2
+  echo "test failure: failed Workspace Trash candidate escaped the capability boundary" >&2
   exit 1
 fi
 
@@ -108,6 +109,30 @@ recycle([target], completion)
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
   echo "test failure: Workspace Trash function reference escaped the capability boundary" >&2
+  exit 1
+fi
+
+cat >"$repo/TestSupport/rmp-test/main.swift" <<'EOF'
+let script = NSAppleScript(source: "return 1")
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: direct NSAppleScript escaped the capability boundary" >&2
+  exit 1
+fi
+
+cat >"$repo/TestSupport/rmp-test/main.swift" <<'EOF'
+let event = NSAppleEventDescriptor.list()
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: direct Apple Event construction escaped the capability boundary" >&2
+  exit 1
+fi
+
+cat >"$repo/TestSupport/rmp-test/main.swift" <<'EOF'
+process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: osascript execution escaped the capability boundary" >&2
   exit 1
 fi
 
@@ -128,44 +153,44 @@ if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
 fi
 
 cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
-let client = WorkspaceTrashClient()
+let client = FinderTrashClient()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash client escaped approved production or whitelist wiring" >&2
+  echo "test failure: Finder Trash client escaped approved production or whitelist wiring" >&2
   exit 1
 fi
 
 cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
-let client = makeInjectedWorkspaceTrashClient(workspaceRecycle: spy.call)
+let client = makeInjectedFinderTrashClient(finderDelete: spy.call)
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash injection factory escaped its adapter test" >&2
+  echo "test failure: Finder Trash injection factory escaped its adapter test" >&2
   exit 1
 fi
 
 cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
-let client: WorkspaceTrashClient = .init()
+let client: FinderTrashClient = .init()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash client type reference escaped approved wiring" >&2
+  echo "test failure: Finder Trash client type reference escaped approved wiring" >&2
   exit 1
 fi
 
 cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
-typealias UncheckedTrashClient = WorkspaceTrashClient
+typealias UncheckedTrashClient = FinderTrashClient
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash client type alias escaped approved wiring" >&2
+  echo "test failure: Finder Trash client type alias escaped approved wiring" >&2
   exit 1
 fi
 
 cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
-func makeUncheckedTrashClient() -> WorkspaceTrashClient {
+func makeUncheckedTrashClient() -> FinderTrashClient {
   .init()
 }
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
-  echo "test failure: Workspace Trash client factory escaped approved wiring" >&2
+  echo "test failure: Finder Trash client factory escaped approved wiring" >&2
   exit 1
 fi
 

@@ -10,9 +10,9 @@ Shell 文本可能被标准输入读取为确认回答，制造无效响应或�
 
 ## 注意事项：环境污染与「放回原处」
 
-真机测试依赖系统废纸篓与 Finder。「放回原处」失败**不一定**是 `rmp` 产品缺陷；常见原因是测试环境污染。`rmp` 不维护 Finder 的私有放回 metadata。当前候选通过
-`NSWorkspace.recycle` 请求系统移动；旧的 `FileManager.trashItem` 基线存在已确认的同名快速
-restore/re-trash 竞态，见
+真机测试依赖系统废纸篓与 Finder。「放回原处」失败**不一定**是 `rmp` 产品缺陷；常见原因是测试环境污染。`rmp` 不维护 Finder 的私有放回 metadata。Workspace 候选已在自动差分中失败；当前候选通过
+结构化 Apple Event 让 Finder 执行移动，并会在首次真实操作时请求 Automation 权限。旧的
+`FileManager.trashItem` 基线存在已确认的同名快速 restore/re-trash 竞态，见
 [issue 12](../../.scratch/rmp-core/issues/12-put-back-metadata-race.md)。不得把该 ticket 的精确复现
 重新归类为环境污染。
 

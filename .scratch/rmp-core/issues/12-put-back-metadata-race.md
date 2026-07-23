@@ -1,6 +1,6 @@
 # 12 — Put Back entry lost when re-trashing a same-named item soon after Put Back
 
-**Status:** needs-triage
+**Status:** ready-for-human
 
 **Classification:** defect — user-visible product anomaly at the macOS Trash
 integration boundary. Recoverability of `rmp` deletions is degraded relative
@@ -188,7 +188,7 @@ and rewriting it would race Finder again.
 
 Options 1 and 2 are compatible: 2 can ship immediately while 1 is designed.
 
-## Selected candidate (maintainer decision, 2026-07-23)
+## Rejected Workspace candidate (maintainer decision, 2026-07-23)
 
 Before paying the Apple Events and Automation-permission cost of option 1, test
 AppKit `NSWorkspace.recycle(_:completionHandler:)`. The macOS 26.5 SDK describes
@@ -260,7 +260,13 @@ automated pre-acceptance and must not be pushed or merged as the fix. A
 maintainer must now choose whether to abandon it or authorize a Finder-delegated
 design.
 
-### Manual differential acceptance
+### Optional menu-level Workspace confirmation
+
+The automated result already rejects the Workspace candidate. This menu-level
+check is optional and exists only to investigate whether Finder's actual Put
+Back command behaves differently from the Apple Event restore used above. Stop
+on the first candidate loss; a full 30-cycle run is useful only if the initial
+candidate cycles remain correct.
 
 Use separately named binaries built from the unchanged Foundation baseline and
 the Workspace candidate. Do not overwrite an installed `rmp` between rounds.
@@ -281,18 +287,65 @@ For each binary, run 30 cycles split evenly across immediate, 1.5-second, and
    original path.
 
 The differential is valid only if the Foundation baseline loses or stales at
-least one Put Back record. The Workspace candidate passes only with all 30
-cycles correct, exact destination mappings on every successful call, no
-Automation permission prompt, and no unexpected UI or hang. Record the macOS
-build, Finder state, per-delay totals, and any system error in this ticket. One
-candidate loss rejects the Workspace fix and reopens the Finder Apple Events
-design; a non-reproducing baseline makes the experiment inconclusive.
+least one Put Back record. One Workspace candidate loss confirms its rejection;
+a non-reproducing baseline makes the experiment inconclusive.
+
+## Selected Finder-delegated candidate (maintainer decision, 2026-07-23)
+
+The maintainer accepts the normal macOS Automation authorization cost, including
+when a shell alias or PATH shim named `rm` invokes `rmp`. Renaming or wrapping the
+command does not bypass TCC; macOS authorizes the responsible sender to control
+Finder. The authorization is expected to persist for the same sender-to-Finder
+pair, but may be requested again after revocation, TCC reset, sender identity
+change, or use from another terminal application.
+
+Keep `fix/12-put-back-metadata-race` as the candidate branch and continue the
+implementation there. `FinderTrashClient` sends a fixed AppleScript handler a
+single approved source path as a structured Apple Event argument. Finder itself
+executes `delete`, and the handler returns the deleted Finder item's `URL` for
+the existing exact `TrashMoveReceipt` contract. The path is never interpolated
+into script source.
+
+The candidate has these fail-closed requirements:
+
+- The first request may show the macOS Automation prompt. Permission denial,
+  consent-required, Finder-unavailable, and timeout outcomes use distinct stable
+  error codes and do not move the source through another API.
+- No `FileManager.trashItem`, `NSWorkspace.recycle`, direct Trash-directory, or
+  permanent-delete fallback is permitted.
+- The fixed Finder handler has a finite timeout and returns only a file URL.
+- Production and `rmp-test` reach the capability only through the existing
+  reviewed `TrashClient` and Test Safety Context boundaries.
+
+### Finder candidate acceptance
+
+1. From a reset/undetermined Automation state, run one disposable candidate
+   Trash Operation from the intended terminal host. Record which sender macOS
+   names, approve the prompt, verify the exact destination and Put Back, then
+   verify that later calls from the same host do not repeatedly prompt.
+2. In a separately reset denial round, deny Automation and verify the stable
+   `finder_automation_denied` failure, unchanged source identity, and zero
+   fallback Trash call.
+3. Repeat the disposable-volume differential with the unchanged Foundation
+   baseline and Finder candidate: 30 cycles per binary, split evenly across
+   immediate, 1.5-second, and 3-second re-trash delays. One candidate metadata
+   loss or stale path rejects the Finder fix.
+4. Run the actual Finder Put Back menu differential for the Finder candidate.
+   All 30 cycles must retain Put Back, restore the current content to the exact
+   source path, return exact destination URLs, and show no unexpected UI or
+   hang beyond the first accepted Automation prompt.
+5. Include ordinary files, directories, symbolic links, broken symbolic links,
+   duplicate Trash names, and path text containing quotes and newlines in the
+   platform acceptance set.
 
 ### Human follow-up
 
 - [x] Run and record the automated metadata differential above.
-- [ ] Decide whether to abandon the Workspace candidate or authorize a
-      Finder-delegated design.
+- [x] Reject the Workspace candidate and authorize a Finder-delegated design.
+- [x] Retain `fix/12-put-back-metadata-race` for the Finder candidate.
+- [ ] Run and record the Finder Automation authorization/denial acceptance.
+- [ ] Run and record the Finder candidate automated metadata differential.
+- [ ] Run and record the Finder candidate actual-menu differential.
 - [ ] If the maintainer wants to investigate a possible Apple Event versus menu
       discrepancy, run the actual Put Back differential above.
 - [ ] Submit the Foundation/Finder metadata-coherence evidence through Feedback
@@ -317,3 +370,9 @@ policy gates, documentation, and review pass.
 the Workspace candidate matched its failure in all 30 cycles. The candidate is
 not merge-ready; status returned to `needs-triage` for a maintainer decision on
 abandoning the candidate versus designing Finder-delegated deletion.
+
+2026-07-23 — The maintainer accepted the first-use Automation authorization
+tradeoff, retained the existing candidate branch, rejected Workspace recycling,
+and authorized continued implementation of Finder-delegated deletion. The
+ticket is `ready-for-human` until the Automation and real Put Back acceptance
+rounds above are recorded.

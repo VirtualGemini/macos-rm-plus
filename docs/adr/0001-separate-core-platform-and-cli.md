@@ -27,17 +27,20 @@ commands reject root and unsupported output before filesystem construction, plan
 prompting, and construct the Trash capability only for approved inputs.
 `RMPPlatform.StandardInputConfirmationPrompt` checks stdin TTY state, writes prompts to stderr, and
 maps terminal lines or interruption into raw confirmation responses; approval remains pure RMPCore
-policy. `RMPPlatform.WorkspaceTrashClient` contains the AppKit Workspace system Trash call, while the
+policy. `RMPPlatform.FinderTrashClient` contains the Finder Automation Trash call, while the
 compile-time-isolated test executable reaches it only through `WhitelistedTrashClient`.
 Compatibility diagnostics remain beside the parsed command in the CLI envelope rather than entering
 a Trash Operation request or Trash Plan.
 
-`WorkspaceTrashClient` asks `NSWorkspace` to recycle exactly one approved top-level URL and converts
-the asynchronous source-to-destination mapping into the existing synchronous `TrashMoveReceipt`.
-The AppKit call runs on a private serial queue so the command thread can wait without blocking the
-completion queue; RMPCore remains synchronous and processes Trash Inputs serially. A missing mapping
-is a system Trash failure, and the adapter never falls back to `FileManager.trashItem` or direct
-Trash-directory manipulation. This replaces the Foundation adapter because issue 12 demonstrated
-that Finder can overwrite Put Back metadata written by a rapid same-name re-trash through
-`FileManager.trashItem`. The candidate still requires the ticket's maintainer-run Finder
-differential before release.
+`FinderTrashClient` invokes one fixed AppleScript handler with the approved source path supplied as a
+structured Apple Event argument. Finder executes `delete`, and the handler returns the deleted
+Finder item's `URL` property for the existing synchronous `TrashMoveReceipt`. The adapter never
+interpolates path text into script source, applies a finite Finder timeout, maps Automation consent,
+denial, timeout, and availability failures to stable core codes, and never falls back to
+`FileManager.trashItem`, `NSWorkspace.recycle`, or direct Trash-directory manipulation.
+
+Issue 12 demonstrated that Finder can overwrite Put Back metadata written by both Foundation and
+Workspace callers during a rapid same-name re-trash. The maintainer accepted the first-use macOS
+Automation authorization cost so Finder can be the writer for the second Trash Operation. The
+candidate still requires the ticket's maintainer-run Automation and Put Back differentials before
+release.

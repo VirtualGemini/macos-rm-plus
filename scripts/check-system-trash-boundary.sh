@@ -6,12 +6,12 @@ set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
-capability_file=Sources/RMPPlatform/WorkspaceTrashClient.swift
+capability_file=Sources/RMPPlatform/FinderTrashClient.swift
 production_wiring_file=Sources/rmp/main.swift
 whitelist_file=TestSupport/RMPTestSafety/WhitelistedTrashClient.swift
-workspace_injection_test_file=Tests/RMPPlatformTests/WorkspaceTrashClientTests.swift
+finder_injection_test_file=Tests/RMPPlatformTests/FinderTrashClientTests.swift
 injection_test_file=Tests/RMPPlatformTests/WhitelistedTrashClientTests.swift
-workspace_injection_factory=makeInjectedWorkspaceTrashClient
+finder_injection_factory=makeInjectedFinderTrashClient
 failed=0
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -33,10 +33,16 @@ while IFS= read -r file; do
     failed=1
   fi
 
+  if printf '%s\n' "$normalized" \
+    | grep -E '\.[[:space:]]*recycle([^[:alnum:]_]|$)' >/dev/null 2>&1; then
+    echo "error: failed Workspace Trash candidate is prohibited: $file" >&2
+    failed=1
+  fi
+
   if [ "$file" != "$capability_file" ] \
     && printf '%s\n' "$normalized" \
-      | grep -E '\.[[:space:]]*recycle([^[:alnum:]_]|$)' >/dev/null 2>&1; then
-    echo "error: Workspace Trash API is outside $capability_file: $file" >&2
+      | grep -E 'NSAppleScript|NSAppleEventDescriptor|com\.apple\.finder|(^|[^[:alnum:]_])osascript([^[:alnum:]_]|$)' >/dev/null 2>&1; then
+    echo "error: Finder Automation capability is outside $capability_file: $file" >&2
     failed=1
   fi
 
@@ -44,16 +50,16 @@ while IFS= read -r file; do
     && [ "$file" != "$production_wiring_file" ] \
     && [ "$file" != "$whitelist_file" ] \
     && printf '%s\n' "$normalized" \
-      | grep -E '(^|[^[:alnum:]_])WorkspaceTrashClient([^[:alnum:]_]|$)' >/dev/null 2>&1; then
-    echo "error: Workspace Trash client reference bypasses approved wiring: $file" >&2
+      | grep -E '(^|[^[:alnum:]_])FinderTrashClient([^[:alnum:]_]|$)' >/dev/null 2>&1; then
+    echo "error: Finder Trash client reference bypasses approved wiring: $file" >&2
     failed=1
   fi
 
   if [ "$file" != "$capability_file" ] \
-    && [ "$file" != "$workspace_injection_test_file" ] \
+    && [ "$file" != "$finder_injection_test_file" ] \
     && printf '%s\n' "$normalized" \
-      | grep -E "(^|[^[:alnum:]_])$workspace_injection_factory([^[:alnum:]_]|$)" >/dev/null 2>&1; then
-    echo "error: Workspace Trash injection factory is outside its adapter test: $file" >&2
+      | grep -E "(^|[^[:alnum:]_])$finder_injection_factory([^[:alnum:]_]|$)" >/dev/null 2>&1; then
+    echo "error: Finder Trash injection factory is outside its adapter test: $file" >&2
     failed=1
   fi
 

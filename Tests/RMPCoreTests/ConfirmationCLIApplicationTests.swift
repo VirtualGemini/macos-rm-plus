@@ -370,6 +370,7 @@ func unapprovedConfirmationResponsesNeverTrash() {
   let cases: [(ConfirmationResponse, String)] = [
     (.answer(""), "confirmation_declined"),
     (.answer("no"), "confirmation_declined"),
+    (.answer("yes no"), "confirmation_invalid_response"),
     (.answer("maybe"), "confirmation_invalid_response"),
     (.interrupted, "confirmation_interrupted"),
   ]

@@ -362,7 +362,7 @@ private enum FileProviderInspectionError: Error {
 }
 
 private func platformSystemTrash(_ sourceURL: URL) throws -> URL {
-  let receipt = try WorkspaceTrashClient().trashItem(atPath: sourceURL.path)
+  let receipt = try FinderTrashClient().trashItem(atPath: sourceURL.path)
   return URL(fileURLWithPath: receipt.destinationPath)
 }
 

@@ -162,6 +162,61 @@ func singleItemCLIExecutionReportsNotMovedFailure() {
   #expect(probes.receivedTrashPaths == ["build"])
 }
 
+@Test("Finder Automation denial tells the user where to restore permission")
+func finderAutomationDenialIsActionable() {
+  let probes = ApplicationProbes()
+  probes.trashResult = .failure(.init(code: .finderAutomationDenied))
+  let identity = FileSystemIdentity(device: 1, inode: 12)
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: ["report.txt": .entry(.init(kind: .file, identity: identity))]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: ["report.txt"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardError.contains("finder_automation_denied"))
+  #expect(result.standardError.contains("Privacy & Security"))
+  #expect(result.standardError.contains("Automation"))
+  #expect(result.standardError.contains("not_moved"))
+}
+
+@Test("Finder capability failures retain specific user guidance")
+func finderCapabilityFailuresAreActionable() {
+  let testCases: [(TrashErrorCode, String)] = [
+    (.finderAutomationConsentRequired, "interactive desktop session"),
+    (.finderAutomationTimedOut, "before the timeout"),
+    (.finderUnavailable, "Finder is unavailable"),
+  ]
+
+  for (code, expectedGuidance) in testCases {
+    let probes = ApplicationProbes()
+    probes.trashResult = .failure(.init(code: code))
+    let identity = FileSystemIdentity(device: 1, inode: 13)
+    let application = CLIApplication(
+      makeFileSystem: {
+        ApplicationFileSystem(
+          entries: ["report.txt": .entry(.init(kind: .file, identity: identity))]
+        )
+      },
+      makeTrashClient: { ApplicationTrashClient(probes: probes) },
+      effectiveUserID: { 501 }
+    )
+
+    let result = application.run(arguments: ["report.txt"])
+
+    #expect(result.exitCode == 1)
+    #expect(result.standardError.contains(code.rawValue))
+    #expect(result.standardError.contains(expectedGuidance))
+    #expect(result.standardError.contains("not_moved"))
+  }
+}
+
 @Test("CLI reports state_uncertain when a failed Trash call leaves no reliable source state")
 func singleItemCLIExecutionReportsUncertainFailure() {
   let probes = ApplicationProbes()

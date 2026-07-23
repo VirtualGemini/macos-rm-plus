@@ -13,6 +13,10 @@ public enum TrashErrorCode: String, Equatable, Sendable {
   case confirmationInterrupted = "confirmation_interrupted"
   case confirmationInvalidResponse = "confirmation_invalid_response"
   case confirmationRequired = "confirmation_required"
+  case finderAutomationConsentRequired = "finder_automation_consent_required"
+  case finderAutomationDenied = "finder_automation_denied"
+  case finderAutomationTimedOut = "finder_automation_timed_out"
+  case finderUnavailable = "finder_unavailable"
   case inaccessibleInput = "inaccessible_input"
   case missingInput = "missing_input"
   case noInputs = "no_inputs"
@@ -111,10 +115,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
   private func failedResult(input: TrashInput, code: TrashErrorCode) -> TrashResult {
     let sourceUnchanged = sourceIsUnchanged(input)
     let status: TrashResultStatus = sourceUnchanged ? .notMoved : .stateUncertain
-    let explanation =
-      sourceUnchanged
-      ? "The system Trash operation failed; the source entry is unchanged."
-      : "The system Trash operation failed; the source entry's final state is uncertain."
+    let explanation = failureExplanation(code: code, sourceUnchanged: sourceUnchanged)
     return TrashResult(
       sourcePath: input.path,
       destinationPath: nil,
@@ -125,6 +126,29 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
         explanation: explanation
       )
     )
+  }
+
+  private func failureExplanation(code: TrashErrorCode, sourceUnchanged: Bool) -> String {
+    let sourceState =
+      sourceUnchanged
+      ? "The source entry is unchanged."
+      : "The source entry's final state is uncertain."
+    switch code {
+    case .finderAutomationConsentRequired:
+      return
+        "Finder Automation permission is required. Run rmp from an interactive desktop session "
+        + "and allow the invoking terminal or rmp to control Finder. \(sourceState)"
+    case .finderAutomationDenied:
+      return
+        "Finder Automation permission was denied. Enable the invoking terminal or rmp in System "
+        + "Settings > Privacy & Security > Automation. \(sourceState)"
+    case .finderAutomationTimedOut:
+      return "Finder did not complete the Trash request before the timeout. \(sourceState)"
+    case .finderUnavailable:
+      return "Finder is unavailable for the Trash request. \(sourceState)"
+    default:
+      return "The system Trash operation failed; \(sourceState.lowercased())"
+    }
   }
 
   private func sourceIsUnchanged(_ input: TrashInput) -> Bool {
@@ -344,6 +368,10 @@ private enum ConfirmationDecision {
 
 private struct SingleTrashRenderer {
   private let pathRenderer = DryRunRenderer()
+  private let unclassifiedFailure = TrashFailure(
+    code: .systemTrashFailed,
+    explanation: "The Trash operation failed without a classified error."
+  )
 
   func render(_ result: TrashResult, output: OutputMode) -> CommandResult {
     switch result.status {
@@ -359,12 +387,7 @@ private struct SingleTrashRenderer {
         exitCode: 0
       )
     case .rejected, .notMoved, .stateUncertain:
-      let error =
-        result.error
-        ?? TrashFailure(
-          code: .systemTrashFailed,
-          explanation: "The Trash operation failed without a classified error."
-        )
+      let error = result.error ?? unclassifiedFailure
       let source = pathRenderer.renderPath(result.sourcePath)
       let message =
         "rmp: \(error.code.rawValue) (\(result.status.rawValue)) for \(source): "

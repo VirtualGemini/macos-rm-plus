@@ -13,7 +13,8 @@ releasing rmp. Pull requests must update it when they change the development wor
 - Minimum deployment target: macOS 13.
 - Package manager: Swift Package Manager.
 - Test framework: Swift Testing only.
-- Runtime dependencies: none in v0.1.
+- Third-party runtime dependencies: none in v0.1. Real Trash Operations require macOS Finder and
+  user-approved Automation access from the responsible terminal or `rmp` process.
 
 Pinned development-tool versions are recorded in `.tool-versions.lock`:
 
@@ -136,6 +137,8 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   unconditional `fatalError`.
 - `RMPCore` uses typed errors.
 - Foundation `NSError` values remain inside `RMPPlatform` and are mapped to stable core error codes.
+- Finder Automation failures are classified with the SDK's named Apple Event and OSStatus constants;
+  localized error-message text never controls program flow.
 - Human-readable error messages are separate from machine-readable codes.
 - Empty `catch` blocks and print-then-continue error handling are prohibited.
 - Each error is explicitly classified as ignored, item failure with continuation, operation-stopping
@@ -152,9 +155,8 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
 - v0.1 Trash operations are synchronous and serial.
 - `Task.detached` and unconstrained parallel filesystem work are prohibited.
 - Async behavior is introduced only for a measured requirement and requires design review.
-- `WorkspaceTrashClient` is the sole exception needed to bridge AppKit's asynchronous recycle
-  completion into the synchronous `TrashClient` Interface. It submits one approved top-level URL on
-  a private serial queue, waits on the command thread, and never overlaps Trash Inputs.
+- `FinderTrashClient` performs one synchronous, finite-timeout Finder Apple Event per approved
+  top-level input. RMPCore remains synchronous and never overlaps Trash Inputs.
 
 ## 6. Testing standards
 
@@ -178,7 +180,7 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `96.22%`, ratcheted upward with the Workspace Trash adapter
+- The v1 production coverage baseline is `96.28%`, ratcheted upward with platform Trash adapter
   coverage while retaining deterministic confirmation
   policy and review remediation without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
@@ -256,14 +258,16 @@ filesystem error prevents that rollback, the operation fails with `test-safety.r
 reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
 succeeded.
 
-`RMPPlatform.WorkspaceTrashClient` contains the only direct AppKit
-`NSWorkspace.recycle(_:completionHandler:)` call. The legacy Foundation
-`FileManager.trashItem(at:resultingItemURL:)` API is prohibited because issue 12 demonstrated a
-rapid same-name Put Back metadata race at that integration boundary. The production execution path
-constructs the Workspace adapter only after parsing, root policy, output-mode, Trash Plan, and
-confirmation checks succeed, and only for an individual Trash Input approved for execution. A
-missing source-to-destination mapping is reported as a system Trash failure; no fallback Trash API
-is attempted. The compile-time-isolated `rmp-test` target reaches that adapter only through
+`RMPPlatform.FinderTrashClient` contains the only Finder Automation capability. It invokes a fixed
+AppleScript handler with path text supplied as a structured Apple Event argument, asks Finder to
+`delete` one approved top-level item, and returns that Finder item's file URL. The legacy Foundation
+`FileManager.trashItem(at:resultingItemURL:)` and failed AppKit
+`NSWorkspace.recycle(_:completionHandler:)` candidates are prohibited because issue 12 reproduced
+the rapid same-name Put Back metadata race through both APIs. The production execution path
+constructs the Finder adapter only after parsing, root policy, output-mode, Trash Plan, and
+confirmation checks succeed, and only for an individual Trash Input approved for execution.
+Automation consent, denial, timeout, unavailable Finder, or missing file URL is reported without a
+fallback Trash API. The compile-time-isolated `rmp-test` target reaches that adapter only through
 `WhitelistedTrashClient`, which accepts opaque targets produced by its planning authorization pass,
 revalidates the complete Test Safety Context and target immediately before the system call, and
 returns read-only verification evidence. Pure tests inject Trash spies and never invoke the real
@@ -460,19 +464,18 @@ Every pull request receives two independent conclusions:
 2. **Spec Review**: PRD, ticket acceptance criteria, behavior, and safety invariants.
 
 Agent review does not replace human approval for SafetyPolicy, WhitelistedTrashClient,
-WorkspaceTrashClient, `rmp-test`, Git hooks, workflows, release configuration, or development
+FinderTrashClient, `rmp-test`, Git hooks, workflows, release configuration, or development
 standards.
 
-Repository policy also enforces the test Trash boundary statically: the Workspace `recycle` API may
-appear only in `WorkspaceTrashClient.swift`, while the legacy Foundation `trashItem` API is forbidden
-everywhere. Both direct Workspace calls and escaped function references are rejected outside the
-adapter. `WorkspaceTrashClient` construction is limited to production wiring, the whitelist wrapper,
-and its private platform implementation. The adapter test may obtain only an
-`any TrashClient` existential through `makeInjectedWorkspaceTrashClient(workspaceRecycle:)`; concrete
-production type references, aliases, metatypes, and constructor references remain forbidden in all
-tests. The injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its
-dedicated spy test. `make check-system-trash-boundary` runs this check directly, and `make check`
-includes it.
+Repository policy also enforces the test Trash boundary statically: `NSAppleScript`, Apple Event
+descriptor construction, Finder bundle targeting, and `osascript` execution may appear only in
+`FinderTrashClient.swift`, while the legacy Foundation `trashItem` and failed Workspace `recycle`
+APIs are forbidden everywhere. `FinderTrashClient` construction is limited to production wiring,
+the whitelist wrapper, and its private platform implementation. The adapter test may obtain only an
+`any TrashClient` existential through `makeInjectedFinderTrashClient(...)`; concrete production type
+references, aliases, metatypes, and constructor references remain forbidden in all tests. The
+injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy
+test. `make check-system-trash-boundary` runs this check directly, and `make check` includes it.
 
 Unresolved critical or high-risk findings block merge. Medium-risk findings are fixed or explicitly
 accepted with a written maintainer rationale.

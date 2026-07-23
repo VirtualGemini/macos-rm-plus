@@ -8,19 +8,21 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Changed
 
-- Route approved Trash Inputs through AppKit's Finder-style Workspace recycle operation, preserve
-  its exact source-to-destination mapping, and prohibit silent fallback to the Put Back metadata race
-  observed with `FileManager.trashItem`; release remains gated on the issue 12 manual differential.
-- Keep the Workspace recycle capability in one reviewed adapter by rejecting both direct calls and
-  escaped function references everywhere else.
+- Route approved Trash Inputs through Finder's Apple Event `delete` command, pass path text as a
+  structured argument, preserve the returned Finder item URL, and prohibit silent fallback to the
+  Foundation and Workspace APIs that failed issue 12's metadata differential.
+- Report Finder Automation consent, denial, timeout, and availability failures with stable,
+  actionable codes; release remains gated on issue 12's permission and real Put Back acceptance.
+- Keep Finder Automation in one reviewed adapter by rejecting direct AppleScript, Apple Event,
+  `osascript`, Foundation Trash, and Workspace recycle capability elsewhere.
 - Document the rapid same-name restore/re-trash Put Back limitation and its wait, rename, and
   Finder-delete workarounds for existing Foundation-backed builds.
-- Ratchet the production line-coverage baseline from 95.70% to 96.22% with the Workspace adapter
-  tests, without changing the coverage metric.
+- Ratchet the production line-coverage baseline from 95.70% to 96.28% with platform-adapter tests,
+  without changing the coverage metric.
 - Reserve `not_moved` and `state_uncertain` for post-system-call outcome classification, report
   pre-capability unsupported inputs as `rejected`, and include stable codes plus affected source
   paths when unsupported output modes fail closed.
-- Prevent tests, including the Foundation adapter injection suite, from constructing the production
+- Prevent tests, including the Finder adapter injection suite, from constructing the production
   system Trash capability directly; injected adapter tests receive only an existential Trash client,
   so the production metatype and initializer cannot be recovered.
 - Allow trusted maintainers to ratchet coverage baselines upward with implementation changes without

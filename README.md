@@ -34,10 +34,18 @@ confirmation exits with code 1 and never authorizes the affected Trash call.
 
 All inputs are planned before confirmation, so root execution and Protected Paths still fail with
 exit code 3 before any prompt or Trash capability. Approved inputs are passed as top-level entries to
-the macOS Foundation Trash API in input order, without recursive traversal, and each success reports
-the exact system-returned destination path. A system Trash failure never falls back to permanent
-deletion or direct Trash-directory manipulation, and reports `not_moved` only when the original
-entry identity can be confirmed unchanged; otherwise it reports `state_uncertain`.
+the macOS Workspace Trash API in input order, without recursive traversal, and each success reports
+the exact destination from the system-returned source-to-destination mapping. A system Trash failure
+never falls back to permanent deletion, `FileManager.trashItem`, or direct Trash-directory
+manipulation, and reports `not_moved` only when the original entry identity can be confirmed
+unchanged; otherwise it reports `state_uncertain`.
+
+Finder owns the private metadata behind “Put Back.” Current `FileManager.trashItem`-based releases
+can lose that entry when an item is restored and the same name is sent to Trash again within roughly
+10 seconds. Waiting at least 10 seconds, using another name, or performing the second deletion in
+Finder avoids the observed race. This branch uses `NSWorkspace`'s Finder-style recycle operation as
+the candidate fix; it must pass the maintainer-run differential in
+[issue 12](.scratch/rmp-core/issues/12-put-back-metadata-race.md) before release.
 
 ## Project status
 

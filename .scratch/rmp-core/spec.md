@@ -310,11 +310,13 @@ rmp --help -a -zh
 
 ### 10.1 系统废纸篓 API
 
-FR-SAFE-001：所有实际移动必须通过 Foundation `FileManager.trashItem(at:resultingItemURL:)` 完成。
+FR-SAFE-001：所有实际移动必须通过 AppKit `NSWorkspace.recycle(_:completionHandler:)` 完成。
+`FileManager.trashItem(at:resultingItemURL:)` 和直接移动到废纸篓目录均被禁止；Workspace 调用失败或
+缺少当前源 URL 的目标映射时不得回退到另一种移动能力。
 
 FR-SAFE-002：不得直接拼接或移动到 `~/.Trash`。
 
-FR-SAFE-003：必须使用系统返回的最终废纸篓 URL，因为重名时目标名称可能变化。
+FR-SAFE-003：必须使用系统返回的源 URL 到最终废纸篓 URL 映射，因为重名时目标名称可能变化。
 
 ### 10.2 禁止永久删除回退
 
@@ -503,6 +505,11 @@ FR-RESTORE-002：不得承诺所有情况下都能“放回原处”。以下情
 - 用户在废纸篓中重命名或移动了项目。
 - 网络卷或 File Provider 有不同实现。
 
+FR-RESTORE-003：生产 TrashClient 必须使用 `NSWorkspace` 的 Finder-style recycle 操作，作为
+issue 12 中快速“放回原处”后同名再次移入废纸篓竞态的候选修复。在关闭该 issue 或发布该变更前，
+维护者必须完成 ticket 规定的 Foundation 基线与 Workspace 候选差分验证；不得仅凭纯单元测试宣称
+Finder metadata 竞态已经修复。
+
 ## 16. 性能要求
 
 - 不递归扫描目录作为删除前置步骤。
@@ -585,15 +592,16 @@ FR-TEST-015：`rmp-test` 必须硬编码白名单结构 `~/rmp-test/test/<run-uu
 
 任一条件不满足时，测试进程必须在解析路径参数前退出。
 
-FR-TEST-016：真实 Foundation 实现不得在测试代码中直接构造。测试构建只能通过 `WhitelistedTrashClient` 获得系统废纸篓能力；其构造函数必须接收已经验证的测试安全上下文，并在每次调用前再次执行白名单校验。
-Foundation 平台适配器的纯单元测试只能通过内部注入工厂取得 `any TrashClient`，不得取得具体生产类型、
-其 metatype 或生产 initializer。
+FR-TEST-016：真实 Workspace 实现不得在测试代码中直接构造。测试构建只能通过 `WhitelistedTrashClient` 获得系统废纸篓能力；其构造函数必须接收已经验证的测试安全上下文，并在每次调用前再次执行白名单校验。
+Workspace 平台适配器的纯单元测试只能通过内部注入工厂取得 `any TrashClient`，不得取得具体生产类型、
+其 metatype 或生产 initializer。静态边界检查必须同时拒绝适配器文件之外的 Workspace recycle
+直接调用和函数引用，并在所有 Swift 源文件中拒绝 legacy Foundation Trash API。
 
 FR-TEST-017：测试安全上下文必须在启动时记录 `~/rmp-test`、`~/rmp-test/test` 和 `<run-uuid>` 三层目录的 device/inode，并在每次真实系统调用前重新比较。目录身份变化时立即拒绝。
 
 FR-TEST-018：文件系统集成测试必须串行执行。当前运行期间不得启动会重命名、替换或重新挂载测试根目录及其祖先路径的后台任务。
 
-FR-TEST-019：由于 Foundation 废纸篓 API最终仍基于路径调用，即使进行两次校验和目录身份比较，也不能宣称完全消除最终检查与调用之间的 TOCTOU 风险。该风险通过 `0700` 权限、单用户测试、串行执行、目录文件描述符和调用前身份复核共同降低。
+FR-TEST-019：由于 Workspace 废纸篓 API最终仍基于 URL 路径调用，即使进行两次校验和目录身份比较，也不能宣称完全消除最终检查与调用之间的 TOCTOU 风险。该风险通过 `0700` 权限、单用户测试、串行执行、目录文件描述符和调用前身份复核共同降低。
 
 FR-TEST-020：测试启动器应打开并在整个运行期间保留外层容器、测试根目录和运行目录的目录文件描述符。中间路径检查应尽量使用相对于已打开目录描述符且不跟随符号链接的方式完成。
 
@@ -786,14 +794,14 @@ guard isInsideAuthorizedTestRoot(url) else {
 4. 根目录、主目录、当前目录、符号链接和 root 执行安全测试在规定的 fake filesystem 或 `~/rmp-test/test/<run-uuid>/` 白名单环境中通过。
 5. dry-run 测试证明零文件系统变更。
 6. JSON schema 有固定版本并通过快照测试。
-7. Finder 本地卷手工恢复验证通过。
+7. Finder 本地卷手工恢复验证通过，且 issue 12 的同名快速“放回原处”差分验收满足候选通过标准。
 8. 主帮助、兼容帮助和 README 对无意义参数及语义差异说明一致。
 9. Intel 与 Apple Silicon 构建通过。
 10. LICENSE、NOTICE 和贡献政策与 Apache-2.0 要求一致。
 11. CI 和本地集成测试都只能修改 `~/rmp-test/test/<run-uuid>/` 内由当前测试创建的 fixture；`~/rmp-test`、`~/rmp-test/test` 和运行目录本身均不可作为 rmp 目标。
 12. 测试安全包络的路径越界、marker 缺失、run UUID 不匹配、权限不安全和符号链接逃逸测试全部通过。
 13. 代码审查确认没有任何真实测试向 rmp 传入 `/`、用户主目录、当前工作目录或系统目录。
-14. 所有真实文件系统测试只调用带 `RMP_TESTING` 编译标识的 `rmp-test`，且无法直接构造未包装的 Foundation TrashClient。
+14. 所有真实文件系统测试只调用带 `RMP_TESTING` 编译标识的 `rmp-test`，且无法直接构造未包装的 WorkspaceTrashClient。
 15. 三层目录身份变化、挂载点、跨卷路径和 File Provider 特殊根测试全部在系统废纸篓 API调用前失败。
 16. 所有安全拒绝测试都断言 trash client 调用次数为零。
 17. 本地测试不存在对系统废纸篓目标调用永久删除 API的代码路径。
@@ -806,6 +814,6 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 单个成功操作输出一行结果，包含用户提供的源路径和系统废纸篓 API 返回的精确最终目标路径；
   该决定在批量输出实现时继续保持一致。
 - `-P` 警告是否在非 TTY 环境默认显示。
-- JSON 中是否包含 Foundation 原始错误域和错误码。
+- JSON 中是否包含平台适配器的原始 `NSError` 域和错误码。
 - 最低 macOS 版本是否需要低于 macOS 13。
 - Homebrew 首版采用源码构建还是预编译 bottle。

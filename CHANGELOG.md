@@ -8,6 +8,15 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Changed
 
+- Route approved Trash Inputs through AppKit's Finder-style Workspace recycle operation, preserve
+  its exact source-to-destination mapping, and prohibit silent fallback to the Put Back metadata race
+  observed with `FileManager.trashItem`; release remains gated on the issue 12 manual differential.
+- Keep the Workspace recycle capability in one reviewed adapter by rejecting both direct calls and
+  escaped function references everywhere else.
+- Document the rapid same-name restore/re-trash Put Back limitation and its wait, rename, and
+  Finder-delete workarounds for existing Foundation-backed builds.
+- Ratchet the production line-coverage baseline from 95.70% to 96.22% with the Workspace adapter
+  tests, without changing the coverage metric.
 - Reserve `not_moved` and `state_uncertain` for post-system-call outcome classification, report
   pre-capability unsupported inputs as `rejected`, and include stable codes plus affected source
   paths when unsupported output modes fail closed.

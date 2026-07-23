@@ -1,6 +1,6 @@
 # 12 — Put Back entry lost when re-trashing a same-named item soon after Put Back
 
-**Status:** needs-triage
+**Status:** ready-for-human
 
 **Classification:** defect — user-visible product anomaly at the macOS Trash
 integration boundary. Recoverability of `rmp` deletions is degraded relative
@@ -169,7 +169,7 @@ its private implementation. The process cannot verify or repair the record
 afterwards: the home Trash `.DS_Store` is TCC-protected, its format is private,
 and rewriting it would race Finder again.
 
-## Remediation options (maintainer decision required)
+## Remediation options
 
 1. **Finder-delegated deletion mode**: send the delete to Finder over Apple
    events so Finder is the single `.DS_Store` writer, giving Finder-grade
@@ -188,6 +188,56 @@ and rewriting it would race Finder again.
 
 Options 1 and 2 are compatible: 2 can ship immediately while 1 is designed.
 
+## Selected candidate (maintainer decision, 2026-07-23)
+
+Before paying the Apple Events and Automation-permission cost of option 1, test
+AppKit `NSWorkspace.recycle(_:completionHandler:)`. The macOS 26.5 SDK describes
+that public API as moving URLs to Trash in the same manner as Finder and returns
+a source-to-destination URL mapping. It therefore preserves the existing exact
+Trash Result contract without directly reading or writing Finder metadata.
+
+The candidate branch replaces `FoundationTrashClient` with
+`WorkspaceTrashClient`, bridges the asynchronous completion on a private serial
+queue, and reports a stable system Trash failure when the source URL has no
+returned destination. It has no `FileManager.trashItem` fallback. Pure tests
+cover the callback and failure contract but cannot establish Finder metadata
+coherence; release remains blocked on the manual differential below.
+
+### Manual differential acceptance
+
+Use separately named binaries built from the unchanged Foundation baseline and
+the Workspace candidate. Do not overwrite an installed `rmp` between rounds.
+Run only disposable files in the existing maintainer-authorized manual-test
+boundary, keep their parent directory alive, and use Finder's actual Put Back
+command rather than an AppleScript move.
+
+For each binary, run 30 cycles split evenly across immediate, 1.5-second, and
+3-second re-trash delays:
+
+1. Create the same basename at one stable original path with cycle-specific
+   content.
+2. Trash it with the selected binary and record the exact returned destination.
+3. Use Finder Put Back and verify the content and original path.
+4. Re-trash the same basename after the round's delay.
+5. Wait at least 5 seconds for deferred Finder persistence, then verify that
+   Finder still offers Put Back and restores the exact current item to the
+   original path.
+
+The differential is valid only if the Foundation baseline loses or stales at
+least one Put Back record. The Workspace candidate passes only with all 30
+cycles correct, exact destination mappings on every successful call, no
+Automation permission prompt, and no unexpected UI or hang. Record the macOS
+build, Finder state, per-delay totals, and any system error in this ticket. One
+candidate loss rejects the Workspace fix and reopens the Finder Apple Events
+design; a non-reproducing baseline makes the experiment inconclusive.
+
+### Human follow-up
+
+- [ ] Run and record the manual differential above.
+- [ ] Submit the Foundation/Finder metadata-coherence evidence through Feedback
+      Assistant and record the Feedback ID here. No upstream report was sent by
+      the implementation agent.
+
 ## Comments
 
 2026-07-18 — The investigation initially recorded this in the manual-testing
@@ -196,3 +246,9 @@ it as a product defect: the failure is user-visible in the product's core
 promise (recoverable deletion), not merely a test-environment artifact. The
 manual-testing document intentionally carries no copy of this record; this
 ticket is the single source of truth.
+
+2026-07-23 — The maintainer approved an isolated
+`fix/12-put-back-metadata-race` candidate branch, local commits only, with no
+push or merge to local `main`. Agent-runnable work is complete when pure tests,
+policy gates, documentation, and review pass; the ticket remains
+`ready-for-human` until the differential above is recorded.

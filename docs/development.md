@@ -55,7 +55,7 @@ unrelated test compilation errors.
 ```text
 Sources/
 ├── RMPCore/          Pure parsing, planning, safety policy, and output models
-├── RMPPlatform/      macOS Foundation adapters
+├── RMPPlatform/      macOS system-framework adapters
 └── rmp/              Production command-line entrypoint
 
 TestSupport/
@@ -71,7 +71,7 @@ Tests/
 The architectural decision is recorded in
 [`docs/adr/0001-separate-core-platform-and-cli.md`](adr/0001-separate-core-platform-and-cli.md).
 
-`RMPCore` must not invoke the filesystem, terminal, clock, environment, or Foundation Trash API
+`RMPCore` must not invoke the filesystem, terminal, clock, environment, or system Trash API
 directly. Those capabilities cross explicit interfaces implemented in `RMPPlatform`.
 
 Interactive confirmation crosses the `ConfirmationPrompt` Interface. RMPCore decides whether a
@@ -152,6 +152,9 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
 - v0.1 Trash operations are synchronous and serial.
 - `Task.detached` and unconstrained parallel filesystem work are prohibited.
 - Async behavior is introduced only for a measured requirement and requires design review.
+- `WorkspaceTrashClient` is the sole exception needed to bridge AppKit's asynchronous recycle
+  completion into the synchronous `TrashClient` Interface. It submits one approved top-level URL on
+  a private serial queue, waits on the command thread, and never overlaps Trash Inputs.
 
 ## 6. Testing standards
 
@@ -175,7 +178,8 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `95.70%`, ratcheted upward with deterministic confirmation
+- The v1 production coverage baseline is `96.22%`, ratcheted upward with the Workspace Trash adapter
+  coverage while retaining deterministic confirmation
   policy and review remediation without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
@@ -252,15 +256,19 @@ filesystem error prevents that rollback, the operation fails with `test-safety.r
 reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
 succeeded.
 
-`RMPPlatform.FoundationTrashClient` contains the only direct Foundation
-`trashItem(at:resultingItemURL:)` call. The production execution path constructs it only after
-parsing, root policy, output-mode, Trash Plan, and confirmation checks succeed, and only for an
-individual Trash Input approved for execution. The compile-time-isolated `rmp-test` target reaches
-that adapter only through `WhitelistedTrashClient`, which accepts opaque targets produced by its
-planning authorization pass, revalidates the complete Test Safety Context and target immediately
-before the system call, and returns read-only verification evidence. Pure tests inject Trash spies
-and never invoke the real capability. The integration runner remains separately guarded and cannot
-be enabled through an environment switch in the production executable.
+`RMPPlatform.WorkspaceTrashClient` contains the only direct AppKit
+`NSWorkspace.recycle(_:completionHandler:)` call. The legacy Foundation
+`FileManager.trashItem(at:resultingItemURL:)` API is prohibited because issue 12 demonstrated a
+rapid same-name Put Back metadata race at that integration boundary. The production execution path
+constructs the Workspace adapter only after parsing, root policy, output-mode, Trash Plan, and
+confirmation checks succeed, and only for an individual Trash Input approved for execution. A
+missing source-to-destination mapping is reported as a system Trash failure; no fallback Trash API
+is attempted. The compile-time-isolated `rmp-test` target reaches that adapter only through
+`WhitelistedTrashClient`, which accepts opaque targets produced by its planning authorization pass,
+revalidates the complete Test Safety Context and target immediately before the system call, and
+returns read-only verification evidence. Pure tests inject Trash spies and never invoke the real
+capability. The integration runner remains separately guarded and cannot be enabled through an
+environment switch in the production executable.
 
 `RMPTestKit.PutBackMetadataScanner` and its conditionally compiled command-line probe are read-only
 investigation support. They parse caller-supplied Trash `.DS_Store` data for Finder `ptbL`/`ptbN`
@@ -452,17 +460,19 @@ Every pull request receives two independent conclusions:
 2. **Spec Review**: PRD, ticket acceptance criteria, behavior, and safety invariants.
 
 Agent review does not replace human approval for SafetyPolicy, WhitelistedTrashClient,
-FoundationTrashClient, `rmp-test`, Git hooks, workflows, release configuration, or development
+WorkspaceTrashClient, `rmp-test`, Git hooks, workflows, release configuration, or development
 standards.
 
-Repository policy also enforces the test Trash boundary statically: the Foundation
-`trashItem(at:resultingItemURL:)` API may appear only in `FoundationTrashClient.swift`.
-`FoundationTrashClient` construction is limited to production wiring, the whitelist wrapper, and its
-private platform implementation. The adapter test may obtain only an `any TrashClient` existential
-through `makeInjectedFoundationTrashClient(systemTrash:)`; concrete production type references,
-aliases, metatypes, and constructor references remain forbidden in all tests. The injectable
-`WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy test.
-`make check-system-trash-boundary` runs this check directly, and `make check` includes it.
+Repository policy also enforces the test Trash boundary statically: the Workspace `recycle` API may
+appear only in `WorkspaceTrashClient.swift`, while the legacy Foundation `trashItem` API is forbidden
+everywhere. Both direct Workspace calls and escaped function references are rejected outside the
+adapter. `WorkspaceTrashClient` construction is limited to production wiring, the whitelist wrapper,
+and its private platform implementation. The adapter test may obtain only an
+`any TrashClient` existential through `makeInjectedWorkspaceTrashClient(workspaceRecycle:)`; concrete
+production type references, aliases, metatypes, and constructor references remain forbidden in all
+tests. The injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its
+dedicated spy test. `make check-system-trash-boundary` runs this check directly, and `make check`
+includes it.
 
 Unresolved critical or high-risk findings block merge. Medium-risk findings are fixed or explicitly
 accepted with a written maintainer rationale.

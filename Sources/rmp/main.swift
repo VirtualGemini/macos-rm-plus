@@ -8,7 +8,7 @@ import RMPPlatform
 let arguments = Array(CommandLine.arguments.dropFirst())
 let result = CLIApplication(
   makeFileSystem: { FoundationTrashPlanningFileSystem() },
-  makeTrashClient: { FoundationTrashClient() },
+  makeTrashClient: { WorkspaceTrashClient() },
   effectiveUserID: { UInt32(geteuid()) },
   makeConfirmationPrompt: { StandardInputConfirmationPrompt() }
 ).run(arguments: arguments)

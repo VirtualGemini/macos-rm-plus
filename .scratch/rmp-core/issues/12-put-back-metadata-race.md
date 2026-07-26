@@ -317,6 +317,44 @@ The candidate has these fail-closed requirements:
 - Production and `rmp-test` reach the capability only through the existing
   reviewed `TrashClient` and Test Safety Context boundaries.
 
+### Finder handler correction and Automation evidence (2026-07-23)
+
+The first real candidate invocation failed closed with
+`trash_system_call_failed (not_moved)`. A diagnostic run exposed Apple Event
+error `-1728`: Finder could not resolve `POSIX file sourcePath`. The fixed
+handler now creates the AppleScript file specification before entering Finder's
+`tell` block, then passes that structured object to Finder `delete`. This keeps
+path text out of script source and preserves broken-symbolic-link semantics.
+
+The corrected candidate was exercised from the intended Ghostty host:
+
+- A reset denial round returned `finder_automation_denied (not_moved)` for
+  `/tmp/rmp-finder-automation.kMh4lh/automation-deny-probe`; the source remained
+  present with device `16777231`, inode `10049588`, and size `0`.
+- In the approval round macOS named `Ghostty` as the sender controlling Finder.
+  `automation-approve-first` and `automation-approve-reuse` both moved to their
+  exact home Trash URLs, the second call did not prompt again, and Finder Put
+  Back restored both source entries. This establishes the intended
+  sender-to-Finder approval reuse for this host, but is not the 30-cycle race
+  differential.
+
+An attempted temporary one-shot harness split the restore into an `osascript`
+process. That process was a different Automation sender and failed with Finder
+error `-5000`, so it is not valid acceptance evidence. The authoritative race
+scenario is now a single compile-time-isolated Swift process under `rmp-test`:
+
+```sh
+make test-put-back-race TEST_RUN_ID=<canonical-lowercase-uuid>
+```
+
+`PutBackRaceAcceptance` exclusive-creates one UUID-prefixed Test Fixture,
+performs the first whitelisted Finder Trash call, restores the exact returned
+URL and resource identity through `WhitelistedPutBackClient`, and immediately
+reuses the original planned identity for the second Trash call. It has no
+sleep, shell harness, `osascript` subprocess, or Trash name search. The command
+prints the exact second Trash URL and preserves the validated Run Directory for
+the maintainer's final Finder menu check.
+
 ### Finder candidate acceptance
 
 1. From a reset/undetermined Automation state, run one disposable candidate
@@ -343,7 +381,9 @@ The candidate has these fail-closed requirements:
 - [x] Run and record the automated metadata differential above.
 - [x] Reject the Workspace candidate and authorize a Finder-delegated design.
 - [x] Retain `fix/12-put-back-metadata-race` for the Finder candidate.
-- [ ] Run and record the Finder Automation authorization/denial acceptance.
+- [x] Run and record the Finder Automation authorization/denial acceptance.
+- [ ] Run the single-process Swift rapid Put Back acceptance and record whether
+      Finder offers Put Back for its exact second Trash URL.
 - [ ] Run and record the Finder candidate automated metadata differential.
 - [ ] Run and record the Finder candidate actual-menu differential.
 - [ ] If the maintainer wants to investigate a possible Apple Event versus menu
@@ -376,3 +416,10 @@ tradeoff, retained the existing candidate branch, rejected Workspace recycling,
 and authorized continued implementation of Finder-delegated deletion. The
 ticket is `ready-for-human` until the Automation and real Put Back acceptance
 rounds above are recorded.
+
+2026-07-26 — The real handler's `POSIX file` scope defect was corrected after a
+live `-1728` failure. Ghostty denial, approval, and same-host authorization reuse
+were recorded. The temporary shell/`osascript` race attempt was rejected because
+it introduced a second Automation sender; the checked-in authority is now the
+single-process Swift `rmp-test put-back-race` scenario. The 30-cycle metadata and
+actual-menu differentials remain human release gates.

@@ -11,6 +11,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Route approved Trash Inputs through Finder's Apple Event `delete` command, pass path text as a
   structured argument, preserve the returned Finder item URL, and prohibit silent fallback to the
   Foundation and Workspace APIs that failed issue 12's metadata differential.
+- Resolve the AppleScript file specification outside Finder's `tell` block so approved paths reach
+  Finder correctly, and add a compile-time-isolated Swift acceptance that performs first Trash,
+  exact Put Back, and immediate second Trash in one process for issue 12's manual Finder check.
 - Report Finder Automation consent, denial, timeout, and availability failures with stable,
   actionable codes; release remains gated on issue 12's permission and real Put Back acceptance.
 - Keep Finder Automation in one reviewed adapter by rejecting direct AppleScript, Apple Event,

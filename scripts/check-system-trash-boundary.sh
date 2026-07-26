@@ -7,6 +7,9 @@ ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
 capability_file=Sources/RMPPlatform/FinderTrashClient.swift
+put_back_capability_file=TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift
+put_back_wiring_file=TestSupport/RMPTestSafety/PutBackRaceAcceptance.swift
+put_back_test_file=Tests/RMPPlatformTests/PutBackRaceAcceptanceTests.swift
 production_wiring_file=Sources/rmp/main.swift
 whitelist_file=TestSupport/RMPTestSafety/WhitelistedTrashClient.swift
 finder_injection_test_file=Tests/RMPPlatformTests/FinderTrashClientTests.swift
@@ -40,9 +43,19 @@ while IFS= read -r file; do
   fi
 
   if [ "$file" != "$capability_file" ] \
+    && [ "$file" != "$put_back_capability_file" ] \
     && printf '%s\n' "$normalized" \
       | grep -E 'NSAppleScript|NSAppleEventDescriptor|com\.apple\.finder|(^|[^[:alnum:]_])osascript([^[:alnum:]_]|$)' >/dev/null 2>&1; then
     echo "error: Finder Automation capability is outside $capability_file: $file" >&2
+    failed=1
+  fi
+
+  if [ "$file" != "$put_back_capability_file" ] \
+    && [ "$file" != "$put_back_wiring_file" ] \
+    && [ "$file" != "$put_back_test_file" ] \
+    && printf '%s\n' "$normalized" \
+      | grep -E '(^|[^[:alnum:]_])WhitelistedPutBackClient([^[:alnum:]_]|$)' >/dev/null 2>&1; then
+    echo "error: Finder Put Back client bypasses its isolated acceptance wiring: $file" >&2
     failed=1
   fi
 

@@ -39,6 +39,12 @@ interpolates path text into script source, applies a finite Finder timeout, maps
 denial, timeout, and availability failures to stable core codes, and never falls back to
 `FileManager.trashItem`, `NSWorkspace.recycle`, or direct Trash-directory manipulation.
 
+The compile-time-isolated `rmp-test` module owns one separate, test-only Finder Put Back adapter for
+issue 12 acceptance. It can move only the exact UUID-prefixed URL returned by the whitelisted Trash
+adapter back to the same revalidated Run Directory, verifies the available resource identifier, and
+is unreachable from production wiring. The rapid acceptance orchestration and its fake adapter share
+the `PutBackRaceAcceptance` Interface; ordinary unit tests never invoke Finder.
+
 Issue 12 demonstrated that Finder can overwrite Put Back metadata written by both Foundation and
 Workspace callers during a rapid same-name re-trash. The maintainer accepted the first-use macOS
 Automation authorization cost so Finder can be the writer for the second Trash Operation. The

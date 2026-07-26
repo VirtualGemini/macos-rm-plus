@@ -603,8 +603,10 @@ FR-TEST-016：真实 Finder Automation 实现不得在测试代码中直接构�
 `WhitelistedTrashClient` 获得系统废纸篓能力；其构造函数必须接收已经验证的测试安全上下文，并在
 每次调用前再次执行白名单校验。Finder 平台适配器的纯单元测试只能通过内部注入工厂取得
 `any TrashClient`，不得取得具体生产类型、其 metatype 或生产 initializer。静态边界检查必须拒绝
-适配器文件之外的 `NSAppleScript`、Apple Event descriptor、`osascript` 调用和 Finder bundle ID，
-并在所有 Swift 源文件中拒绝 legacy Foundation 与失败的 Workspace Trash API。
+生产适配器与编译期隔离的 `WhitelistedPutBackClient` 文件之外的 `NSAppleScript`、Apple Event
+descriptor、`osascript` 调用和 Finder bundle ID，并在所有 Swift 源文件中拒绝 legacy Foundation
+与失败的 Workspace Trash API。测试侧恢复适配器只能接受 `WhitelistedTrashClient` 返回的精确 URL
+和资源身份，只能恢复到同一已验证 Run Directory，不得按名称搜索废纸篓，也不得被生产 target 引用。
 
 FR-TEST-017：测试安全上下文必须在启动时记录 `~/rmp-test`、`~/rmp-test/test` 和 `<run-uuid>` 三层目录的 device/inode，并在每次真实系统调用前重新比较。目录身份变化时立即拒绝。
 
@@ -629,6 +631,17 @@ FR-TEST-025：测试使用 spy/fake trash client 时必须记录系统能力调�
 FR-TEST-026：本地测试完成后，测试启动器只允许在重新验证 run UUID、marker 和运行目录 device/inode 后，删除 `.rmp-test-run` marker 并使用非递归 `rmdir` 删除已经为空的运行目录。运行目录仍包含任何其他项目时必须保留现场并报告，不得执行递归清理。
 
 FR-TEST-027：测试启动器永远不得自动删除 `~/rmp-test/test`、`.rmp-test-root`、`~/rmp-test` 或 `.rmp-test-container`。这些长期安全边界只能由用户显式、手工处理。
+
+FR-TEST-028：issue 12 的快速同名 Put Back 验收必须由 `rmp-test` 在同一个 Swift 进程中依次完成：
+
+1. exclusive-create 一个带当前 run UUID 前缀的 Test Fixture；
+2. 通过 `WhitelistedTrashClient` 第一次移入废纸篓并保留精确回执；
+3. 通过 `WhitelistedPutBackClient` 将该精确 URL 恢复到同一 Run Directory；
+4. 不插入 `sleep`、对话轮次、shell 脚本或 `osascript` 子进程，复用第一次规划的文件身份立即执行第二次 Trash；
+5. 输出第二次系统返回的精确 URL，并保留已验证 Run Directory 供维护者在 Finder 中检查最终“放回原处”。
+
+该场景不得在第二次 Trash 前后按名称枚举废纸篓。普通 `make test`、`make check` 和 CI 不得调用它；
+只有维护者显式运行真实验收命令时才允许触发 Finder Automation。
 
 #### 17.1.3 断言与不可省略的安全检查
 
@@ -689,6 +702,7 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 所有真实 fixture 名称包含当前 run UUID 前缀。
 - 本地测试只读验证系统返回的废纸篓 URL，不执行自动永久清理。
 - 本地运行目录只有在为空且身份复核通过时才能通过非递归 `rmdir` 清理。
+- issue 12 的 Swift 快速竞态场景严格连续执行第一次 Trash、精确 Put Back 和第二次 Trash，最终 Run Directory 为人工 Finder 检查保留。
 
 ### 17.4 安全测试
 
@@ -709,6 +723,7 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 手工验证使用 `~/rmp-test/test/<run-uuid>/` 中创建的专用 fixture，不得使用真实用户文件。
 - Finder 能看到由 rmp 移入的项目。
 - 在正常本地卷场景下，对系统返回的精确 URL验证 Finder“放回原处”；操作前核对 run UUID 前缀和文件资源标识符。
+- 使用 `rmp-test put-back-race` 的单进程 Swift 场景验证“第一次 Trash → 精确恢复 → 立即第二次 Trash”，并只对输出的第二次精确 URL进行最终 Finder 菜单检查。
 - 外接卷、iCloud/File Provider 和网络卷作为兼容性矩阵记录结果，不将所有场景设为发布阻塞项。
 
 ## 18. 可观测性与隐私

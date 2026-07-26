@@ -49,7 +49,7 @@ struct TrashAuthorizationOperations: Sendable {
       )
     },
     deviceMatchesRun: { $0 == $1 },
-    resourceIdentifier: archivedResourceIdentifier
+    resourceIdentifier: testSafetyResourceIdentifier
   )
 }
 
@@ -300,20 +300,6 @@ final class WhitelistedTrashClient {
     }
     return descriptor
   }
-}
-
-private func archivedResourceIdentifier(_ url: URL) throws -> Data? {
-  guard
-    let identifier = try url.resourceValues(forKeys: [.fileResourceIdentifierKey])
-      .fileResourceIdentifier
-  else {
-    return nil
-  }
-  if let data = identifier as? Data { return data }
-  return try NSKeyedArchiver.archivedData(
-    withRootObject: identifier,
-    requiringSecureCoding: true
-  )
 }
 
 private func isFileProviderItem(at url: URL) throws -> Bool {

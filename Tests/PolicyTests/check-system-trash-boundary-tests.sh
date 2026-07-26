@@ -29,6 +29,13 @@ EOF
 cat >"$repo/TestSupport/RMPTestSafety/WhitelistedTrashClient.swift" <<'EOF'
 let client = FinderTrashClient()
 EOF
+cat >"$repo/TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift" <<'EOF'
+let script = NSAppleScript(source: "tell application id \"com.apple.finder\"")
+let event = NSAppleEventDescriptor.list()
+EOF
+cat >"$repo/TestSupport/RMPTestSafety/PutBackRaceAcceptance.swift" <<'EOF'
+let client = WhitelistedPutBackClient(context: context)
+EOF
 cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
 let client = makeInjectedFinderTrashClient(finderDelete: spy.call)
 EOF
@@ -37,6 +44,13 @@ let client = WhitelistedTrashClient.testingOnly(
   context: context,
   authorization: authorization,
   systemTrash: spy.call
+)
+EOF
+cat >"$repo/Tests/RMPPlatformTests/PutBackRaceAcceptanceTests.swift" <<'EOF'
+let client = WhitelistedPutBackClient(
+  context: context,
+  resourceIdentifier: resourceIdentifier,
+  systemPutBack: spy.call
 )
 EOF
 cat >"$repo/TestSupport/rmp-test/main.swift" <<'EOF'
@@ -140,6 +154,17 @@ cat >"$repo/TestSupport/rmp-test/main.swift" <<'EOF'
 print("safe again")
 EOF
 
+cat >"$repo/TestSupport/RMPTestSafety/PutBackRaceAcceptance.swift" <<'EOF'
+let script = NSAppleScript(source: "return 1")
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: Finder Put Back automation escaped its isolated adapter" >&2
+  exit 1
+fi
+cat >"$repo/TestSupport/RMPTestSafety/PutBackRaceAcceptance.swift" <<'EOF'
+let client = WhitelistedPutBackClient(context: context)
+EOF
+
 cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
 let client: WhitelistedTrashClient = .testingOnly(
   context: context,
@@ -157,6 +182,14 @@ let client = FinderTrashClient()
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
   echo "test failure: Finder Trash client escaped approved production or whitelist wiring" >&2
+  exit 1
+fi
+
+cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
+let client = WhitelistedPutBackClient(context: context)
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: Finder Put Back client escaped its acceptance wiring" >&2
   exit 1
 fi
 

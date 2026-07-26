@@ -112,9 +112,10 @@ public struct FinderTrashClient: TrashClient {
 
   private static let scriptSource = """
     on trashItem(sourcePath)
+      set sourceItem to POSIX file sourcePath
       with timeout of 30 seconds
         tell application id "com.apple.finder"
-          set deletedItem to delete (POSIX file sourcePath)
+          set deletedItem to delete sourceItem
           return URL of deletedItem
         end tell
       end timeout

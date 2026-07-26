@@ -10,7 +10,11 @@ struct TestExecutableIdentityTests {
     arguments: [
       InformationCommandCase(
         argument: "--help",
-        standardOutput: "Usage: rmp-test [--test-run-id <uuid>] [--] <PATH>...\n"
+        standardOutput: """
+          Usage: rmp-test put-back-race --test-run-id <uuid>
+                 rmp-test [--test-run-id <uuid>] [--] <PATH>...
+
+          """
       ),
       InformationCommandCase(
         argument: "--version",
@@ -18,7 +22,11 @@ struct TestExecutableIdentityTests {
       ),
       InformationCommandCase(
         argument: "--help -a",
-        standardOutput: "Usage: rmp-test [--test-run-id <uuid>] [--] <PATH>...\n"
+        standardOutput: """
+          Usage: rmp-test put-back-race --test-run-id <uuid>
+                 rmp-test [--test-run-id <uuid>] [--] <PATH>...
+
+          """
       ),
     ]
   )

@@ -258,8 +258,8 @@ filesystem error prevents that rollback, the operation fails with `test-safety.r
 reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
 succeeded.
 
-`RMPPlatform.FinderTrashClient` contains the only Finder Automation capability. It invokes a fixed
-AppleScript handler with path text supplied as a structured Apple Event argument, asks Finder to
+`RMPPlatform.FinderTrashClient` contains the only production Finder Automation capability. It invokes
+a fixed AppleScript handler with path text supplied as a structured Apple Event argument, asks Finder to
 `delete` one approved top-level item, and returns that Finder item's file URL. The legacy Foundation
 `FileManager.trashItem(at:resultingItemURL:)` and failed AppKit
 `NSWorkspace.recycle(_:completionHandler:)` candidates are prohibited because issue 12 reproduced
@@ -273,6 +273,21 @@ revalidates the complete Test Safety Context and target immediately before the s
 returns read-only verification evidence. Pure tests inject Trash spies and never invoke the real
 capability. The integration runner remains separately guarded and cannot be enabled through an
 environment switch in the production executable.
+
+Issue 12's authoritative rapid Put Back acceptance lives entirely in the compile-time-isolated test
+target. `PutBackRaceAcceptance` exclusive-creates one UUID-prefixed Test Fixture, authorizes its
+identity once, performs the first Finder Trash call, restores the exact returned URL through
+`WhitelistedPutBackClient`, and immediately reuses the same identity for the second Finder Trash
+call. The sequence contains no sleep, shell script, `osascript` subprocess, or Trash name search.
+The test-only Put Back adapter revalidates the complete Test Safety Context immediately before its
+Finder call and compares the run prefix plus available file resource identifier before and after
+restore. Static policy permits its AppleScript bridge only in
+`TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift`; production cannot reference it.
+
+This real acceptance is maintainer-invoked only and is excluded from `make test`, `make check`, and
+CI. It intentionally preserves the validated Run Directory after the second Trash call so Finder's
+final Put Back destination continues to exist during human inspection. The command prints that Run
+Directory and the exact second Trash URL; retained acceptance evidence is not recursively cleaned.
 
 `RMPTestKit.PutBackMetadataScanner` and its conditionally compiled command-line probe are read-only
 investigation support. They parse caller-supplied Trash `.DS_Store` data for Finder `ptbL`/`ptbN`
@@ -297,6 +312,7 @@ make build              Build every package target in Debug
 make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
+make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint
@@ -464,16 +480,18 @@ Every pull request receives two independent conclusions:
 2. **Spec Review**: PRD, ticket acceptance criteria, behavior, and safety invariants.
 
 Agent review does not replace human approval for SafetyPolicy, WhitelistedTrashClient,
-FinderTrashClient, `rmp-test`, Git hooks, workflows, release configuration, or development
-standards.
+WhitelistedPutBackClient, FinderTrashClient, `rmp-test`, Git hooks, workflows, release
+configuration, or development standards.
 
 Repository policy also enforces the test Trash boundary statically: `NSAppleScript`, Apple Event
 descriptor construction, Finder bundle targeting, and `osascript` execution may appear only in
-`FinderTrashClient.swift`, while the legacy Foundation `trashItem` and failed Workspace `recycle`
-APIs are forbidden everywhere. `FinderTrashClient` construction is limited to production wiring,
-the whitelist wrapper, and its private platform implementation. The adapter test may obtain only an
-`any TrashClient` existential through `makeInjectedFinderTrashClient(...)`; concrete production type
-references, aliases, metatypes, and constructor references remain forbidden in all tests. The
+`FinderTrashClient.swift` and the compile-time-isolated `WhitelistedPutBackClient.swift`, while the
+legacy Foundation `trashItem` and failed Workspace `recycle` APIs are forbidden everywhere.
+`FinderTrashClient` construction is limited to production wiring, the whitelist wrapper, and its
+private platform implementation. The adapter test may obtain only an `any TrashClient` existential
+through `makeInjectedFinderTrashClient(...)`; concrete production type references, aliases,
+metatypes, and constructor references remain forbidden in all tests. The test-only Put Back wrapper
+may be referenced only by the authoritative acceptance module and its dedicated pure test. The
 injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy
 test. `make check-system-trash-boundary` runs this check directly, and `make check` includes it.
 

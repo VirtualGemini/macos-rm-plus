@@ -230,6 +230,29 @@ struct ManualPutBackRacePacingTests {
     #expect(reported == [10, 5, 4])
   }
 
+  @Test("reports the full window on the first tick despite elapsed measurement time")
+  func reportsFullWindowOnFirstTick() throws {
+    let harness = try ManualHarness()
+    defer { harness.remove() }
+    // A real clock always advances between establishing the deadline and measuring what is left.
+    var elapsed: TimeInterval = 0
+    var restored = false
+    var reported: [Int] = []
+
+    _ = try harness.makeWaiter(
+      heartbeat: { reported.append($0) },
+      timeout: 180,
+      entryProbe: { _ in restored },
+      changeResponses: [{ restored = true }],
+      now: {
+        elapsed += 0.0001
+        return elapsed
+      }
+    ).putBack(harness.firstTrashEvidence, to: harness.sourceURL)
+
+    #expect(reported.first == 180)
+  }
+
   @Test("applies the declared re-trash delay between the restore and the second Trash")
   func appliesDeclaredSettleDelay() throws {
     let harness = try ManualHarness()

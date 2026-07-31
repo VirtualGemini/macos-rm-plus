@@ -433,6 +433,45 @@ This result therefore clears the menu-level smoke gate and removes the last
 blocker to running the full differential; it does not by itself authorize
 release.
 
+### Finder candidate actual-menu differential (2026-08-01)
+
+The ticket's 30-cycle actual-menu differential, run as three `CYCLES=10` batches
+through `make test-put-back-race-manual`. Every restore was the maintainer's
+real Finder "Put Back" command; the maintainer confirmed performing ten Put Back
+actions per batch. Each batch used one Run Directory with numbered fixtures, and
+Put Back availability was judged for all ten targets after the batch completed,
+well past Finder's 2-4 second deferred write-back window.
+
+| Delay bucket | Cycles | Run ID prefix | Put Back retained on second Trash item |
+| ---: | ---: | --- | ---: |
+| 0 s | 10 | `eee49099` | **10/10** |
+| 1.5 s | 10 | `29005f37` | **10/10** |
+| 3 s | 10 | `9089241c` | **10/10** |
+| **Total** | **30** | | **30/30** |
+
+All three batches reported `completed-cycles=10/10` and exited 0, and every Run
+Directory ended holding only its marker, confirming all thirty fixtures reached
+the Trash. In each of the thirty cycles the adapter verified before proceeding
+that Put Back returned the fixture to its exact original path and that the file
+resource identifier was unchanged across trash, restore, and re-trash. Only a
+genuine Put Back returns the same inode to that exact path, so a cycle could not
+have completed without one.
+
+Comparison with the recorded baselines for the same flow:
+
+| Implementation | Harness | Second-item Put Back retained |
+| --- | --- | ---: |
+| Foundation `trashItem` | home Trash, real menu (E6) | roughly 10% |
+| Foundation `trashItem` | scratch volume, Apple Event restore | 0/30 |
+| `NSWorkspace.recycle` | scratch volume, Apple Event restore | 0/30 |
+| **Finder `delete`** | **home Trash, real menu** | **30/30** |
+
+This satisfies the ticket's actual-menu differential. It does not by itself
+authorize release: all thirty cycles used one host, one local volume, and one
+ordinary small file. The platform acceptance set below still requires
+directories, symbolic links, broken symbolic links, duplicate Trash names, and
+path text containing quotes and newlines.
+
 ### Finder candidate acceptance
 
 1. From a reset/undetermined Automation state, run one disposable candidate
@@ -463,8 +502,12 @@ release.
 - [x] Run `make test-put-back-race-manual` and record whether Finder offers Put
       Back for its exact second Trash URL. Recorded 2026-07-31: 3/3 retained
       across the 0, 1.5, and 3 second buckets.
-- [ ] Repeat that manual scenario for the full 30 cycles (10 per bucket) to
-      satisfy the release differential; 3 rounds is a smoke gate, not the gate.
+- [x] Repeat that manual scenario for the full 30 cycles (10 per bucket).
+      Recorded 2026-08-01: 30/30 retained.
+- [ ] Extend the differential to the platform acceptance set: directories,
+      symbolic links, broken symbolic links, duplicate Trash names, and path
+      text containing quotes and newlines. All 30 cycles so far used one
+      ordinary small file on one local volume.
 - [ ] Grant the invoking terminal Full Disk Access, restart it, then run
       `make test-put-back-race` and record the same outcome for the scripted
       restore. A differing result between the two variants would isolate an
@@ -501,6 +544,14 @@ tradeoff, retained the existing candidate branch, rejected Workspace recycling,
 and authorized continued implementation of Finder-delegated deletion. The
 ticket is `ready-for-human` until the Automation and real Put Back acceptance
 rounds above are recorded.
+
+2026-08-01 — The 30-cycle actual-menu differential passed 30/30 across the 0,
+1.5, and 3 second buckets. Against the roughly 10% retention recorded for the
+Foundation client in the same flow, and 0/30 for both Foundation and Workspace
+in the instrumented harness, Finder-delegated deletion is established as the fix
+for this defect. The ticket stays `ready-for-human`: the differential covered
+only ordinary small files on one local volume, so the platform acceptance set
+and the Feedback Assistant report remain open.
 
 2026-07-31 — The authoritative scenario ran end to end for the first time with
 the maintainer's real Finder Put Back command. Put Back survived on the second

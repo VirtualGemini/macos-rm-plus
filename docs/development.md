@@ -294,7 +294,10 @@ the context and resource identifier, and only then fires the second Trash call. 
 by the vnode event rather than a timer; a bounded wait slice only backstops a missed notification.
 The manual variant is the menu-level authority, since production `rmp` needs Automation but never
 Full Disk Access. While it waits it prints the remaining window to stdout once every five seconds
-and for each of the final five, so a terminal shows a live countdown.
+and for each of the final five, so a terminal shows a live countdown. The first tick reports the
+full declared timeout: the remaining window is rounded up, because the clock has already advanced a
+fraction by the time it is measured and rounding down would skip straight to the next multiple of
+five.
 
 `SETTLE_SECONDS` (0-60, default 0) declares the ticket's re-trash delay bucket between the observed
 restore and the second Trash call. It is an explicit experiment parameter, not an implicit wait: the

@@ -115,7 +115,10 @@ struct ManualPutBackWaiter {
           message: "Finder Put Back was not observed before the manual acceptance deadline."
         )
       }
-      let whole = Int(remaining.rounded(.down))
+      // Rounding up keeps the very first tick on the declared timeout: the clock has already
+      // advanced a fraction by the time the window is measured, so rounding down would report
+      // 179 for a 180 second window and skip every multiple-of-five tick until 175.
+      let whole = Int(remaining.rounded(.up))
       if whole != lastReported, whole <= 5 || whole.isMultiple(of: 5) {
         heartbeat(whole)
         lastReported = whole

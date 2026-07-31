@@ -45,6 +45,13 @@ adapter back to the same revalidated Run Directory, verifies the available resou
 is unreachable from production wiring. The rapid acceptance orchestration and its fake adapter share
 the `PutBackRaceAcceptance` Interface; ordinary unit tests never invoke Finder.
 
+The same Interface serves a second restore variant that carries no Finder capability at all.
+`ManualPutBackWaiter` observes the authorized Run Directory through a kqueue-backed dispatch source
+and waits for the maintainer's real Finder Put Back command before the sequence fires its second
+Trash call. Keeping both variants behind one orchestration Interface proves the sequence contract
+once, while the scripted restore's Full Disk Access requirement stays confined to the only variant
+that reads the home Trash.
+
 Issue 12 demonstrated that Finder can overwrite Put Back metadata written by both Foundation and
 Workspace callers during a rapid same-name re-trash. The maintainer accepted the first-use macOS
 Automation authorization cost so Finder can be the writer for the second Trash Operation. The

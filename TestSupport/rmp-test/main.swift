@@ -16,6 +16,7 @@ private enum RMPTestEntrypoint {
         Data(
           """
           Usage: rmp-test put-back-race --test-run-id <uuid>
+                 rmp-test put-back-race-manual --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           """.utf8
@@ -28,7 +29,10 @@ private enum RMPTestEntrypoint {
       exit(0)
     }
     if arguments.first == "put-back-race" {
-      executePutBackRace(arguments: Array(arguments.dropFirst()))
+      executePutBackRace(arguments: Array(arguments.dropFirst()), restore: .finderScript)
+    }
+    if arguments.first == "put-back-race-manual" {
+      executePutBackRace(arguments: Array(arguments.dropFirst()), restore: .manualFinderMenu)
     }
 
     let result = TestSafetyDriver.runWithInjectedRuntime(arguments: arguments) {
@@ -45,7 +49,29 @@ private enum RMPTestEntrypoint {
     exit(result.exitCode)
   }
 
-  private static func executePutBackRace(arguments: [String]) -> Never {
+  private enum PutBackRaceRestore {
+    case finderScript
+    case manualFinderMenu
+
+    var scenarioName: String {
+      switch self {
+      case .finderScript: "put-back-race"
+      case .manualFinderMenu: "put-back-race-manual"
+      }
+    }
+
+    var restoreDescription: String {
+      switch self {
+      case .finderScript: "finder-apple-event-move"
+      case .manualFinderMenu: "maintainer-finder-put-back-command"
+      }
+    }
+  }
+
+  private static func executePutBackRace(
+    arguments: [String],
+    restore: PutBackRaceRestore
+  ) -> Never {
     let result = TestSafetyDriver.runWithInjectedRuntime(
       arguments: arguments,
       cleanupPolicy: .preserveRunDirectory
@@ -55,14 +81,14 @@ private enum RMPTestEntrypoint {
       guard paths.isEmpty else {
         throw TestSafetyDiagnostic(
           code: .invalidCommandArguments,
-          message: "put-back-race creates its own Test Fixture and accepts no paths."
+          message: "\(restore.scenarioName) creates its own Test Fixture and accepts no paths."
         )
       }
-      let report = try PutBackRaceAcceptance.run(context: context)
+      let report = try runScenario(restore, context: context)
       let output = """
         rmp-test build=RMP_TESTING
         run=\(context.runID.uuidString.lowercased())
-        scenario=put-back-race
+        scenario=\(restore.scenarioName)
         status=complete
         first-trash=\(report.firstTrashURL.path)
         restored=\(report.restoredURL.path)
@@ -70,6 +96,7 @@ private enum RMPTestEntrypoint {
         run-directory=\(context.runDirectoryURL.path)
         manual-check=Open Finder Trash now and verify Put Back is available.
         manual-target=\(report.secondTrashURL.lastPathComponent)
+        restore-method=\(restore.restoreDescription)
 
         """
       FileHandle.standardOutput.write(Data(output.utf8))
@@ -79,6 +106,20 @@ private enum RMPTestEntrypoint {
       FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
     }
     exit(result.exitCode)
+  }
+
+  private static func runScenario(
+    _ restore: PutBackRaceRestore,
+    context: TestSafetyContext
+  ) throws -> PutBackRaceReport {
+    switch restore {
+    case .finderScript:
+      return try PutBackRaceAcceptance.run(context: context)
+    case .manualFinderMenu:
+      return try PutBackRaceAcceptance.runManual(context: context) { message in
+        FileHandle.standardOutput.write(Data("\(message)\n".utf8))
+      }
+    }
   }
 
   private static func currentRuntime() throws -> TestSafetyRuntime {

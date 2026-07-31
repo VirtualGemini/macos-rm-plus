@@ -339,21 +339,55 @@ The corrected candidate was exercised from the intended Ghostty host:
   differential.
 
 An attempted temporary one-shot harness split the restore into an `osascript`
-process. That process was a different Automation sender and failed with Finder
-error `-5000`, so it is not valid acceptance evidence. The authoritative race
-scenario is now a single compile-time-isolated Swift process under `rmp-test`:
+process and failed with Finder error `-5000`. That failure was initially
+attributed to the second Automation sender; the 2026-07-26 live run recorded
+below disproves that attribution. The authoritative race scenario is a single
+compile-time-isolated Swift process under `rmp-test`, in two restore variants:
 
 ```sh
 make test-put-back-race TEST_RUN_ID=<canonical-lowercase-uuid>
+make test-put-back-race-manual TEST_RUN_ID=<canonical-lowercase-uuid>
 ```
 
-`PutBackRaceAcceptance` exclusive-creates one UUID-prefixed Test Fixture,
-performs the first whitelisted Finder Trash call, restores the exact returned
-URL and resource identity through `WhitelistedPutBackClient`, and immediately
-reuses the original planned identity for the second Trash call. It has no
-sleep, shell harness, `osascript` subprocess, or Trash name search. The command
-prints the exact second Trash URL and preserves the validated Run Directory for
-the maintainer's final Finder menu check.
+Both variants exclusive-create one UUID-prefixed Test Fixture, perform the
+first whitelisted Finder Trash call, and immediately reuse the original planned
+identity for the second Trash call. Neither has a sleep, shell harness,
+`osascript` subprocess, or Trash name search. They differ only in the restore
+step: `put-back-race` moves the exact returned URL through
+`WhitelistedPutBackClient`, while `put-back-race-manual` carries no Finder Put
+Back capability and instead waits for the maintainer's real Put Back command,
+observing the authorized Run Directory through a kqueue-backed dispatch source.
+Each command prints the exact second Trash URL and preserves the validated Run
+Directory for the maintainer's final Finder menu check.
+
+### Home Trash TCC constraint (2026-07-26)
+
+A live `make test-put-back-race` run from the approved Ghostty host completed
+the first Finder Trash call and then failed closed with
+`test-safety.put-back-system-call-failed` and Apple Event error `-5000`.
+
+The cause is the home Trash TCC boundary, not the Automation sender:
+
+- `ls ~/.Trash` and a read of `~/Library/Application Support/com.apple.TCC/TCC.db`
+  both returned `Operation not permitted` for the invoking process.
+- The same sender's Finder Apple Event `move` between two unprotected
+  directories succeeded and returned the moved item's POSIX path.
+- `/Applications/Ghostty.app` is listed for Full Disk Access, but the running
+  process had been alive for 45 days and predates the grant. Full Disk Access
+  applies only to processes started after the entry is enabled.
+
+This invalidates the earlier "different Automation sender" inference for
+`-5000`. Production `rmp` is unaffected: it only asks Finder to `delete`, which
+needs Automation but not Full Disk Access. Only the scripted restore in the
+test harness reads from `~/.Trash`.
+
+Consequences for acceptance:
+
+- `put-back-race` requires the invoking terminal to hold Full Disk Access and
+  to have been restarted after the grant.
+- `put-back-race-manual` requires no additional permission and exercises the
+  actual Finder Put Back command, closing the evidence gap recorded under
+  "Limitations and open evidence gaps" above.
 
 ### Finder candidate acceptance
 
@@ -382,8 +416,13 @@ the maintainer's final Finder menu check.
 - [x] Reject the Workspace candidate and authorize a Finder-delegated design.
 - [x] Retain `fix/12-put-back-metadata-race` for the Finder candidate.
 - [x] Run and record the Finder Automation authorization/denial acceptance.
-- [ ] Run the single-process Swift rapid Put Back acceptance and record whether
-      Finder offers Put Back for its exact second Trash URL.
+- [ ] Run `make test-put-back-race-manual` and record whether Finder offers Put
+      Back for its exact second Trash URL. This variant needs no Full Disk
+      Access and uses the real Put Back command.
+- [ ] Grant the invoking terminal Full Disk Access, restart it, then run
+      `make test-put-back-race` and record the same outcome for the scripted
+      restore. A differing result between the two variants would isolate an
+      Apple Event versus menu discrepancy.
 - [ ] Run and record the Finder candidate automated metadata differential.
 - [ ] Run and record the Finder candidate actual-menu differential.
 - [ ] If the maintainer wants to investigate a possible Apple Event versus menu
@@ -416,6 +455,14 @@ tradeoff, retained the existing candidate branch, rejected Workspace recycling,
 and authorized continued implementation of Finder-delegated deletion. The
 ticket is `ready-for-human` until the Automation and real Put Back acceptance
 rounds above are recorded.
+
+2026-07-26 — A live scripted-restore run failed with Apple Event `-5000`. The
+recorded cause is the home Trash TCC boundary rather than a second Automation
+sender, correcting the earlier inference; see the constraint section above. A
+second maintainer-invoked variant, `put-back-race-manual`, was added. It holds
+no Finder Put Back capability, needs no Full Disk Access, and waits for the
+real Put Back command through a kqueue-backed dispatch source before firing the
+second Trash call.
 
 2026-07-26 — The real handler's `POSIX file` scope defect was corrected after a
 live `-1728` failure. Ghostty denial, approval, and same-host authorization reuse

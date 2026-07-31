@@ -14,6 +14,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Resolve the AppleScript file specification outside Finder's `tell` block so approved paths reach
   Finder correctly, and add a compile-time-isolated Swift acceptance that performs first Trash,
   exact Put Back, and immediate second Trash in one process for issue 12's manual Finder check.
+- Add a second maintainer-only acceptance variant that holds no Finder Put Back capability and needs
+  no Full Disk Access: it waits for the real Finder Put Back command through a kqueue-backed
+  dispatch source over the authorized Run Directory, then fires the second Trash from that event.
 - Report Finder Automation consent, denial, timeout, and availability failures with stable,
   actionable codes; release remains gated on issue 12's permission and real Put Back acceptance.
 - Keep Finder Automation in one reviewed adapter by rejecting direct AppleScript, Apple Event,

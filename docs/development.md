@@ -284,10 +284,22 @@ Finder call and compares the run prefix plus available file resource identifier 
 restore. Static policy permits its AppleScript bridge only in
 `TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift`; production cannot reference it.
 
-This real acceptance is maintainer-invoked only and is excluded from `make test`, `make check`, and
-CI. It intentionally preserves the validated Run Directory after the second Trash call so Finder's
-final Put Back destination continues to exist during human inspection. The command prints that Run
-Directory and the exact second Trash URL; retained acceptance evidence is not recursively cleaned.
+The restore step has two variants sharing that one sequence. `put-back-race` scripts the move
+through `WhitelistedPutBackClient`; because it reads `~/.Trash` it requires the invoking terminal to
+hold Full Disk Access *and* to have been started after that grant, otherwise Finder fails closed with
+Apple Event `-5000`. `put-back-race-manual` holds no Finder Put Back capability and needs no extra
+permission: it confirms the original path is empty, then waits for the maintainer's real Finder Put
+Back command through a kqueue-backed dispatch source over the authorized Run Directory, revalidates
+the context and resource identifier, and only then fires the second Trash call. Detection is driven
+by the vnode event rather than a timer; a bounded wait slice only backstops a missed notification.
+The manual variant is the menu-level authority, since production `rmp` needs Automation but never
+Full Disk Access.
+
+These real acceptances are maintainer-invoked only and are excluded from `make test`, `make check`,
+and CI. They intentionally preserve the validated Run Directory after the second Trash call so
+Finder's final Put Back destination continues to exist during human inspection. Each command prints
+that Run Directory and the exact second Trash URL; retained acceptance evidence is not recursively
+cleaned.
 
 `RMPTestKit.PutBackMetadataScanner` and its conditionally compiled command-line probe are read-only
 investigation support. They parse caller-supplied Trash `.DS_Store` data for Finder `ptbL`/`ptbN`
@@ -313,6 +325,7 @@ make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
 make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
+make test-put-back-race-manual TEST_RUN_ID=<uuid> Same sequence, restored by the real Put Back
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

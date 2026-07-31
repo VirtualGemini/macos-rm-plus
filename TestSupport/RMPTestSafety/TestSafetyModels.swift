@@ -106,6 +106,7 @@ enum TestSafetyDiagnosticCode: String, Sendable {
   case markerWrongType = "test-safety.marker-wrong-type"
   case missingRunID = "test-safety.missing-run-id"
   case putBackEvidenceMismatch = "test-safety.put-back-evidence-mismatch"
+  case putBackManualTimeout = "test-safety.put-back-manual-timeout"
   case putBackSourceOccupied = "test-safety.put-back-source-occupied"
   case putBackSystemCallFailed = "test-safety.put-back-system-call-failed"
   case rootExecution = "test-safety.root-execution"

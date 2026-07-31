@@ -636,12 +636,26 @@ FR-TEST-028：issue 12 的快速同名 Put Back 验收必须由 `rmp-test` 在�
 
 1. exclusive-create 一个带当前 run UUID 前缀的 Test Fixture；
 2. 通过 `WhitelistedTrashClient` 第一次移入废纸篓并保留精确回执；
-3. 通过 `WhitelistedPutBackClient` 将该精确 URL 恢复到同一 Run Directory；
+3. 按 FR-TEST-029 将该文件恢复到同一 Run Directory 的原路径；
 4. 不插入 `sleep`、对话轮次、shell 脚本或 `osascript` 子进程，复用第一次规划的文件身份立即执行第二次 Trash；
 5. 输出第二次系统返回的精确 URL，并保留已验证 Run Directory 供维护者在 Finder 中检查最终“放回原处”。
 
 该场景不得在第二次 Trash 前后按名称枚举废纸篓。普通 `make test`、`make check` 和 CI 不得调用它；
 只有维护者显式运行真实验收命令时才允许触发 Finder Automation。
+
+FR-TEST-029：第 3 步的恢复必须提供两个变体。二者共用同一条顺序契约，只在恢复手段上不同：
+
+1. `put-back-race`：通过 `WhitelistedPutBackClient` 用第一次返回的精确 URL 恢复。该变体需要读取
+   `~/.Trash`，因此要求调用终端持有完全磁盘访问权限，并且该进程必须在授权生效之后才启动；否则
+   Finder 返回 Apple Event `-5000`，此时必须 fail-closed，不得改用其它 API 移动文件。
+2. `put-back-race-manual`：不得持有任何 Finder Put Back 能力，也不得请求额外权限。它只观察已授权
+   的 Run Directory，等待维护者在 Finder 中执行真实的“放回原处”命令。
+
+手动变体必须在开始等待前确认原路径为空；若第一次 Trash 并未真正移走文件，必须立即以
+`test-safety.put-back-source-occupied` 失败，不得把该状态误判为瞬间恢复。等待必须由内核 vnode 事件
+驱动（kqueue 支持的 dispatch source），不得以定时轮询作为主要检测手段；单次内核等待可设上限片，
+仅用于兜底遗漏通知。观察到恢复后必须重新验证完整测试安全上下文并比对资源标识符，然后才允许执行
+第二次 Trash。超过截止时间必须以 `test-safety.put-back-manual-timeout` fail-closed。
 
 #### 17.1.3 断言与不可省略的安全检查
 
@@ -724,6 +738,7 @@ guard isInsideAuthorizedTestRoot(url) else {
 - Finder 能看到由 rmp 移入的项目。
 - 在正常本地卷场景下，对系统返回的精确 URL验证 Finder“放回原处”；操作前核对 run UUID 前缀和文件资源标识符。
 - 使用 `rmp-test put-back-race` 的单进程 Swift 场景验证“第一次 Trash → 精确恢复 → 立即第二次 Trash”，并只对输出的第二次精确 URL进行最终 Finder 菜单检查。
+- 使用 `rmp-test put-back-race-manual` 以维护者真实的“放回原处”命令完成同一条顺序契约；该变体无需完全磁盘访问权限，是菜单级差分的权威入口。
 - 外接卷、iCloud/File Provider 和网络卷作为兼容性矩阵记录结果，不将所有场景设为发布阻塞项。
 
 ## 18. 可观测性与隐私

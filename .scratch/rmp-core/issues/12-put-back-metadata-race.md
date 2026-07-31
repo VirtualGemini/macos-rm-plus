@@ -396,6 +396,43 @@ Consequences for acceptance:
   actual Finder Put Back command, closing the evidence gap recorded under
   "Limitations and open evidence gaps" above.
 
+### Real Put Back menu acceptance (2026-07-31)
+
+First successful end-to-end run of the authoritative scenario. The maintainer
+performed the actual Finder "Put Back" command; `rmp-test` detected the restore
+through the kqueue-backed dispatch source and re-trashed from that event. Put
+Back availability was judged at least 10 seconds after the second Trash call,
+outside Finder's 2-4 second deferred write-back window. Home Trash was emptied
+first, so the only item present was the run's own fixture.
+
+| Round | `SETTLE_SECONDS` | Run ID prefix | Restore verified to exact original path | Put Back on second Trash item |
+| --- | ---: | --- | --- | --- |
+| 1B | 0 | `93101e0b` | yes | **present** |
+| 2 | 1.5 | `b3fc266c` | yes | **present** |
+| 3 | 3 | `b5a39cfd` | yes | **present** |
+
+All rounds exited 0 with `status=complete` and
+`restore-method=maintainer-finder-put-back-command`. In every round the adapter
+independently verified, before printing any result, that Put Back returned the
+fixture to the exact Run Directory path and that the file resource identifier
+was unchanged across trash, restore, and re-trash; a mismatch would have failed
+closed instead.
+
+An earlier round 1 attempt at the same 0-second bucket is excluded: the
+maintainer read the menu 1-2 seconds after the second Trash, inside the deferred
+write-back window, so its "Put Back present" observation is a false positive by
+construction. That discarded attempt did confirm the entry was functional, since
+the accidental click restored the fixture correctly to its original path.
+
+Interpretation. The matched control for this scenario is E6: production `rmp`
+through the Foundation client, home Trash, real Put Back, same-name re-trash,
+which lost Put Back roughly 90% of the time. Against that control, 3/3 retention
+is meaningful but small-n; it is not the ticket's 30-cycle differential and does
+not replace it. The rounds also share one host, one volume, and one file shape.
+This result therefore clears the menu-level smoke gate and removes the last
+blocker to running the full differential; it does not by itself authorize
+release.
+
 ### Finder candidate acceptance
 
 1. From a reset/undetermined Automation state, run one disposable candidate
@@ -423,9 +460,11 @@ Consequences for acceptance:
 - [x] Reject the Workspace candidate and authorize a Finder-delegated design.
 - [x] Retain `fix/12-put-back-metadata-race` for the Finder candidate.
 - [x] Run and record the Finder Automation authorization/denial acceptance.
-- [ ] Run `make test-put-back-race-manual` and record whether Finder offers Put
-      Back for its exact second Trash URL. This variant needs no Full Disk
-      Access and uses the real Put Back command.
+- [x] Run `make test-put-back-race-manual` and record whether Finder offers Put
+      Back for its exact second Trash URL. Recorded 2026-07-31: 3/3 retained
+      across the 0, 1.5, and 3 second buckets.
+- [ ] Repeat that manual scenario for the full 30 cycles (10 per bucket) to
+      satisfy the release differential; 3 rounds is a smoke gate, not the gate.
 - [ ] Grant the invoking terminal Full Disk Access, restart it, then run
       `make test-put-back-race` and record the same outcome for the scripted
       restore. A differing result between the two variants would isolate an
@@ -462,6 +501,14 @@ tradeoff, retained the existing candidate branch, rejected Workspace recycling,
 and authorized continued implementation of Finder-delegated deletion. The
 ticket is `ready-for-human` until the Automation and real Put Back acceptance
 rounds above are recorded.
+
+2026-07-31 — The authoritative scenario ran end to end for the first time with
+the maintainer's real Finder Put Back command. Put Back survived on the second
+Trash item in all three delay buckets, judged outside the deferred write-back
+window. Against E6's roughly 90% loss rate for the Foundation client in the same
+flow, this is the first direct evidence that Finder-delegated deletion fixes the
+reported defect. The ticket stays `ready-for-human`: the 30-cycle differential
+and the Feedback Assistant report remain open.
 
 2026-07-26 — A live scripted-restore run failed with Apple Event `-5000`. The
 recorded cause is the home Trash TCC boundary rather than a second Automation

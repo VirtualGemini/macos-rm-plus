@@ -505,6 +505,80 @@ ordinary small file. The platform acceptance set below still requires
 directories, symbolic links, broken symbolic links, duplicate Trash names, and
 path text containing quotes and newlines.
 
+### Symbolic links cannot be Finder-delegated (2026-08-01)
+
+Found while extending the acceptance set beyond ordinary files. This is a
+regression introduced by the Finder-delegated fix, not a pre-existing defect.
+
+**Finder refuses to trash a symbolic link over Apple Events.** The first
+acceptance cycle failed closed with `test-safety.trash-system-call-failed`,
+leaving both the link and its target untouched. Four reference forms were tried
+against a freshly created valid symlink in an unprotected directory:
+
+| AppleScript reference form | Result |
+| --- | --- |
+| `POSIX file p` (production handler) | `-5000` |
+| `item (POSIX file p)` | `-5000` |
+| `item "name" of folder <parent>` | `-5000` |
+| `alias file "name" of folder <parent>` | `-5000` |
+
+A regular file in the same directory deleted normally in the same session, so
+this is specific to symbolic links rather than to the location or the sender.
+`move ... to trash` fails identically to `delete`. Finder also surfaces a modal
+dialog ("无法完成此操作，因为你没有访问一些项目的许可"), which is why one round
+returned `-1712` (Apple Event timeout) instead: the handler's 30-second timeout
+expired while Finder waited on a human. For a user this means `rmp <symlink>`
+shows a confusing Finder dialog, hangs for 30 seconds, then fails.
+
+Mechanism: Finder resolves the POSIX symlink to its target before acting.
+Asking for `name` of the link produced an error naming the *target's* path, and
+`original item` of the link resolved to `document file "<target>"`. The earlier
+ADR claim that the handler "preserves broken-symbolic-link semantics" is
+therefore incorrect.
+
+Unresolved variable: the invoking process lacks Full Disk Access, and at least
+one Apple Developer Forums report ties Finder permission errors to FDA on the
+scripting host. This cannot be separated without restarting the terminal. It
+does not change the product conclusion: FDA is granted to the terminal, not to
+`rmp`, and requiring every user to grant their terminal Full Disk Access is a
+far larger privilege than `rmp` needs.
+
+**Foundation handles symbolic links correctly but keeps the defect.** A
+throwaway diagnostic (not checked in) trashed a symlink through
+`FileManager.trashItem`: the link itself moved to the Trash and its target
+stayed in place. Restoring it with the real Put Back command and immediately
+re-trashing it lost the Put Back entry, judged past the deferred write-back
+window. Symbolic links suffer this ticket's race exactly like regular files.
+
+| Path | Deletes a symlink | Put Back survives a fast re-trash |
+| --- | --- | --- |
+| Finder delegation | no — dialog, 30 s hang, failure | n/a |
+| Foundation `trashItem` | yes — link moved, target intact | **no** |
+
+Neither path gives symbolic links Finder-grade recoverability. That is a macOS
+constraint, not an implementation choice: Finder will not touch the link, and
+anything that bypasses Finder re-enters the metadata race.
+
+#### Recorded remediation direction (not implemented)
+
+The maintainer selected dispatch-by-type on 2026-08-01, on the grounds that
+"deletes, with a metadata limitation" is strictly better than "shows an
+inexplicable dialog, hangs, then fails". Implementation is deliberately deferred
+until the rest of the acceptance set has been measured.
+
+- Route symbolic links through a Foundation client and everything else through
+  Finder, deciding by `lstat` rather than by any resolved path.
+- Confine `FileManager.trashItem` to that one new file. The static boundary
+  script currently forbids it everywhere and must be narrowed rather than
+  relaxed, and the new client must itself refuse any target that is not a
+  symbolic link.
+- A new ADR records that "Finder is the single `.DS_Store` writer" no longer
+  holds for symbolic links, and why no alternative was available.
+- README, `docs/help.md`, and this ticket carry the known limitation: a symbolic
+  link re-trashed shortly after a Put Back can lose its Put Back entry.
+- Issue 12's conclusion splits: fixed for ordinary files and directories,
+  constrained by macOS for symbolic links.
+
 ### Finder candidate acceptance
 
 1. From a reset/undetermined Automation state, run one disposable candidate

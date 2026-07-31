@@ -339,7 +339,8 @@ struct PutBackRaceAcceptanceSequenceTests {
           sourceURL: sourceURL,
           firstTrashURL: firstTrashURL,
           restoredURL: sourceURL,
-          secondTrashURL: secondTrashURL
+          secondTrashURL: secondTrashURL,
+          settleSeconds: 0
         )
     )
   }

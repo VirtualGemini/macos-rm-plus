@@ -79,8 +79,11 @@ test-integration:
 test-put-back-race:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race --test-run-id "$(TEST_RUN_ID)"
 
+SETTLE_SECONDS ?= 0
+
 test-put-back-race-manual:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual --test-run-id "$(TEST_RUN_ID)"
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
+		--settle-seconds "$(SETTLE_SECONDS)" --test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:
 	./scripts/check-spdx.sh

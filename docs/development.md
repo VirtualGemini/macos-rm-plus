@@ -293,7 +293,16 @@ Back command through a kqueue-backed dispatch source over the authorized Run Dir
 the context and resource identifier, and only then fires the second Trash call. Detection is driven
 by the vnode event rather than a timer; a bounded wait slice only backstops a missed notification.
 The manual variant is the menu-level authority, since production `rmp` needs Automation but never
-Full Disk Access.
+Full Disk Access. While it waits it prints the remaining window to stdout once every five seconds
+and for each of the final five, so a terminal shows a live countdown.
+
+`SETTLE_SECONDS` (0-60, default 0) declares the ticket's re-trash delay bucket between the observed
+restore and the second Trash call. It is an explicit experiment parameter, not an implicit wait: the
+default performs no sleep, and the value that actually applied is echoed as `settle-seconds=` beside
+the result so every evidence line is traceable to its bucket. Because Finder's deferred write-back
+window is roughly 2-4 seconds, the printed protocol requires waiting at least 5 seconds after the
+second Trash before judging whether Put Back survived; judging inside that window yields false
+positives.
 
 These real acceptances are maintainer-invoked only and are excluded from `make test`, `make check`,
 and CI. They intentionally preserve the validated Run Directory after the second Trash call so
@@ -325,7 +334,7 @@ make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
 make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
-make test-put-back-race-manual TEST_RUN_ID=<uuid> Same sequence, restored by the real Put Back
+make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=<n>] Same sequence, real Put Back
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

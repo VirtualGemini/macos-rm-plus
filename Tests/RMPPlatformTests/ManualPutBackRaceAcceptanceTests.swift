@@ -205,6 +205,98 @@ struct ManualPutBackRaceAcceptanceTests {
   }
 }
 
+@Suite("Manual Put Back race pacing", .serialized)
+struct ManualPutBackRacePacingTests {
+  @Test("reports the remaining window every five seconds and each of the final five")
+  func reportsCountdownWindow() throws {
+    let harness = try ManualHarness()
+    defer { harness.remove() }
+    var elapsed: TimeInterval = 0
+    var restored = false
+    var reported: [Int] = []
+    let advanceOneSecond = {
+      elapsed += 1
+      if elapsed >= 9 { restored = true }
+    }
+
+    _ = try harness.makeWaiter(
+      heartbeat: { reported.append($0) },
+      timeout: 12,
+      entryProbe: { _ in restored },
+      changeResponses: Array(repeating: advanceOneSecond, count: 9),
+      now: { elapsed }
+    ).putBack(harness.firstTrashEvidence, to: harness.sourceURL)
+
+    #expect(reported == [10, 5, 4])
+  }
+
+  @Test("applies the declared re-trash delay between the restore and the second Trash")
+  func appliesDeclaredSettleDelay() throws {
+    let harness = try ManualHarness()
+    defer { harness.remove() }
+    var events: [String] = []
+    var restored = false
+    var trashEvidence = [
+      harness.firstTrashEvidence,
+      TrashVerificationEvidence(
+        returnedURL: URL(fileURLWithPath: "/Trash/second-put-back-race"),
+        resourceIdentifier: harness.resourceIdentifier
+      ),
+    ]
+    let observePutBack = { restored = true }
+    let waiter = harness.makeWaiter(
+      entryProbe: { _ in restored },
+      changeResponses: [observePutBack]
+    )
+    let operations = PutBackRaceOperations(
+      prepare: { _ in
+        PutBackRaceTrashSession(sourceURL: harness.sourceURL) {
+          let evidence = trashEvidence.removeFirst()
+          events.append("trash:\(evidence.returnedURL.lastPathComponent)")
+          return evidence
+        }
+      },
+      putBack: waiter.putBack,
+      settle: { seconds in events.append("settle:\(seconds)") },
+      settleSeconds: 1.5
+    )
+
+    let report = try PutBackRaceAcceptance.run(context: harness.context, operations: operations)
+
+    #expect(
+      events == ["trash:first-put-back-race", "settle:1.5", "trash:second-put-back-race"]
+    )
+    #expect(report.settleSeconds == 1.5)
+  }
+
+  @Test("performs no wait at all when no delay bucket is declared")
+  func performsNoWaitByDefault() throws {
+    let harness = try ManualHarness()
+    defer { harness.remove() }
+    var settleCalls: [TimeInterval] = []
+    var restored = false
+    var trashEvidence = [harness.firstTrashEvidence, harness.firstTrashEvidence]
+    let waiter = harness.makeWaiter(
+      entryProbe: { _ in restored },
+      changeResponses: [{ restored = true }]
+    )
+
+    let report = try PutBackRaceAcceptance.run(
+      context: harness.context,
+      operations: PutBackRaceOperations(
+        prepare: { _ in
+          PutBackRaceTrashSession(sourceURL: harness.sourceURL) { trashEvidence.removeFirst() }
+        },
+        putBack: waiter.putBack,
+        settle: { settleCalls.append($0) }
+      )
+    )
+
+    #expect(settleCalls == [0])
+    #expect(report.settleSeconds == 0)
+  }
+}
+
 /// Builds an authorized context whose Test Fixture has already been moved away, mirroring the
 /// state right after the first real Trash call.
 private struct ManualHarness {
@@ -234,6 +326,8 @@ private struct ManualHarness {
 
   func makeWaiter(
     announce: @escaping (String) -> Void = { _ in },
+    heartbeat: @escaping (Int) -> Void = { _ in },
+    timeout: TimeInterval = ManualPutBackWaiter.defaultTimeout,
     resourceIdentifier: ((URL) throws -> Data?)? = nil,
     entryProbe: @escaping (String) throws -> Bool,
     changeResponses: [() -> Void],
@@ -244,6 +338,8 @@ private struct ManualHarness {
     return ManualPutBackWaiter(
       context: context,
       announce: announce,
+      heartbeat: heartbeat,
+      timeout: timeout,
       resourceIdentifier: resourceIdentifier ?? { _ in identity },
       entryProbe: entryProbe,
       makeWatch: {

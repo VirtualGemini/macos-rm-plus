@@ -346,8 +346,15 @@ compile-time-isolated Swift process under `rmp-test`, in two restore variants:
 
 ```sh
 make test-put-back-race TEST_RUN_ID=<canonical-lowercase-uuid>
-make test-put-back-race-manual TEST_RUN_ID=<canonical-lowercase-uuid>
+make test-put-back-race-manual TEST_RUN_ID=<canonical-lowercase-uuid> SETTLE_SECONDS=0
 ```
+
+`SETTLE_SECONDS` declares this ticket's 0 / 1.5 / 3 second re-trash bucket between the
+observed restore and the second Trash call, and the applied value is echoed as
+`settle-seconds=` beside each result. Judge Put Back only after waiting at least
+5 seconds past the second Trash: Finder's deferred write-back window is roughly
+2-4 seconds, so an earlier check can report a record that has not been clobbered
+yet.
 
 Both variants exclusive-create one UUID-prefixed Test Fixture, perform the
 first whitelisted Finder Trash call, and immediately reuse the original planned

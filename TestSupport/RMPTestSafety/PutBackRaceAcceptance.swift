@@ -19,6 +19,10 @@ struct PutBackRaceOperations {
       _ evidence: TrashVerificationEvidence,
       _ expectedSourceURL: URL
     ) throws -> PutBackVerificationEvidence
+  /// The ticket's declared re-trash delay bucket, applied between the observed restore and the
+  /// second Trash call. The default performs no wait at all.
+  var settle: (TimeInterval) throws -> Void = { _ in }
+  var settleSeconds: TimeInterval = 0
 }
 
 struct PutBackRaceReport: Equatable, Sendable {
@@ -26,6 +30,7 @@ struct PutBackRaceReport: Equatable, Sendable {
   let firstTrashURL: URL
   let restoredURL: URL
   let secondTrashURL: URL
+  let settleSeconds: TimeInterval
 }
 
 enum PutBackRaceAcceptance {
@@ -42,12 +47,23 @@ enum PutBackRaceAcceptance {
   /// move. This variant carries no Finder Put Back capability and needs no Full Disk Access.
   static func runManual(
     context: TestSafetyContext,
-    announce: @escaping (String) -> Void
+    settleSeconds: TimeInterval = 0,
+    announce: @escaping (String) -> Void,
+    heartbeat: @escaping (Int) -> Void = { _ in }
   ) throws -> PutBackRaceReport {
-    let waiter = ManualPutBackWaiter(context: context, announce: announce)
+    let waiter = ManualPutBackWaiter(
+      context: context,
+      announce: announce,
+      heartbeat: heartbeat
+    )
     let operations = PutBackRaceOperations(
       prepare: makePrepare(context: context),
-      putBack: waiter.putBack
+      putBack: waiter.putBack,
+      settle: { seconds in
+        guard seconds > 0 else { return }
+        Thread.sleep(forTimeInterval: seconds)
+      },
+      settleSeconds: settleSeconds
     )
     return try run(context: context, operations: operations)
   }
@@ -83,12 +99,14 @@ enum PutBackRaceAcceptance {
     let session = try operations.prepare(context)
     let firstTrash = try session.trash()
     let restored = try operations.putBack(firstTrash, session.sourceURL)
+    try operations.settle(operations.settleSeconds)
     let secondTrash = try session.trash()
     return PutBackRaceReport(
       sourceURL: session.sourceURL,
       firstTrashURL: firstTrash.returnedURL,
       restoredURL: restored.returnedURL,
-      secondTrashURL: secondTrash.returnedURL
+      secondTrashURL: secondTrash.returnedURL,
+      settleSeconds: operations.settleSeconds
     )
   }
 }

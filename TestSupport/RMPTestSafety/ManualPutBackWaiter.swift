@@ -15,6 +15,8 @@ struct DirectoryChangeWatch {
 /// authorized Run Directory and reports when the exact Test Fixture returns.
 struct ManualPutBackWaiter {
   typealias Announce = (String) -> Void
+  /// Reports whole seconds remaining in the wait window so a terminal can show a live countdown.
+  typealias Heartbeat = (Int) -> Void
   typealias ResourceIdentifier = (URL) throws -> Data?
   typealias EntryProbe = (String) throws -> Bool
   typealias MakeDirectoryChangeWatch = () throws -> DirectoryChangeWatch
@@ -27,6 +29,7 @@ struct ManualPutBackWaiter {
 
   private let context: TestSafetyContext
   private let announce: Announce
+  private let heartbeat: Heartbeat
   private let resourceIdentifier: ResourceIdentifier
   private let entryProbe: EntryProbe
   private let makeWatch: MakeDirectoryChangeWatch
@@ -36,6 +39,7 @@ struct ManualPutBackWaiter {
   init(
     context: TestSafetyContext,
     announce: @escaping Announce,
+    heartbeat: @escaping Heartbeat = { _ in },
     timeout: TimeInterval = ManualPutBackWaiter.defaultTimeout,
     resourceIdentifier: @escaping ResourceIdentifier = testSafetyResourceIdentifier,
     entryProbe: EntryProbe? = nil,
@@ -44,6 +48,7 @@ struct ManualPutBackWaiter {
   ) {
     self.context = context
     self.announce = announce
+    self.heartbeat = heartbeat
     self.timeout = timeout
     self.resourceIdentifier = resourceIdentifier
     self.entryProbe = entryProbe ?? { try Self.runDirectoryEntryExists(context: context, name: $0) }
@@ -101,6 +106,7 @@ struct ManualPutBackWaiter {
 
   private func waitForRestoredEntry(named name: String, watch: DirectoryChangeWatch) throws {
     let deadline = now() + timeout
+    var lastReported = -1
     while true {
       let remaining = deadline - now()
       guard remaining > 0 else {
@@ -108,6 +114,11 @@ struct ManualPutBackWaiter {
           code: .putBackManualTimeout,
           message: "Finder Put Back was not observed before the manual acceptance deadline."
         )
+      }
+      let whole = Int(remaining.rounded(.down))
+      if whole != lastReported, whole <= 5 || whole.isMultiple(of: 5) {
+        heartbeat(whole)
+        lastReported = whole
       }
       _ = watch.waitForChange(min(remaining, Self.waitSlice))
       if try entryProbe(name) { return }

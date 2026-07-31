@@ -17,6 +17,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Add a second maintainer-only acceptance variant that holds no Finder Put Back capability and needs
   no Full Disk Access: it waits for the real Finder Put Back command through a kqueue-backed
   dispatch source over the authorized Run Directory, then fires the second Trash from that event.
+- Cover issue 12's platform acceptance set through `FIXTURE`: directories, symbolic links, broken
+  symbolic links, and names containing quotes or newlines, each created exclusively against the
+  retained Run Directory descriptor with an explicit mode restore that umask cannot strip.
 - Run the manual acceptance for up to 30 numbered cycles in one Run Directory through `CYCLES`, so
   the issue 12 differential costs one command and one inspection pass; evidence from completed
   cycles is reported even when a later cycle fails.

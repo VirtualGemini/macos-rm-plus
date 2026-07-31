@@ -16,9 +16,14 @@ private enum RMPTestEntrypoint {
         Data(
           """
           Usage: rmp-test put-back-race --test-run-id <uuid>
-                 rmp-test put-back-race-manual [--settle-seconds <n>] [--cycles <n>] \
-          --test-run-id <uuid>
+                 rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
+
+          put-back-race-manual options:
+            --settle-seconds <n>  re-trash delay bucket, 0-60, default 0
+            --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      file | directory | symbolic-link |
+                                  broken-symbolic-link | quoted-name | newline-name
 
           """.utf8
         )
@@ -100,29 +105,19 @@ private enum RMPTestEntrypoint {
         let reports = try runManualDifferential(
           context: context,
           cycles: cycles,
+          kind: options.kind,
           settleSeconds: settleSeconds
         )
-        writeDifferentialSummary(reports, cycles: cycles, context: context)
+        writeDifferentialSummary(reports, cycles: cycles, kind: options.kind, context: context)
         return 0
       }
-      let report = try runScenario(restore, context: context, settleSeconds: settleSeconds)
-      let output = """
-        rmp-test build=RMP_TESTING
-        run=\(context.runID.uuidString.lowercased())
-        scenario=\(restore.scenarioName)
-        status=complete
-        first-trash=\(report.firstTrashURL.path)
-        restored=\(report.restoredURL.path)
-        settle-seconds=\(report.settleSeconds)
-        second-trash=\(report.secondTrashURL.path)
-        run-directory=\(context.runDirectoryURL.path)
-        manual-check=Wait at least 5 seconds for Finder's deferred write-back, then open Trash and \
-        verify Put Back is offered for manual-target below.
-        manual-target=\(report.secondTrashURL.lastPathComponent)
-        restore-method=\(restore.restoreDescription)
-
-        """
-      FileHandle.standardOutput.write(Data(output.utf8))
+      let report = try runScenario(
+        restore,
+        context: context,
+        kind: options.kind,
+        settleSeconds: settleSeconds
+      )
+      writeSingleRunSummary(report, restore: restore, kind: options.kind, context: context)
       return 0
     }
     if let diagnostic = result.diagnostic {
@@ -134,16 +129,19 @@ private enum RMPTestEntrypoint {
   private struct RaceOptions {
     let settleSeconds: TimeInterval
     let cycles: Int
+    let kind: PutBackRaceFixtureKind
     let driverArguments: [String]
   }
 
   private static func parseRaceOptions(_ arguments: [String]) -> RaceOptions {
     do {
       let (settleSeconds, afterSettle) = try extractSettleSeconds(arguments)
-      let (cycles, driverArguments) = try extractCycles(afterSettle)
+      let (cycles, afterCycles) = try extractCycles(afterSettle)
+      let (kind, driverArguments) = try extractFixtureKind(afterCycles)
       return RaceOptions(
         settleSeconds: settleSeconds,
         cycles: cycles,
+        kind: kind,
         driverArguments: driverArguments
       )
     } catch let diagnostic as TestSafetyDiagnostic {
@@ -154,66 +152,10 @@ private enum RMPTestEntrypoint {
     }
   }
 
-  /// Strips `--settle-seconds <n>` before the Test Safety Context driver sees the arguments; the
-  /// driver treats every unrecognized token as a path.
-  private static func extractSettleSeconds(
-    _ arguments: [String]
-  ) throws -> (TimeInterval, [String]) {
-    var settleSeconds: TimeInterval = 0
-    var remaining: [String] = []
-    var index = arguments.startIndex
-    while index < arguments.endIndex {
-      guard arguments[index] == "--settle-seconds" else {
-        remaining.append(arguments[index])
-        index = arguments.index(after: index)
-        continue
-      }
-      let valueIndex = arguments.index(after: index)
-      guard valueIndex < arguments.endIndex,
-        let parsed = TimeInterval(arguments[valueIndex]),
-        parsed >= 0, parsed <= 60
-      else {
-        throw TestSafetyDiagnostic(
-          code: .invalidCommandArguments,
-          message: "--settle-seconds requires a value between 0 and 60."
-        )
-      }
-      settleSeconds = parsed
-      index = arguments.index(after: valueIndex)
-    }
-    return (settleSeconds, remaining)
-  }
-
-  /// Strips `--cycles <n>` for the same reason as `--settle-seconds`.
-  private static func extractCycles(_ arguments: [String]) throws -> (Int, [String]) {
-    var cycles = 1
-    var remaining: [String] = []
-    var index = arguments.startIndex
-    while index < arguments.endIndex {
-      guard arguments[index] == "--cycles" else {
-        remaining.append(arguments[index])
-        index = arguments.index(after: index)
-        continue
-      }
-      let valueIndex = arguments.index(after: index)
-      guard valueIndex < arguments.endIndex,
-        let parsed = Int(arguments[valueIndex]),
-        parsed >= 1, parsed <= 30
-      else {
-        throw TestSafetyDiagnostic(
-          code: .invalidCommandArguments,
-          message: "--cycles requires a value between 1 and 30."
-        )
-      }
-      cycles = parsed
-      index = arguments.index(after: valueIndex)
-    }
-    return (cycles, remaining)
-  }
-
   private static func runScenario(
     _ restore: PutBackRaceRestore,
     context: TestSafetyContext,
+    kind: PutBackRaceFixtureKind,
     settleSeconds: TimeInterval
   ) throws -> PutBackRaceReport {
     switch restore {
@@ -222,6 +164,8 @@ private enum RMPTestEntrypoint {
     case .manualFinderMenu:
       return try PutBackRaceAcceptance.runManual(
         context: context,
+        suffix: kind.suffix(cycle: "put-back-race"),
+        kind: kind,
         settleSeconds: settleSeconds,
         announce: { message in
           FileHandle.standardOutput.write(Data("\(message)\n".utf8))
@@ -236,12 +180,14 @@ private enum RMPTestEntrypoint {
   private static func runManualDifferential(
     context: TestSafetyContext,
     cycles: Int,
+    kind: PutBackRaceFixtureKind,
     settleSeconds: TimeInterval
   ) throws -> [PutBackRaceReport] {
     do {
       return try PutBackRaceAcceptance.runManualCycles(
         context: context,
         cycles: cycles,
+        kind: kind,
         settleSeconds: settleSeconds,
         announce: { cycle, message in
           FileHandle.standardOutput.write(Data("cycle=\(cycle)/\(cycles)\n\(message)\n".utf8))
@@ -251,7 +197,12 @@ private enum RMPTestEntrypoint {
         }
       )
     } catch let failure as PutBackRaceCycleFailure {
-      writeDifferentialSummary(failure.completedReports, cycles: cycles, context: context)
+      writeDifferentialSummary(
+        failure.completedReports,
+        cycles: cycles,
+        kind: kind,
+        context: context
+      )
       FileHandle.standardError.write(
         Data("differential stopped in cycle \(failure.cycle)\n".utf8)
       )
@@ -259,15 +210,43 @@ private enum RMPTestEntrypoint {
     }
   }
 
+  private static func writeSingleRunSummary(
+    _ report: PutBackRaceReport,
+    restore: PutBackRaceRestore,
+    kind: PutBackRaceFixtureKind,
+    context: TestSafetyContext
+  ) {
+    let output = """
+      rmp-test build=RMP_TESTING
+      run=\(context.runID.uuidString.lowercased())
+      scenario=\(restore.scenarioName)
+      fixture=\(kind.rawValue)
+      status=complete
+      first-trash=\(report.firstTrashURL.path)
+      restored=\(report.restoredURL.path)
+      settle-seconds=\(report.settleSeconds)
+      second-trash=\(report.secondTrashURL.path)
+      run-directory=\(context.runDirectoryURL.path)
+      manual-check=Wait at least 5 seconds for Finder's deferred write-back, then open Trash and \
+      verify Put Back is offered for manual-target below.
+      manual-target=\(report.secondTrashURL.lastPathComponent)
+      restore-method=\(restore.restoreDescription)
+
+      """
+    FileHandle.standardOutput.write(Data(output.utf8))
+  }
+
   private static func writeDifferentialSummary(
     _ reports: [PutBackRaceReport],
     cycles: Int,
+    kind: PutBackRaceFixtureKind,
     context: TestSafetyContext
   ) {
     var lines = [
       "rmp-test build=RMP_TESTING",
       "run=\(context.runID.uuidString.lowercased())",
       "scenario=put-back-race-manual-differential",
+      "fixture=\(kind.rawValue)",
       "completed-cycles=\(reports.count)/\(cycles)",
       "run-directory=\(context.runDirectoryURL.path)",
       "manual-check=Wait at least 5 seconds for Finder's deferred write-back, then verify Put "
@@ -312,4 +291,90 @@ private func executableIdentityUnavailable() -> TestSafetyDiagnostic {
     code: .executableIdentityUnavailable,
     message: "The loaded executable identity could not be obtained from macOS."
   )
+}
+
+/// Strips `--settle-seconds <n>` before the Test Safety Context driver sees the arguments; the
+/// driver treats every unrecognized token as a path.
+private func extractSettleSeconds(
+  _ arguments: [String]
+) throws -> (TimeInterval, [String]) {
+  var settleSeconds: TimeInterval = 0
+  var remaining: [String] = []
+  var index = arguments.startIndex
+  while index < arguments.endIndex {
+    guard arguments[index] == "--settle-seconds" else {
+      remaining.append(arguments[index])
+      index = arguments.index(after: index)
+      continue
+    }
+    let valueIndex = arguments.index(after: index)
+    guard valueIndex < arguments.endIndex,
+      let parsed = TimeInterval(arguments[valueIndex]),
+      parsed >= 0, parsed <= 60
+    else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "--settle-seconds requires a value between 0 and 60."
+      )
+    }
+    settleSeconds = parsed
+    index = arguments.index(after: valueIndex)
+  }
+  return (settleSeconds, remaining)
+}
+
+/// Strips `--cycles <n>` for the same reason as `--settle-seconds`.
+private func extractCycles(_ arguments: [String]) throws -> (Int, [String]) {
+  var cycles = 1
+  var remaining: [String] = []
+  var index = arguments.startIndex
+  while index < arguments.endIndex {
+    guard arguments[index] == "--cycles" else {
+      remaining.append(arguments[index])
+      index = arguments.index(after: index)
+      continue
+    }
+    let valueIndex = arguments.index(after: index)
+    guard valueIndex < arguments.endIndex,
+      let parsed = Int(arguments[valueIndex]),
+      parsed >= 1, parsed <= 30
+    else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "--cycles requires a value between 1 and 30."
+      )
+    }
+    cycles = parsed
+    index = arguments.index(after: valueIndex)
+  }
+  return (cycles, remaining)
+}
+
+/// Strips `--fixture <kind>` for the same reason as the other race options.
+private func extractFixtureKind(
+  _ arguments: [String]
+) throws -> (PutBackRaceFixtureKind, [String]) {
+  var kind = PutBackRaceFixtureKind.file
+  var remaining: [String] = []
+  var index = arguments.startIndex
+  while index < arguments.endIndex {
+    guard arguments[index] == "--fixture" else {
+      remaining.append(arguments[index])
+      index = arguments.index(after: index)
+      continue
+    }
+    let valueIndex = arguments.index(after: index)
+    guard valueIndex < arguments.endIndex,
+      let parsed = PutBackRaceFixtureKind(rawValue: arguments[valueIndex])
+    else {
+      let known = PutBackRaceFixtureKind.allCases.map(\.rawValue).joined(separator: ", ")
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "--fixture requires one of: \(known)."
+      )
+    }
+    kind = parsed
+    index = arguments.index(after: valueIndex)
+  }
+  return (kind, remaining)
 }

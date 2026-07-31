@@ -4,16 +4,75 @@ import Darwin
 import Foundation
 
 extension TestSafetyContext {
-  func createFixtureFile(suffix: String, contents: Data) throws -> URL {
-    try revalidate()
+  /// Builds the authorized fixture name for `suffix`, rejecting anything that is not a single
+  /// path component. Quotes and newlines are deliberately permitted: issue 12's acceptance set
+  /// requires proving that such names survive the Apple Event boundary without being interpreted.
+  func fixtureName(suffix: String) throws -> String {
     guard !suffix.isEmpty, !suffix.contains("/"), !suffix.contains("\0") else {
       throw TestSafetyDiagnostic(
         code: .fixtureNameInvalid,
         message: "A Test Fixture suffix must be one non-empty path component."
       )
     }
+    return "rmp-test-\(runID.uuidString.lowercased())-\(suffix)"
+  }
 
-    let name = "rmp-test-\(runID.uuidString.lowercased())-\(suffix)"
+  /// Creates a `0700` directory fixture. The mode is applied through a descriptor opened with
+  /// `O_NOFOLLOW` rather than by path, so umask cannot loosen it and no symlink can be followed.
+  func createFixtureDirectory(suffix: String) throws -> URL {
+    try revalidate()
+    let name = try fixtureName(suffix: suffix)
+    let parentDescriptor = try duplicateRunDirectoryDescriptor()
+    defer { close(parentDescriptor) }
+    guard mkdirat(parentDescriptor, name, 0o700) == 0 else {
+      throw posixDiagnostic(
+        code: .fixtureCreateFailed,
+        operation: "create the Test Fixture directory"
+      )
+    }
+    // `mkdirat` applies the process umask, which can strip the requested mode entirely and leave
+    // a directory that cannot even be opened. Restore the mode relative to the retained parent
+    // descriptor; `mkdirat` succeeded exclusively, so the entry is still the directory just made.
+    guard fchmodat(parentDescriptor, name, 0o700, 0) == 0 else {
+      try? removeEntryIfPresent(
+        parentDescriptor: parentDescriptor,
+        name: name,
+        flags: AT_REMOVEDIR,
+        operation: "roll back the Test Fixture directory"
+      )
+      throw posixDiagnostic(
+        code: .fixtureCreateFailed,
+        operation: "secure the Test Fixture directory"
+      )
+    }
+    return runDirectoryURL.appendingPathComponent(name, isDirectory: true)
+  }
+
+  /// Creates a symbolic-link fixture pointing at `target`. A target that does not exist yields the
+  /// broken-link case; nothing here resolves or follows the link.
+  func createFixtureSymbolicLink(suffix: String, target: String) throws -> URL {
+    try revalidate()
+    guard !target.isEmpty, !target.contains("\0") else {
+      throw TestSafetyDiagnostic(
+        code: .fixtureNameInvalid,
+        message: "A Test Fixture symbolic-link target must be non-empty."
+      )
+    }
+    let name = try fixtureName(suffix: suffix)
+    let parentDescriptor = try duplicateRunDirectoryDescriptor()
+    defer { close(parentDescriptor) }
+    guard symlinkat(target, parentDescriptor, name) == 0 else {
+      throw posixDiagnostic(
+        code: .fixtureCreateFailed,
+        operation: "create the Test Fixture symbolic link"
+      )
+    }
+    return runDirectoryURL.appendingPathComponent(name, isDirectory: false)
+  }
+
+  func createFixtureFile(suffix: String, contents: Data) throws -> URL {
+    try revalidate()
+    let name = try fixtureName(suffix: suffix)
     let parentDescriptor = try duplicateRunDirectoryDescriptor()
     defer { close(parentDescriptor) }
     let descriptor = openat(

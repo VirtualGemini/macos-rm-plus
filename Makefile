@@ -82,11 +82,12 @@ test-put-back-race:
 SETTLE_SECONDS ?= 0
 
 CYCLES ?= 1
+FIXTURE ?= file
 
 test-put-back-race-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
 		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
-		--test-run-id "$(TEST_RUN_ID)"
+		--fixture "$(FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:
 	./scripts/check-spdx.sh

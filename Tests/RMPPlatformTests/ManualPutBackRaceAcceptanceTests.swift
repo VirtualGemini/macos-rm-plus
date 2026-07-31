@@ -341,9 +341,9 @@ struct ManualPutBackDifferentialTests {
     #expect(requested.map(\.0) == [1, 2, 3])
     #expect(
       requested.map(\.1) == [
-        "put-back-race-01",
-        "put-back-race-02",
-        "put-back-race-03",
+        "put-back-race-01-file",
+        "put-back-race-02-file",
+        "put-back-race-03-file",
       ]
     )
     #expect(reports.count == 3)

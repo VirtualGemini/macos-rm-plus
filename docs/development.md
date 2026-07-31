@@ -307,6 +307,18 @@ window is roughly 2-4 seconds, the printed protocol requires waiting at least 5 
 second Trash before judging whether Put Back survived; judging inside that window yields false
 positives.
 
+`FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
+(default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.
+The metadata race is a property of the Trash entry, so shape is a dimension independent of the delay
+bucket, and the awkward-name kinds are the end-to-end proof that path text crosses the Apple Event
+boundary as a structured argument rather than as script source. Every result echoes `fixture=`.
+
+Fixture creation for each shape matches the safety of the plain-file path: revalidate the context,
+use only `*at` calls against the retained Run Directory descriptor, create exclusively, and roll
+back on failure. Directories need an explicit mode restore after `mkdirat`, because the process
+umask can strip the requested `0700` and leave a directory that cannot even be opened. Symbolic
+links are never followed or resolved during creation.
+
 `CYCLES` (1-30, default 1) runs that many cycles inside one Run Directory for the ticket's
 differential. Each cycle gets its own numbered fixture, the maintainer performs one Put Back per
 cycle, and the command ends with a single summary listing every second-Trash target to inspect, so a
@@ -343,7 +355,7 @@ make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
 make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
-make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=<n>] [CYCLES=<n>] Real Put Back
+make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=] [FIXTURE=] Put Back
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

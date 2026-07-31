@@ -12,9 +12,14 @@ struct TestExecutableIdentityTests {
         argument: "--help",
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
-                 rmp-test put-back-race-manual [--settle-seconds <n>] [--cycles <n>] \
-          --test-run-id <uuid>
+                 rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
+
+          put-back-race-manual options:
+            --settle-seconds <n>  re-trash delay bucket, 0-60, default 0
+            --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      file | directory | symbolic-link |
+                                  broken-symbolic-link | quoted-name | newline-name
 
           """
       ),
@@ -26,9 +31,14 @@ struct TestExecutableIdentityTests {
         argument: "--help -a",
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
-                 rmp-test put-back-race-manual [--settle-seconds <n>] [--cycles <n>] \
-          --test-run-id <uuid>
+                 rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
+
+          put-back-race-manual options:
+            --settle-seconds <n>  re-trash delay bucket, 0-60, default 0
+            --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      file | directory | symbolic-link |
+                                  broken-symbolic-link | quoted-name | newline-name
 
           """
       ),

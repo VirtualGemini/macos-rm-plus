@@ -17,6 +17,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Add a second maintainer-only acceptance variant that holds no Finder Put Back capability and needs
   no Full Disk Access: it waits for the real Finder Put Back command through a kqueue-backed
   dispatch source over the authorized Run Directory, then fires the second Trash from that event.
+- Run the manual acceptance for up to 30 numbered cycles in one Run Directory through `CYCLES`, so
+  the issue 12 differential costs one command and one inspection pass; evidence from completed
+  cycles is reported even when a later cycle fails.
 - Print a live countdown while that variant waits, declare the re-trash delay bucket explicitly
   through `SETTLE_SECONDS`, echo the applied bucket beside the result, and state the mandatory
   five-second wait before judging Put Back so results cannot be read inside Finder's write-back

@@ -16,7 +16,8 @@ private enum RMPTestEntrypoint {
         Data(
           """
           Usage: rmp-test put-back-race --test-run-id <uuid>
-                 rmp-test put-back-race-manual [--settle-seconds <n>] --test-run-id <uuid>
+                 rmp-test put-back-race-manual [--settle-seconds <n>] [--cycles <n>] \
+          --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           """.utf8
@@ -72,16 +73,10 @@ private enum RMPTestEntrypoint {
     arguments: [String],
     restore: PutBackRaceRestore
   ) -> Never {
-    let settleSeconds: TimeInterval
-    let driverArguments: [String]
-    do {
-      (settleSeconds, driverArguments) = try extractSettleSeconds(arguments)
-    } catch let diagnostic as TestSafetyDiagnostic {
-      FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
-      exit(2)
-    } catch {
-      exit(2)
-    }
+    let options = parseRaceOptions(arguments)
+    let settleSeconds = options.settleSeconds
+    let cycles = options.cycles
+    let driverArguments = options.driverArguments
 
     let result = TestSafetyDriver.runWithInjectedRuntime(
       arguments: driverArguments,
@@ -94,6 +89,21 @@ private enum RMPTestEntrypoint {
           code: .invalidCommandArguments,
           message: "\(restore.scenarioName) creates its own Test Fixture and accepts no paths."
         )
+      }
+      if cycles > 1 {
+        guard case .manualFinderMenu = restore else {
+          throw TestSafetyDiagnostic(
+            code: .invalidCommandArguments,
+            message: "--cycles is available only for put-back-race-manual."
+          )
+        }
+        let reports = try runManualDifferential(
+          context: context,
+          cycles: cycles,
+          settleSeconds: settleSeconds
+        )
+        writeDifferentialSummary(reports, cycles: cycles, context: context)
+        return 0
       }
       let report = try runScenario(restore, context: context, settleSeconds: settleSeconds)
       let output = """
@@ -119,6 +129,29 @@ private enum RMPTestEntrypoint {
       FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
     }
     exit(result.exitCode)
+  }
+
+  private struct RaceOptions {
+    let settleSeconds: TimeInterval
+    let cycles: Int
+    let driverArguments: [String]
+  }
+
+  private static func parseRaceOptions(_ arguments: [String]) -> RaceOptions {
+    do {
+      let (settleSeconds, afterSettle) = try extractSettleSeconds(arguments)
+      let (cycles, driverArguments) = try extractCycles(afterSettle)
+      return RaceOptions(
+        settleSeconds: settleSeconds,
+        cycles: cycles,
+        driverArguments: driverArguments
+      )
+    } catch let diagnostic as TestSafetyDiagnostic {
+      FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+      exit(2)
+    } catch {
+      exit(2)
+    }
   }
 
   /// Strips `--settle-seconds <n>` before the Test Safety Context driver sees the arguments; the
@@ -151,6 +184,33 @@ private enum RMPTestEntrypoint {
     return (settleSeconds, remaining)
   }
 
+  /// Strips `--cycles <n>` for the same reason as `--settle-seconds`.
+  private static func extractCycles(_ arguments: [String]) throws -> (Int, [String]) {
+    var cycles = 1
+    var remaining: [String] = []
+    var index = arguments.startIndex
+    while index < arguments.endIndex {
+      guard arguments[index] == "--cycles" else {
+        remaining.append(arguments[index])
+        index = arguments.index(after: index)
+        continue
+      }
+      let valueIndex = arguments.index(after: index)
+      guard valueIndex < arguments.endIndex,
+        let parsed = Int(arguments[valueIndex]),
+        parsed >= 1, parsed <= 30
+      else {
+        throw TestSafetyDiagnostic(
+          code: .invalidCommandArguments,
+          message: "--cycles requires a value between 1 and 30."
+        )
+      }
+      cycles = parsed
+      index = arguments.index(after: valueIndex)
+    }
+    return (cycles, remaining)
+  }
+
   private static func runScenario(
     _ restore: PutBackRaceRestore,
     context: TestSafetyContext,
@@ -171,6 +231,55 @@ private enum RMPTestEntrypoint {
         }
       )
     }
+  }
+
+  private static func runManualDifferential(
+    context: TestSafetyContext,
+    cycles: Int,
+    settleSeconds: TimeInterval
+  ) throws -> [PutBackRaceReport] {
+    do {
+      return try PutBackRaceAcceptance.runManualCycles(
+        context: context,
+        cycles: cycles,
+        settleSeconds: settleSeconds,
+        announce: { cycle, message in
+          FileHandle.standardOutput.write(Data("cycle=\(cycle)/\(cycles)\n\(message)\n".utf8))
+        },
+        heartbeat: { remaining in
+          FileHandle.standardOutput.write(Data("waiting-for-put-back=\(remaining)s\n".utf8))
+        }
+      )
+    } catch let failure as PutBackRaceCycleFailure {
+      writeDifferentialSummary(failure.completedReports, cycles: cycles, context: context)
+      FileHandle.standardError.write(
+        Data("differential stopped in cycle \(failure.cycle)\n".utf8)
+      )
+      throw failure.underlying
+    }
+  }
+
+  private static func writeDifferentialSummary(
+    _ reports: [PutBackRaceReport],
+    cycles: Int,
+    context: TestSafetyContext
+  ) {
+    var lines = [
+      "rmp-test build=RMP_TESTING",
+      "run=\(context.runID.uuidString.lowercased())",
+      "scenario=put-back-race-manual-differential",
+      "completed-cycles=\(reports.count)/\(cycles)",
+      "run-directory=\(context.runDirectoryURL.path)",
+      "manual-check=Wait at least 5 seconds for Finder's deferred write-back, then verify Put "
+        + "Back is offered for every target below.",
+    ]
+    for (index, report) in reports.enumerated() {
+      lines.append(
+        "target-\(String(format: "%02d", index + 1)) settle=\(report.settleSeconds) "
+          + report.secondTrashURL.lastPathComponent
+      )
+    }
+    FileHandle.standardOutput.write(Data((lines.joined(separator: "\n") + "\n\n").utf8))
   }
 
   private static func currentRuntime() throws -> TestSafetyRuntime {

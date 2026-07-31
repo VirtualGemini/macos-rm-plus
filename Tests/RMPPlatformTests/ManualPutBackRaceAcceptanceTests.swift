@@ -297,6 +297,68 @@ struct ManualPutBackRacePacingTests {
   }
 }
 
+@Suite("Manual Put Back differential cycles", .serialized)
+struct ManualPutBackDifferentialTests {
+  @Test("numbers each cycle's fixture so one Run Directory holds the whole differential")
+  func numbersEachCycleFixture() throws {
+    let harness = try ManualHarness()
+    defer { harness.remove() }
+    var requested: [(Int, String)] = []
+
+    let reports = try PutBackRaceAcceptance.runManualCycles(
+      context: harness.context,
+      cycles: 3,
+      announce: { _, _ in },
+      runCycle: { cycle, suffix in
+        requested.append((cycle, suffix))
+        return harness.report(suffix: suffix)
+      }
+    )
+
+    #expect(requested.map(\.0) == [1, 2, 3])
+    #expect(
+      requested.map(\.1) == [
+        "put-back-race-01",
+        "put-back-race-02",
+        "put-back-race-03",
+      ]
+    )
+    #expect(reports.count == 3)
+  }
+
+  @Test("preserves completed cycle evidence when a later cycle fails")
+  func preservesEvidenceOnLateFailure() throws {
+    let harness = try ManualHarness()
+    defer { harness.remove() }
+
+    var thrown: PutBackRaceCycleFailure?
+    do {
+      _ = try PutBackRaceAcceptance.runManualCycles(
+        context: harness.context,
+        cycles: 4,
+        announce: { _, _ in },
+        runCycle: { cycle, suffix in
+          guard cycle < 3 else {
+            throw TestSafetyDiagnostic(
+              code: .putBackManualTimeout,
+              message: "cycle \(cycle) gave up"
+            )
+          }
+          return harness.report(suffix: suffix)
+        }
+      )
+    } catch let failure as PutBackRaceCycleFailure {
+      thrown = failure
+    }
+
+    #expect(thrown?.cycle == 3)
+    #expect(thrown?.completedReports.count == 2)
+    #expect(
+      (thrown?.underlying as? TestSafetyDiagnostic)?.code == .putBackManualTimeout
+    )
+  }
+}
+
 /// Builds an authorized context whose Test Fixture has already been moved away, mirroring the
 /// state right after the first real Trash call.
 private struct ManualHarness {
@@ -310,6 +372,19 @@ private struct ManualHarness {
     context = try fixture.establishContext()
     sourceURL = context.runDirectoryURL.appendingPathComponent(
       "rmp-test-\(context.runID.uuidString.lowercased())-put-back-race"
+    )
+  }
+
+  func report(suffix: String) -> PutBackRaceReport {
+    let url = context.runDirectoryURL.appendingPathComponent(
+      "rmp-test-\(context.runID.uuidString.lowercased())-\(suffix)"
+    )
+    return PutBackRaceReport(
+      sourceURL: url,
+      firstTrashURL: url,
+      restoredURL: url,
+      secondTrashURL: url,
+      settleSeconds: 0
     )
   }
 

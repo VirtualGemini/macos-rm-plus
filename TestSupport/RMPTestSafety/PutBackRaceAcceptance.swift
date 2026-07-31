@@ -33,11 +33,19 @@ struct PutBackRaceReport: Equatable, Sendable {
   let settleSeconds: TimeInterval
 }
 
+/// Carries the evidence of already-completed cycles out of a failing differential so a late
+/// failure never discards the rounds the maintainer already performed.
+struct PutBackRaceCycleFailure: Error {
+  let completedReports: [PutBackRaceReport]
+  let cycle: Int
+  let underlying: Error
+}
+
 enum PutBackRaceAcceptance {
   static func run(context: TestSafetyContext) throws -> PutBackRaceReport {
     let putBackClient = WhitelistedPutBackClient(context: context)
     let operations = PutBackRaceOperations(
-      prepare: makePrepare(context: context),
+      prepare: makePrepare(context: context, suffix: "put-back-race"),
       putBack: putBackClient.putBack
     )
     return try run(context: context, operations: operations)
@@ -47,6 +55,7 @@ enum PutBackRaceAcceptance {
   /// move. This variant carries no Finder Put Back capability and needs no Full Disk Access.
   static func runManual(
     context: TestSafetyContext,
+    suffix: String = "put-back-race",
     settleSeconds: TimeInterval = 0,
     announce: @escaping (String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in }
@@ -57,7 +66,7 @@ enum PutBackRaceAcceptance {
       heartbeat: heartbeat
     )
     let operations = PutBackRaceOperations(
-      prepare: makePrepare(context: context),
+      prepare: makePrepare(context: context, suffix: suffix),
       putBack: waiter.putBack,
       settle: { seconds in
         guard seconds > 0 else { return }
@@ -68,8 +77,46 @@ enum PutBackRaceAcceptance {
     return try run(context: context, operations: operations)
   }
 
+  /// Runs the manual scenario repeatedly inside one Run Directory so the maintainer can perform a
+  /// differential without a separate process, prompt, and inspection per cycle. Each cycle owns a
+  /// distinct fixture name, and every completed cycle's evidence survives a later cycle's failure.
+  /// `runCycle` exists so pure tests can exercise the numbering and failure-carrying contract
+  /// without reaching the real Finder capability that the default cycle wires up.
+  static func runManualCycles(
+    context: TestSafetyContext,
+    cycles: Int,
+    settleSeconds: TimeInterval = 0,
+    announce: @escaping (Int, String) -> Void,
+    heartbeat: @escaping (Int) -> Void = { _ in },
+    runCycle: ((Int, String) throws -> PutBackRaceReport)? = nil
+  ) throws -> [PutBackRaceReport] {
+    let cycleOperation =
+      runCycle
+      ?? { cycle, suffix in
+        try runManual(
+          context: context,
+          suffix: suffix,
+          settleSeconds: settleSeconds,
+          announce: { announce(cycle, $0) },
+          heartbeat: heartbeat
+        )
+      }
+    var reports: [PutBackRaceReport] = []
+    for cycle in 1...cycles {
+      do {
+        reports.append(
+          try cycleOperation(cycle, String(format: "put-back-race-%02d", cycle))
+        )
+      } catch {
+        throw PutBackRaceCycleFailure(completedReports: reports, cycle: cycle, underlying: error)
+      }
+    }
+    return reports
+  }
+
   private static func makePrepare(
-    context: TestSafetyContext
+    context: TestSafetyContext,
+    suffix: String
   ) -> (TestSafetyContext) throws -> PutBackRaceTrashSession {
     let trashClient = WhitelistedTrashClient(context: context)
     return { receivedContext in
@@ -80,9 +127,9 @@ enum PutBackRaceAcceptance {
         )
       }
       let sourceURL = try receivedContext.createFixtureFile(
-        suffix: "put-back-race",
+        suffix: suffix,
         contents: Data(
-          "rmp Put Back race \(receivedContext.runID.uuidString.lowercased())\n".utf8
+          "rmp Put Back race \(receivedContext.runID.uuidString.lowercased()) \(suffix)\n".utf8
         )
       )
       let authorizedTarget = try trashClient.authorizeForPlanning(targetURL: sourceURL)

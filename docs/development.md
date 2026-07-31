@@ -304,6 +304,12 @@ window is roughly 2-4 seconds, the printed protocol requires waiting at least 5 
 second Trash before judging whether Put Back survived; judging inside that window yields false
 positives.
 
+`CYCLES` (1-30, default 1) runs that many cycles inside one Run Directory for the ticket's
+differential. Each cycle gets its own numbered fixture, the maintainer performs one Put Back per
+cycle, and the command ends with a single summary listing every second-Trash target to inspect, so a
+30-cycle differential costs one command and one inspection pass rather than thirty. A cycle that
+fails still prints the evidence of the cycles already completed before it reports the failure.
+
 These real acceptances are maintainer-invoked only and are excluded from `make test`, `make check`,
 and CI. They intentionally preserve the validated Run Directory after the second Trash call so
 Finder's final Put Back destination continues to exist during human inspection. Each command prints
@@ -334,7 +340,7 @@ make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
 make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
-make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=<n>] Same sequence, real Put Back
+make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=<n>] [CYCLES=<n>] Real Put Back
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

@@ -12,7 +12,8 @@ struct TestExecutableIdentityTests {
         argument: "--help",
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
-                 rmp-test put-back-race-manual [--settle-seconds <n>] --test-run-id <uuid>
+                 rmp-test put-back-race-manual [--settle-seconds <n>] [--cycles <n>] \
+          --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           """
@@ -25,7 +26,8 @@ struct TestExecutableIdentityTests {
         argument: "--help -a",
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
-                 rmp-test put-back-race-manual [--settle-seconds <n>] --test-run-id <uuid>
+                 rmp-test put-back-race-manual [--settle-seconds <n>] [--cycles <n>] \
+          --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           """

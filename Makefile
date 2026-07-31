@@ -81,9 +81,12 @@ test-put-back-race:
 
 SETTLE_SECONDS ?= 0
 
+CYCLES ?= 1
+
 test-put-back-race-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
-		--settle-seconds "$(SETTLE_SECONDS)" --test-run-id "$(TEST_RUN_ID)"
+		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
+		--test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:
 	./scripts/check-spdx.sh

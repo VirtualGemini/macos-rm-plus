@@ -15,6 +15,11 @@ Finder over a fixed Apple Event handler, making Finder the single `.DS_Store`
 writer. The ticket's 30-cycle actual-menu differential passed **30/30** against
 roughly 10% retention for the previous Foundation client in the same flow.
 
+Confirmed working: ordinary files (30 cycles across all three delay buckets),
+directories, and names containing quotes or newlines. **Symbolic links are the
+exception** — Finder will not delete them over Apple Events at all, so they need
+a separate path that reintroduces this ticket's race for that shape alone.
+
 Outstanding before release:
 
 - **Agent-runnable.** Extend the acceptance scenario to the platform set —
@@ -505,6 +510,34 @@ ordinary small file. The platform acceptance set below still requires
 directories, symbolic links, broken symbolic links, duplicate Trash names, and
 path text containing quotes and newlines.
 
+### Platform fixture set results (2026-08-01)
+
+Acceptance criterion 5 asks for fixture shapes beyond ordinary files. Each row
+below was driven through the same sequence — first Finder Trash, the
+maintainer's real Put Back, then an immediate re-trash — and Put Back
+availability was judged past Finder's deferred write-back window.
+
+| Fixture shape | Cycles verified | Deletes | Put Back survives re-trash |
+| --- | ---: | --- | --- |
+| Ordinary file | 30 (10 each at 0 / 1.5 / 3 s) | yes | **yes** |
+| Directory | 3 | yes | **yes** |
+| Name with double and single quotes | 1 | yes | **yes** |
+| Name containing a newline | 1 | yes | **yes** |
+| Symbolic link | 0 | **no** — see below | n/a |
+| Broken symbolic link | 0 | **no** — see below | n/a |
+
+The quoted-name and newline-name rows are the end-to-end counterpart to the pure
+test for structured Apple Event arguments. Any implementation that interpolated
+path text into AppleScript source would fail on them; both completed normally
+and retained Put Back. The newline case is visible in the command's own output,
+where `trash-item=` is split across two lines by the embedded newline.
+
+Coverage limits worth stating plainly. The quoted-name and newline-name rows are
+single cycles, not the 10-per-bucket depth used for ordinary files, and every
+row ran on one host and one local volume. Duplicate Trash names — the remaining
+item in acceptance criterion 5 — were **not** tested; no fixture kind exists for
+placing a same-basename decoy in the Trash first.
+
 ### Symbolic links cannot be Finder-delegated (2026-08-01)
 
 Found while extending the acceptance set beyond ordinary files. This is a
@@ -611,10 +644,19 @@ until the rest of the acceptance set has been measured.
       across the 0, 1.5, and 3 second buckets.
 - [x] Repeat that manual scenario for the full 30 cycles (10 per bucket).
       Recorded 2026-08-01: 30/30 retained.
-- [ ] Extend the differential to the platform acceptance set: directories,
-      symbolic links, broken symbolic links, duplicate Trash names, and path
-      text containing quotes and newlines. All 30 cycles so far used one
-      ordinary small file on one local volume.
+- [x] Extend the differential to the platform acceptance set. Recorded
+      2026-08-01: directories, quoted names, and newline names all retain Put
+      Back; symbolic links and broken symbolic links cannot be deleted through
+      Finder at all.
+- [ ] Implement dispatch-by-type so symbolic links delete through Foundation,
+      with the boundary, ADR, and known-limitation documentation it requires.
+      Direction recorded below; deliberately not implemented yet.
+- [ ] Test duplicate Trash names, the one shape in acceptance criterion 5 with
+      no fixture kind yet. It needs a same-basename decoy already in the Trash,
+      which the current single-Run-Directory scenario cannot produce.
+- [ ] Decide whether the quoted-name and newline-name rows need the same
+      10-cycle depth as ordinary files, or whether one cycle each is enough
+      given that they probe argument passing rather than the metadata race.
 - [ ] Grant the invoking terminal Full Disk Access, restart it, then run
       `make test-put-back-race` and record the same outcome for the scripted
       restore. A differing result between the two variants would isolate an

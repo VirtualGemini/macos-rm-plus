@@ -1,11 +1,33 @@
 # 12 — Put Back entry lost when re-trashing a same-named item soon after Put Back
 
-**Status:** ready-for-human
+**Status:** ready-for-agent
 
 **Classification:** defect — user-visible product anomaly at the macOS Trash
 integration boundary. Recoverability of `rmp` deletions is degraded relative
 to Finder-native deletion; reclassified from environment noise by the
 maintainer on 2026-07-18.
+
+## Current state (2026-08-01)
+
+The defect is reproduced, diagnosed, and fixed on
+`fix/12-put-back-metadata-race`. `FinderTrashClient` delegates the delete to
+Finder over a fixed Apple Event handler, making Finder the single `.DS_Store`
+writer. The ticket's 30-cycle actual-menu differential passed **30/30** against
+roughly 10% retention for the previous Foundation client in the same flow.
+
+Outstanding before release:
+
+- **Agent-runnable.** Extend the acceptance scenario to the platform set —
+  directories, symbolic links, broken symbolic links, duplicate Trash names, and
+  path text containing quotes and newlines. Every differential cycle so far used
+  one ordinary small file on one local volume, so fixture shape is the largest
+  untested dimension. The agent builds the fixtures and drives the sequence; only
+  the final Finder menu judgment needs the maintainer.
+- **Maintainer only.** The Feedback Assistant report to Apple about the
+  `.DS_Store` coherence race, and the release decision itself.
+
+Sections below are kept in chronological order as the investigation record;
+earlier ones describe the state before the fix and are not current guidance.
 
 ## Symptom
 
@@ -161,7 +183,11 @@ This is a product defect at the macOS Trash integration boundary: `rmp` cannot
 currently provide Finder-equivalent recoverability for this flow even though
 the immediate Trash Operation succeeds and no file data is lost.
 
-## Why the current implementation cannot avoid it
+## Why the Foundation implementation could not avoid it
+
+Superseded by the Finder-delegated fix; retained as the reasoning that motivated
+it. "Current implementation" below means the `FileManager.trashItem` client that
+shipped before this branch.
 
 The metadata loss was observed seconds after the `rmp` process exited. The
 evidence attributes the later persistence to Finder activity, but cannot prove
@@ -170,6 +196,13 @@ afterwards: the home Trash `.DS_Store` is TCC-protected, its format is private,
 and rewriting it would race Finder again.
 
 ## Remediation options
+
+Decided. Option 1 was selected on 2026-07-23 and is implemented on this branch;
+its 30-cycle actual-menu differential passed 30/30 on 2026-08-01. Option 2's
+upstream Feedback Assistant report is still open. Option 3 remains infeasible.
+The costs listed under option 1 all materialized and are now documented
+behaviour: the Automation prompt, the Finder runtime dependency, and the stable
+denial, consent, timeout, and availability failure codes.
 
 1. **Finder-delegated deletion mode**: send the delete to Finder over Apple
    events so Finder is the single `.DS_Store` writer, giving Finder-grade
@@ -544,6 +577,13 @@ tradeoff, retained the existing candidate branch, rejected Workspace recycling,
 and authorized continued implementation of Finder-delegated deletion. The
 ticket is `ready-for-human` until the Automation and real Put Back acceptance
 rounds above are recorded.
+
+2026-08-01 — Status moved from `ready-for-human` to `ready-for-agent`. The
+condition the 2026-07-23 comment set for leaving `ready-for-human` (recording the
+Automation and real Put Back acceptance rounds) is met. The largest remaining gap
+is fixture shape, and extending the scenario to directories, symbolic links,
+broken symbolic links, duplicate names, and awkward path text is agent work; only
+the final menu judgment and the upstream report need the maintainer.
 
 2026-08-01 — The 30-cycle actual-menu differential passed 30/30 across the 0,
 1.5, and 3 second buckets. Against the roughly 10% retention recorded for the

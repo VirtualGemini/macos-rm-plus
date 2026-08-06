@@ -310,11 +310,15 @@ rmp --help -a -zh
 
 ### 10.1 系统废纸篓 API
 
-FR-SAFE-001：所有实际移动必须通过 Foundation `FileManager.trashItem(at:resultingItemURL:)` 完成。
+FR-SAFE-001：所有实际移动必须由 Finder 通过 Apple Event `delete` 命令完成，并且只能从
+`FinderTrashClient` 的固定脚本边界发起。`FileManager.trashItem(at:resultingItemURL:)`、
+`NSWorkspace.recycle(_:completionHandler:)` 和直接移动到废纸篓目录均被禁止；Finder 调用失败或
+未返回当前项目的 file URL 时不得回退到另一种移动能力。
 
 FR-SAFE-002：不得直接拼接或移动到 `~/.Trash`。
 
-FR-SAFE-003：必须使用系统返回的最终废纸篓 URL，因为重名时目标名称可能变化。
+FR-SAFE-003：必须使用 Finder `delete` 返回项目的 `URL` 属性作为最终废纸篓 URL，因为重名时目标
+名称可能变化。
 
 ### 10.2 禁止永久删除回退
 
@@ -503,6 +507,16 @@ FR-RESTORE-002：不得承诺所有情况下都能“放回原处”。以下情
 - 用户在废纸篓中重命名或移动了项目。
 - 网络卷或 File Provider 有不同实现。
 
+FR-RESTORE-003：生产 TrashClient 必须将移动委托给 Finder，使同一个 Finder writer 负责
+“放回原处”和快速同名再次移入废纸篓，作为 issue 12 的候选修复。在关闭该 issue 或发布该变更前，
+维护者必须完成 ticket 规定的 Foundation 基线与 Finder 候选差分验证；不得仅凭纯单元测试宣称
+Finder metadata 竞态已经修复。
+
+FR-RESTORE-004：首次 Finder Trash Operation 可以触发 macOS Automation 授权。权限待确认、被拒、
+Finder 不可用和超时必须使用稳定错误码并 fail closed；同一 sender-to-Finder 授权通常可复用，但产品
+不得承诺该授权永久存在或跨终端应用共享。错误分类必须依据 Apple Event error number，不得解析
+本地化错误文本。
+
 ## 16. 性能要求
 
 - 不递归扫描目录作为删除前置步骤。
@@ -585,15 +599,22 @@ FR-TEST-015：`rmp-test` 必须硬编码白名单结构 `~/rmp-test/test/<run-uu
 
 任一条件不满足时，测试进程必须在解析路径参数前退出。
 
-FR-TEST-016：真实 Foundation 实现不得在测试代码中直接构造。测试构建只能通过 `WhitelistedTrashClient` 获得系统废纸篓能力；其构造函数必须接收已经验证的测试安全上下文，并在每次调用前再次执行白名单校验。
-Foundation 平台适配器的纯单元测试只能通过内部注入工厂取得 `any TrashClient`，不得取得具体生产类型、
-其 metatype 或生产 initializer。
+FR-TEST-016：真实 Finder Automation 实现不得在测试代码中直接构造。测试构建只能通过
+`WhitelistedTrashClient` 获得系统废纸篓能力；其构造函数必须接收已经验证的测试安全上下文，并在
+每次调用前再次执行白名单校验。Finder 平台适配器的纯单元测试只能通过内部注入工厂取得
+`any TrashClient`，不得取得具体生产类型、其 metatype 或生产 initializer。静态边界检查必须拒绝
+生产适配器与编译期隔离的 `WhitelistedPutBackClient` 文件之外的 `NSAppleScript`、Apple Event
+descriptor、`osascript` 调用和 Finder bundle ID，并在所有 Swift 源文件中拒绝 legacy Foundation
+与失败的 Workspace Trash API。测试侧恢复适配器只能接受 `WhitelistedTrashClient` 返回的精确 URL
+和资源身份，只能恢复到同一已验证 Run Directory，不得按名称搜索废纸篓，也不得被生产 target 引用。
 
 FR-TEST-017：测试安全上下文必须在启动时记录 `~/rmp-test`、`~/rmp-test/test` 和 `<run-uuid>` 三层目录的 device/inode，并在每次真实系统调用前重新比较。目录身份变化时立即拒绝。
 
 FR-TEST-018：文件系统集成测试必须串行执行。当前运行期间不得启动会重命名、替换或重新挂载测试根目录及其祖先路径的后台任务。
 
-FR-TEST-019：由于 Foundation 废纸篓 API最终仍基于路径调用，即使进行两次校验和目录身份比较，也不能宣称完全消除最终检查与调用之间的 TOCTOU 风险。该风险通过 `0700` 权限、单用户测试、串行执行、目录文件描述符和调用前身份复核共同降低。
+FR-TEST-019：由于 Finder Apple Event 最终仍接收路径，即使进行两次校验和目录身份比较，也不能宣称
+完全消除最终检查与调用之间的 TOCTOU 风险。该风险通过 `0700` 权限、单用户测试、串行执行、目录
+文件描述符和调用前身份复核共同降低。
 
 FR-TEST-020：测试启动器应打开并在整个运行期间保留外层容器、测试根目录和运行目录的目录文件描述符。中间路径检查应尽量使用相对于已打开目录描述符且不跟随符号链接的方式完成。
 
@@ -610,6 +631,55 @@ FR-TEST-025：测试使用 spy/fake trash client 时必须记录系统能力调�
 FR-TEST-026：本地测试完成后，测试启动器只允许在重新验证 run UUID、marker 和运行目录 device/inode 后，删除 `.rmp-test-run` marker 并使用非递归 `rmdir` 删除已经为空的运行目录。运行目录仍包含任何其他项目时必须保留现场并报告，不得执行递归清理。
 
 FR-TEST-027：测试启动器永远不得自动删除 `~/rmp-test/test`、`.rmp-test-root`、`~/rmp-test` 或 `.rmp-test-container`。这些长期安全边界只能由用户显式、手工处理。
+
+FR-TEST-028：issue 12 的快速同名 Put Back 验收必须由 `rmp-test` 在同一个 Swift 进程中依次完成：
+
+1. exclusive-create 一个带当前 run UUID 前缀的 Test Fixture；
+2. 通过 `WhitelistedTrashClient` 第一次移入废纸篓并保留精确回执；
+3. 按 FR-TEST-029 将该文件恢复到同一 Run Directory 的原路径；
+4. 不插入 `sleep`、对话轮次、shell 脚本或 `osascript` 子进程，复用第一次规划的文件身份立即执行第二次 Trash；
+5. 输出第二次系统返回的精确 URL，并保留已验证 Run Directory 供维护者在 Finder 中检查最终“放回原处”。
+
+该场景不得在第二次 Trash 前后按名称枚举废纸篓。普通 `make test`、`make check` 和 CI 不得调用它；
+只有维护者显式运行真实验收命令时才允许触发 Finder Automation。
+
+FR-TEST-029：第 3 步的恢复必须提供两个变体。二者共用同一条顺序契约，只在恢复手段上不同：
+
+1. `put-back-race`：通过 `WhitelistedPutBackClient` 用第一次返回的精确 URL 恢复。该变体需要读取
+   `~/.Trash`，因此要求调用终端持有完全磁盘访问权限，并且该进程必须在授权生效之后才启动；否则
+   Finder 返回 Apple Event `-5000`，此时必须 fail-closed，不得改用其它 API 移动文件。
+2. `put-back-race-manual`：不得持有任何 Finder Put Back 能力，也不得请求额外权限。它只观察已授权
+   的 Run Directory，等待维护者在 Finder 中执行真实的“放回原处”命令。
+
+手动变体必须在开始等待前确认原路径为空；若第一次 Trash 并未真正移走文件，必须立即以
+`test-safety.put-back-source-occupied` 失败，不得把该状态误判为瞬间恢复。等待必须由内核 vnode 事件
+驱动（kqueue 支持的 dispatch source），不得以定时轮询作为主要检测手段；单次内核等待可设上限片，
+仅用于兜底遗漏通知。观察到恢复后必须重新验证完整测试安全上下文并比对资源标识符，然后才允许执行
+第二次 Trash。超过截止时间必须以 `test-safety.put-back-manual-timeout` fail-closed。
+
+等待期间必须向标准输出播报剩余秒数，使维护者能在终端看到窗口何时开启、还剩多久。播报本身不得
+参与竞态判定。
+
+FR-TEST-030：观察到恢复之后、第二次 Trash 之前，允许插入一个**显式声明**的延迟档位
+（`--settle-seconds`，取值 0–60，默认 0）。该延迟是工单要求的 0 / 1.5 / 3 秒再删除档位，属于实验
+参数而非实现中的隐式等待；默认值 0 表示完全不等待。实际生效的档位必须随验收结果一并输出
+（`settle-seconds=`），使每条证据都能追溯到自己的档位。
+
+判定协议：第二次 Trash 完成后必须**至少等待 5 秒**让 Finder 的延迟写回窗口过去，再检查最终项目是否
+仍提供“放回原处”。命令输出必须写明这一等待要求，不得让维护者在窗口内提前判定。
+
+FR-TEST-031：issue 12 的验收必须覆盖平台夹具集，因为元数据竞态是废纸篓条目的属性，被删对象的**形态**
+是一个独立于延迟档位的维度。`--fixture` 至少支持：普通文件、目录、符号链接、断开的符号链接、名称含
+引号、名称含换行。
+
+夹具创建必须与既有普通文件路径同等安全：先重验测试安全上下文，只使用保留的 Run Directory 描述符做
+`*at` 系统调用，独占创建（已存在即失败），失败时回滚。目录必须为 `0700`；由于 `mkdirat` 会被 umask
+掐掉请求的模式（极端情况下得到无法打开的 `0000` 目录），创建后必须显式恢复模式。符号链接不得在创建
+或校验过程中被跟随或解析，断链场景要求目标不存在。
+
+含引号和换行的名称必须能够通过授权路径创建并完成整条顺序契约：它们是证明路径文本确实以结构化 Apple
+Event 参数传递、而非被拼接进脚本源码的最终实证。每次验收输出必须写明本次使用的夹具形态
+（`fixture=`），使每条证据都能追溯到自己的形态与档位。
 
 #### 17.1.3 断言与不可省略的安全检查
 
@@ -670,6 +740,7 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 所有真实 fixture 名称包含当前 run UUID 前缀。
 - 本地测试只读验证系统返回的废纸篓 URL，不执行自动永久清理。
 - 本地运行目录只有在为空且身份复核通过时才能通过非递归 `rmdir` 清理。
+- issue 12 的 Swift 快速竞态场景严格连续执行第一次 Trash、精确 Put Back 和第二次 Trash，最终 Run Directory 为人工 Finder 检查保留。
 
 ### 17.4 安全测试
 
@@ -690,6 +761,8 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 手工验证使用 `~/rmp-test/test/<run-uuid>/` 中创建的专用 fixture，不得使用真实用户文件。
 - Finder 能看到由 rmp 移入的项目。
 - 在正常本地卷场景下，对系统返回的精确 URL验证 Finder“放回原处”；操作前核对 run UUID 前缀和文件资源标识符。
+- 使用 `rmp-test put-back-race` 的单进程 Swift 场景验证“第一次 Trash → 精确恢复 → 立即第二次 Trash”，并只对输出的第二次精确 URL进行最终 Finder 菜单检查。
+- 使用 `rmp-test put-back-race-manual` 以维护者真实的“放回原处”命令完成同一条顺序契约；该变体无需完全磁盘访问权限，是菜单级差分的权威入口。
 - 外接卷、iCloud/File Provider 和网络卷作为兼容性矩阵记录结果，不将所有场景设为发布阻塞项。
 
 ## 18. 可观测性与隐私
@@ -786,14 +859,14 @@ guard isInsideAuthorizedTestRoot(url) else {
 4. 根目录、主目录、当前目录、符号链接和 root 执行安全测试在规定的 fake filesystem 或 `~/rmp-test/test/<run-uuid>/` 白名单环境中通过。
 5. dry-run 测试证明零文件系统变更。
 6. JSON schema 有固定版本并通过快照测试。
-7. Finder 本地卷手工恢复验证通过。
+7. Finder 本地卷手工恢复验证通过，且 issue 12 的同名快速“放回原处”差分验收满足候选通过标准。
 8. 主帮助、兼容帮助和 README 对无意义参数及语义差异说明一致。
 9. Intel 与 Apple Silicon 构建通过。
 10. LICENSE、NOTICE 和贡献政策与 Apache-2.0 要求一致。
 11. CI 和本地集成测试都只能修改 `~/rmp-test/test/<run-uuid>/` 内由当前测试创建的 fixture；`~/rmp-test`、`~/rmp-test/test` 和运行目录本身均不可作为 rmp 目标。
 12. 测试安全包络的路径越界、marker 缺失、run UUID 不匹配、权限不安全和符号链接逃逸测试全部通过。
 13. 代码审查确认没有任何真实测试向 rmp 传入 `/`、用户主目录、当前工作目录或系统目录。
-14. 所有真实文件系统测试只调用带 `RMP_TESTING` 编译标识的 `rmp-test`，且无法直接构造未包装的 Foundation TrashClient。
+14. 所有真实文件系统测试只调用带 `RMP_TESTING` 编译标识的 `rmp-test`，且无法直接构造未包装的 FinderTrashClient。
 15. 三层目录身份变化、挂载点、跨卷路径和 File Provider 特殊根测试全部在系统废纸篓 API调用前失败。
 16. 所有安全拒绝测试都断言 trash client 调用次数为零。
 17. 本地测试不存在对系统废纸篓目标调用永久删除 API的代码路径。
@@ -806,6 +879,6 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 单个成功操作输出一行结果，包含用户提供的源路径和系统废纸篓 API 返回的精确最终目标路径；
   该决定在批量输出实现时继续保持一致。
 - `-P` 警告是否在非 TTY 环境默认显示。
-- JSON 中是否包含 Foundation 原始错误域和错误码。
+- JSON 中是否包含平台适配器的原始 `NSError` 域和错误码。
 - 最低 macOS 版本是否需要低于 macOS 13。
 - Homebrew 首版采用源码构建还是预编译 bottle。

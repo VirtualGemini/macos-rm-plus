@@ -12,7 +12,8 @@ SWIFT_PATHS := Package.swift Sources TestSupport Tests
 SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
-	build build-release test test-unit test-integration check-spdx check-dangerous \
+	build build-release test test-unit test-integration test-put-back-race \
+	test-put-back-race-manual check-spdx check-dangerous \
 	test-policy coverage-report check-tool-versions check-swift-toolchain \
 	check-system-trash-boundary \
 	check-policy-ownership check ci clean
@@ -74,6 +75,19 @@ check-swift-toolchain:
 
 test-integration:
 	./scripts/run-integration-tests.sh
+
+test-put-back-race:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race --test-run-id "$(TEST_RUN_ID)"
+
+SETTLE_SECONDS ?= 0
+
+CYCLES ?= 1
+FIXTURE ?= file
+
+test-put-back-race-manual:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
+		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
+		--fixture "$(FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:
 	./scripts/check-spdx.sh

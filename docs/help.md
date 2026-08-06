@@ -27,12 +27,24 @@ stops further prompts because no later approval can be read. `--non-interactive`
 or an unavailable prompt capability reports `confirmation_required` without reading input or
 blocking.
 
-All paths are planned before confirmation, and approved inputs are passed to the macOS Foundation
-Trash API serially in input order. Each success reports its exact resulting destination path.
-Failure never triggers permanent deletion, direct Trash-directory access, overwrite, or automatic
-move-back. Quiet mode suppresses successful results but never an error. Non-dry-run JSON output fails
-closed until the versioned schema is implemented; it never emits human output on stdout while
-claiming to be JSON.
+All paths are planned before confirmation, and approved inputs are passed to Finder serially in
+input order through a structured Apple Event. Each success reports the deleted Finder item's exact
+URL. Failure never triggers permanent deletion, a `FileManager.trashItem` or
+`NSWorkspace.recycle` fallback, direct Trash-directory access, overwrite, or automatic move-back.
+Quiet mode suppresses successful results but never an error. Non-dry-run JSON output fails closed
+until the versioned schema is implemented; it never emits human output on stdout while claiming to
+be JSON.
+
+The first real Trash Operation may show a macOS Automation prompt allowing the invoking terminal or
+`rmp` to control Finder. Accepted permission is normally reused for that sender-to-Finder pair but
+can be revoked, reset, or requested separately by another terminal application. Consent-required,
+denied, unavailable-Finder, and timeout outcomes fail closed with stable error codes.
+
+Finder owns the private metadata used by “Put Back.” In current `FileManager.trashItem`-based
+releases, restoring an item and sending the same name to Trash again within roughly 10 seconds can
+remove or stale that entry. Wait at least 10 seconds, use another name, or perform the second
+deletion in Finder. The Workspace candidate failed its differential; the Finder-delegated candidate
+remains subject to the issue 12 Automation and Put Back acceptance before release.
 
 Native options set confirmation (`-f`, `-i`, `-I`, `--confirm`), missing-path
 (`--ignore-missing`), output (`-v`, `--quiet`, `--json`), preview (`--dry-run`), automation

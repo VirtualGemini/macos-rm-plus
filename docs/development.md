@@ -13,7 +13,8 @@ releasing rmp. Pull requests must update it when they change the development wor
 - Minimum deployment target: macOS 13.
 - Package manager: Swift Package Manager.
 - Test framework: Swift Testing only.
-- Runtime dependencies: none in v0.1.
+- Third-party runtime dependencies: none in v0.1. Real Trash Operations require macOS Finder and
+  user-approved Automation access from the responsible terminal or `rmp` process.
 
 Pinned development-tool versions are recorded in `.tool-versions.lock`:
 
@@ -55,7 +56,7 @@ unrelated test compilation errors.
 ```text
 Sources/
 ├── RMPCore/          Pure parsing, planning, safety policy, and output models
-├── RMPPlatform/      macOS Foundation adapters
+├── RMPPlatform/      macOS system-framework adapters
 └── rmp/              Production command-line entrypoint
 
 TestSupport/
@@ -71,7 +72,7 @@ Tests/
 The architectural decision is recorded in
 [`docs/adr/0001-separate-core-platform-and-cli.md`](adr/0001-separate-core-platform-and-cli.md).
 
-`RMPCore` must not invoke the filesystem, terminal, clock, environment, or Foundation Trash API
+`RMPCore` must not invoke the filesystem, terminal, clock, environment, or system Trash API
 directly. Those capabilities cross explicit interfaces implemented in `RMPPlatform`.
 
 Interactive confirmation crosses the `ConfirmationPrompt` Interface. RMPCore decides whether a
@@ -136,6 +137,8 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   unconditional `fatalError`.
 - `RMPCore` uses typed errors.
 - Foundation `NSError` values remain inside `RMPPlatform` and are mapped to stable core error codes.
+- Finder Automation failures are classified with the SDK's named Apple Event and OSStatus constants;
+  localized error-message text never controls program flow.
 - Human-readable error messages are separate from machine-readable codes.
 - Empty `catch` blocks and print-then-continue error handling are prohibited.
 - Each error is explicitly classified as ignored, item failure with continuation, operation-stopping
@@ -152,6 +155,8 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
 - v0.1 Trash operations are synchronous and serial.
 - `Task.detached` and unconstrained parallel filesystem work are prohibited.
 - Async behavior is introduced only for a measured requirement and requires design review.
+- `FinderTrashClient` performs one synchronous, finite-timeout Finder Apple Event per approved
+  top-level input. RMPCore remains synchronous and never overlaps Trash Inputs.
 
 ## 6. Testing standards
 
@@ -175,7 +180,8 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `95.70%`, ratcheted upward with deterministic confirmation
+- The v1 production coverage baseline is `96.28%`, ratcheted upward with platform Trash adapter
+  coverage while retaining deterministic confirmation
   policy and review remediation without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
@@ -252,15 +258,78 @@ filesystem error prevents that rollback, the operation fails with `test-safety.r
 reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
 succeeded.
 
-`RMPPlatform.FoundationTrashClient` contains the only direct Foundation
-`trashItem(at:resultingItemURL:)` call. The production execution path constructs it only after
-parsing, root policy, output-mode, Trash Plan, and confirmation checks succeed, and only for an
-individual Trash Input approved for execution. The compile-time-isolated `rmp-test` target reaches
-that adapter only through `WhitelistedTrashClient`, which accepts opaque targets produced by its
-planning authorization pass, revalidates the complete Test Safety Context and target immediately
-before the system call, and returns read-only verification evidence. Pure tests inject Trash spies
-and never invoke the real capability. The integration runner remains separately guarded and cannot
-be enabled through an environment switch in the production executable.
+`RMPPlatform.FinderTrashClient` contains the only production Finder Automation capability. It invokes
+a fixed AppleScript handler with path text supplied as a structured Apple Event argument, asks Finder to
+`delete` one approved top-level item, and returns that Finder item's file URL. The legacy Foundation
+`FileManager.trashItem(at:resultingItemURL:)` and failed AppKit
+`NSWorkspace.recycle(_:completionHandler:)` candidates are prohibited because issue 12 reproduced
+the rapid same-name Put Back metadata race through both APIs. The production execution path
+constructs the Finder adapter only after parsing, root policy, output-mode, Trash Plan, and
+confirmation checks succeed, and only for an individual Trash Input approved for execution.
+Automation consent, denial, timeout, unavailable Finder, or missing file URL is reported without a
+fallback Trash API. The compile-time-isolated `rmp-test` target reaches that adapter only through
+`WhitelistedTrashClient`, which accepts opaque targets produced by its planning authorization pass,
+revalidates the complete Test Safety Context and target immediately before the system call, and
+returns read-only verification evidence. Pure tests inject Trash spies and never invoke the real
+capability. The integration runner remains separately guarded and cannot be enabled through an
+environment switch in the production executable.
+
+Issue 12's authoritative rapid Put Back acceptance lives entirely in the compile-time-isolated test
+target. `PutBackRaceAcceptance` exclusive-creates one UUID-prefixed Test Fixture, authorizes its
+identity once, performs the first Finder Trash call, restores the exact returned URL through
+`WhitelistedPutBackClient`, and immediately reuses the same identity for the second Finder Trash
+call. The sequence contains no sleep, shell script, `osascript` subprocess, or Trash name search.
+The test-only Put Back adapter revalidates the complete Test Safety Context immediately before its
+Finder call and compares the run prefix plus available file resource identifier before and after
+restore. Static policy permits its AppleScript bridge only in
+`TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift`; production cannot reference it.
+
+The restore step has two variants sharing that one sequence. `put-back-race` scripts the move
+through `WhitelistedPutBackClient`; because it reads `~/.Trash` it requires the invoking terminal to
+hold Full Disk Access *and* to have been started after that grant, otherwise Finder fails closed with
+Apple Event `-5000`. `put-back-race-manual` holds no Finder Put Back capability and needs no extra
+permission: it confirms the original path is empty, then waits for the maintainer's real Finder Put
+Back command through a kqueue-backed dispatch source over the authorized Run Directory, revalidates
+the context and resource identifier, and only then fires the second Trash call. Detection is driven
+by the vnode event rather than a timer; a bounded wait slice only backstops a missed notification.
+The manual variant is the menu-level authority, since production `rmp` needs Automation but never
+Full Disk Access. While it waits it prints the remaining window to stdout once every five seconds
+and for each of the final five, so a terminal shows a live countdown. The first tick reports the
+full declared timeout: the remaining window is rounded up, because the clock has already advanced a
+fraction by the time it is measured and rounding down would skip straight to the next multiple of
+five.
+
+`SETTLE_SECONDS` (0-60, default 0) declares the ticket's re-trash delay bucket between the observed
+restore and the second Trash call. It is an explicit experiment parameter, not an implicit wait: the
+default performs no sleep, and the value that actually applied is echoed as `settle-seconds=` beside
+the result so every evidence line is traceable to its bucket. Because Finder's deferred write-back
+window is roughly 2-4 seconds, the printed protocol requires waiting at least 5 seconds after the
+second Trash before judging whether Put Back survived; judging inside that window yields false
+positives.
+
+`FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
+(default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.
+The metadata race is a property of the Trash entry, so shape is a dimension independent of the delay
+bucket, and the awkward-name kinds are the end-to-end proof that path text crosses the Apple Event
+boundary as a structured argument rather than as script source. Every result echoes `fixture=`.
+
+Fixture creation for each shape matches the safety of the plain-file path: revalidate the context,
+use only `*at` calls against the retained Run Directory descriptor, create exclusively, and roll
+back on failure. Directories need an explicit mode restore after `mkdirat`, because the process
+umask can strip the requested `0700` and leave a directory that cannot even be opened. Symbolic
+links are never followed or resolved during creation.
+
+`CYCLES` (1-30, default 1) runs that many cycles inside one Run Directory for the ticket's
+differential. Each cycle gets its own numbered fixture, the maintainer performs one Put Back per
+cycle, and the command ends with a single summary listing every second-Trash target to inspect, so a
+30-cycle differential costs one command and one inspection pass rather than thirty. A cycle that
+fails still prints the evidence of the cycles already completed before it reports the failure.
+
+These real acceptances are maintainer-invoked only and are excluded from `make test`, `make check`,
+and CI. They intentionally preserve the validated Run Directory after the second Trash call so
+Finder's final Put Back destination continues to exist during human inspection. Each command prints
+that Run Directory and the exact second Trash URL; retained acceptance evidence is not recursively
+cleaned.
 
 `RMPTestKit.PutBackMetadataScanner` and its conditionally compiled command-line probe are read-only
 investigation support. They parse caller-supplied Trash `.DS_Store` data for Finder `ptbL`/`ptbN`
@@ -285,6 +354,8 @@ make build              Build every package target in Debug
 make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
+make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
+make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=] [FIXTURE=] Put Back
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint
@@ -452,17 +523,20 @@ Every pull request receives two independent conclusions:
 2. **Spec Review**: PRD, ticket acceptance criteria, behavior, and safety invariants.
 
 Agent review does not replace human approval for SafetyPolicy, WhitelistedTrashClient,
-FoundationTrashClient, `rmp-test`, Git hooks, workflows, release configuration, or development
-standards.
+WhitelistedPutBackClient, FinderTrashClient, `rmp-test`, Git hooks, workflows, release
+configuration, or development standards.
 
-Repository policy also enforces the test Trash boundary statically: the Foundation
-`trashItem(at:resultingItemURL:)` API may appear only in `FoundationTrashClient.swift`.
-`FoundationTrashClient` construction is limited to production wiring, the whitelist wrapper, and its
+Repository policy also enforces the test Trash boundary statically: `NSAppleScript`, Apple Event
+descriptor construction, Finder bundle targeting, and `osascript` execution may appear only in
+`FinderTrashClient.swift` and the compile-time-isolated `WhitelistedPutBackClient.swift`, while the
+legacy Foundation `trashItem` and failed Workspace `recycle` APIs are forbidden everywhere.
+`FinderTrashClient` construction is limited to production wiring, the whitelist wrapper, and its
 private platform implementation. The adapter test may obtain only an `any TrashClient` existential
-through `makeInjectedFoundationTrashClient(systemTrash:)`; concrete production type references,
-aliases, metatypes, and constructor references remain forbidden in all tests. The injectable
-`WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy test.
-`make check-system-trash-boundary` runs this check directly, and `make check` includes it.
+through `makeInjectedFinderTrashClient(...)`; concrete production type references, aliases,
+metatypes, and constructor references remain forbidden in all tests. The test-only Put Back wrapper
+may be referenced only by the authoritative acceptance module and its dedicated pure test. The
+injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy
+test. `make check-system-trash-boundary` runs this check directly, and `make check` includes it.
 
 Unresolved critical or high-risk findings block merge. Medium-risk findings are fixed or explicitly
 accepted with a written maintainer rationale.

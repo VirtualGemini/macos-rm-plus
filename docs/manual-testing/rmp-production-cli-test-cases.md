@@ -10,12 +10,18 @@ Shell 文本可能被标准输入读取为确认回答，制造无效响应或�
 
 ## 注意事项：环境污染与「放回原处」
 
-真机测试依赖系统废纸篓与 Finder。「放回原处」失败**不一定**是 `rmp` 产品缺陷；常见原因是测试环境污染。`rmp` 只调用 `FileManager.trashItem`，不维护 Finder 的放回路径。
+真机测试依赖系统废纸篓与 Finder。「放回原处」失败**不一定**是 `rmp` 产品缺陷；常见原因是测试环境污染。`rmp` 不维护 Finder 的私有放回 metadata。Workspace 候选已在自动差分中失败；当前候选通过
+结构化 Apple Event 让 Finder 执行移动，并会在首次真实操作时请求 Automation 权限。旧的
+`FileManager.trashItem` 基线存在已确认的同名快速 restore/re-trash 竞态，见
+[issue 12](../../.scratch/rmp-core/issues/12-put-back-metadata-race.md)。不得把该 ticket 的精确复现
+重新归类为环境污染。
 
 ### 已观察到的污染模式
 
 1. **隔离目录已失效**：`TEST_DIR="$(mktemp -d)"` 落在 `/var/folders/.../T/tmp.*`。上一会话、上一 agent 或手动清理后，目录可能已不存在，废纸篓项仍指向该「原处」，Finder 报「`tmp.xxx` 不再存在」。
-2. **同名反复进废纸篓**：多轮用例复用 `file-real` 等固定名时，Finder / `.DS_Store` 可能把显示名与陈旧原路径关联；表现为**换了新 tmp 目录仍报旧 tmp 名**。
+2. **历史同名残留**：多轮用例复用 `file-real` 等固定名且废纸篓仍有旧项时，Finder 可能把显示名
+   与陈旧原路径关联。废纸篓已清空、原目录仍存在时的快速“放回原处”后同名再次移动属于 issue 12，
+   不是本条污染模式。
 3. **Finder 最近文件夹缓存**：`~/Library/Preferences/com.apple.finder.plist` 的 `FXRecentFolders` 可能长期保留已死的 `tmp.*` 或易挥发的 `T`。仅清空废纸篓、新建 `TEST_DIR` **不够**，需清理该缓存并重启 Finder。
 4. **跨 agent / 跨会话残留**：上一轮未清空的废纸篓项、未删除的旧隔离目录、未重启的 Finder，会污染后续「全部」真实移动用例，看起来像从某次开始产品全面回归。
 
@@ -25,6 +31,7 @@ Shell 文本可能被标准输入读取为确认回答，制造无效响应或�
 |------|----------|
 | 原目录已不存在，放回失败并点名旧 `tmp.xxx` | **环境问题**，不算 `rmp` 回归 |
 | 废纸篓有同名残留 / `FXRecentFolders` 仍含死路径，且清理后恢复 | **环境问题** |
+| 环境干净，放回后 10 秒内同名再次移动，新的 Put Back entry 消失或指向旧路径 | **issue 12 产品缺陷** |
 | 原目录仍在、废纸篓干净、Finder 已重启且无死路径缓存，仍放回到错误位置 | 再怀疑 **产品 / 系统 API 边界** |
 
 ### 每轮开测前检查（建议强制）

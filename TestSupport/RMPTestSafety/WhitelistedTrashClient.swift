@@ -49,7 +49,7 @@ struct TrashAuthorizationOperations: Sendable {
       )
     },
     deviceMatchesRun: { $0 == $1 },
-    resourceIdentifier: archivedResourceIdentifier
+    resourceIdentifier: testSafetyResourceIdentifier
   )
 }
 
@@ -302,20 +302,6 @@ final class WhitelistedTrashClient {
   }
 }
 
-private func archivedResourceIdentifier(_ url: URL) throws -> Data? {
-  guard
-    let identifier = try url.resourceValues(forKeys: [.fileResourceIdentifierKey])
-      .fileResourceIdentifier
-  else {
-    return nil
-  }
-  if let data = identifier as? Data { return data }
-  return try NSKeyedArchiver.archivedData(
-    withRootObject: identifier,
-    requiringSecureCoding: true
-  )
-}
-
 private func isFileProviderItem(at url: URL) throws -> Bool {
   let result = FileProviderProbeResult()
   // swift-format and SwiftLint disagree on this imported Objective-C callback layout.
@@ -362,7 +348,7 @@ private enum FileProviderInspectionError: Error {
 }
 
 private func platformSystemTrash(_ sourceURL: URL) throws -> URL {
-  let receipt = try FoundationTrashClient().trashItem(atPath: sourceURL.path)
+  let receipt = try FinderTrashClient().trashItem(atPath: sourceURL.path)
   return URL(fileURLWithPath: receipt.destinationPath)
 }
 

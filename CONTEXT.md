@@ -42,7 +42,9 @@ Operation-scope rejections carry stable codes and identify every affected top-le
 Trash execution distinguishes `not_moved`, used only when the original directory entry's kind
 and filesystem identity can be confirmed unchanged after a system Trash failure, from
 `state_uncertain`, used whenever the final source state cannot be established reliably. A moved
-result records the exact destination path returned by the system Trash API.
+result records the exact destination path from the Finder Trash boundary's returned item URL.
+Finder Automation consent, denial, timeout, and availability failures remain failed Trash Results
+with stable codes; they never imply that another Trash API was attempted as a fallback.
 _Avoid_: Delete result, removal response
 
 ## Testing Language

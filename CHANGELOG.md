@@ -8,10 +8,37 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Changed
 
+- Route approved Trash Inputs through Finder's Apple Event `delete` command, pass path text as a
+  structured argument, preserve the returned Finder item URL, and prohibit silent fallback to the
+  Foundation and Workspace APIs that failed issue 12's metadata differential.
+- Resolve the AppleScript file specification outside Finder's `tell` block so approved paths reach
+  Finder correctly, and add a compile-time-isolated Swift acceptance that performs first Trash,
+  exact Put Back, and immediate second Trash in one process for issue 12's manual Finder check.
+- Add a second maintainer-only acceptance variant that holds no Finder Put Back capability and needs
+  no Full Disk Access: it waits for the real Finder Put Back command through a kqueue-backed
+  dispatch source over the authorized Run Directory, then fires the second Trash from that event.
+- Cover issue 12's platform acceptance set through `FIXTURE`: directories, symbolic links, broken
+  symbolic links, and names containing quotes or newlines, each created exclusively against the
+  retained Run Directory descriptor with an explicit mode restore that umask cannot strip.
+- Run the manual acceptance for up to 30 numbered cycles in one Run Directory through `CYCLES`, so
+  the issue 12 differential costs one command and one inspection pass; evidence from completed
+  cycles is reported even when a later cycle fails.
+- Print a live countdown while that variant waits, declare the re-trash delay bucket explicitly
+  through `SETTLE_SECONDS`, echo the applied bucket beside the result, and state the mandatory
+  five-second wait before judging Put Back so results cannot be read inside Finder's write-back
+  window.
+- Report Finder Automation consent, denial, timeout, and availability failures with stable,
+  actionable codes; release remains gated on issue 12's permission and real Put Back acceptance.
+- Keep Finder Automation in one reviewed adapter by rejecting direct AppleScript, Apple Event,
+  `osascript`, Foundation Trash, and Workspace recycle capability elsewhere.
+- Document the rapid same-name restore/re-trash Put Back limitation and its wait, rename, and
+  Finder-delete workarounds for existing Foundation-backed builds.
+- Ratchet the production line-coverage baseline from 95.70% to 96.28% with platform-adapter tests,
+  without changing the coverage metric.
 - Reserve `not_moved` and `state_uncertain` for post-system-call outcome classification, report
   pre-capability unsupported inputs as `rejected`, and include stable codes plus affected source
   paths when unsupported output modes fail closed.
-- Prevent tests, including the Foundation adapter injection suite, from constructing the production
+- Prevent tests, including the Finder adapter injection suite, from constructing the production
   system Trash capability directly; injected adapter tests receive only an existential Trash client,
   so the production metatype and initializer cannot be recovered.
 - Allow trusted maintainers to ratchet coverage baselines upward with implementation changes without

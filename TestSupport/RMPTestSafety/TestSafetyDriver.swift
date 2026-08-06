@@ -25,6 +25,11 @@ struct TestSafetyDriverResult: Sendable {
   let diagnostic: TestSafetyDiagnostic?
 }
 
+enum TestSafetyCleanupPolicy: Equatable, Sendable {
+  case removeRunDirectory
+  case preserveRunDirectory
+}
+
 enum TestSafetyDriver {
   static func runWithInjectedRuntime(
     arguments: [String],
@@ -40,9 +45,30 @@ enum TestSafetyDriver {
     }
   }
 
+  static func runWithInjectedRuntime(
+    arguments: [String],
+    cleanupPolicy: TestSafetyCleanupPolicy,
+    runtime: () throws -> TestSafetyRuntime,
+    operation: (TestSafetyContext, [String]) throws -> Int32
+  ) -> TestSafetyDriverResult {
+    do {
+      return run(
+        arguments: arguments,
+        runtime: try runtime(),
+        cleanupPolicy: cleanupPolicy,
+        operation: operation
+      )
+    } catch let diagnostic as TestSafetyDiagnostic {
+      return TestSafetyDriverResult(exitCode: 2, diagnostic: diagnostic)
+    } catch {
+      return unexpectedFailure()
+    }
+  }
+
   static func run(
     arguments: [String],
     runtime: TestSafetyRuntime,
+    cleanupPolicy: TestSafetyCleanupPolicy = .removeRunDirectory,
     establishContext: (
       _ runID: UUID,
       _ trustedUser: TrustedUserAccount,
@@ -65,7 +91,9 @@ enum TestSafetyDriver {
         runtime.effectiveUserID
       )
       let exitCode = try operation(context, parsedArguments.paths)
-      try context.cleanupRunDirectory()
+      if cleanupPolicy == .removeRunDirectory {
+        try context.cleanupRunDirectory()
+      }
       return TestSafetyDriverResult(exitCode: exitCode, diagnostic: nil)
     } catch let diagnostic as TestSafetyDiagnostic {
       return TestSafetyDriverResult(exitCode: 2, diagnostic: diagnostic)

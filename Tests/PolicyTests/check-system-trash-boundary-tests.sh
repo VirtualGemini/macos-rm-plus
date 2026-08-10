@@ -54,6 +54,13 @@ let client = WhitelistedTrashClient.testingOnly(
   systemTrash: spy.call
 )
 EOF
+cat >"$repo/Tests/RMPPlatformTests/FoundationTrashFinalizerTests.swift" <<'EOF'
+let client = WhitelistedTrashClient.testingOnly(
+  context: context,
+  authorization: authorization,
+  systemTrash: spy.call
+)
+EOF
 cat >"$repo/Tests/RMPPlatformTests/PutBackRaceAcceptanceTests.swift" <<'EOF'
 let client = WhitelistedPutBackClient(
   context: context,

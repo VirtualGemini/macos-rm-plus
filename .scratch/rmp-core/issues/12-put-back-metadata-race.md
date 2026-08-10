@@ -904,3 +904,28 @@ though the filesystem move had completed, so this establishes behavioral feasibi
 not yet an acceptable production implementation. A production candidate still needs
 an explicit ownership/identity boundary, bounded cleanup behavior, failure-state
 classification, and an automated acceptance path for the finalizer lifecycle.
+
+2026-08-10 — The behavioral probe was encoded as a compile-time-isolated,
+test-only `FoundationTrashFinalizer`. Pure regression tests first failed because
+the finalizer and the post-second-Trash orchestration step did not exist. The
+implementation creates one UUID-owned broken symbolic link, trashes it only through
+`WhitelistedTrashClient` and `FoundationSymlinkTrashClient`, restores the exact
+returned Trash URL, checks the original device/inode, link type, and available
+resource identifier, then unlinks only the verified restored entry relative to the
+retained Run Directory descriptor. Restore failure, source occupation, and restored
+identity replacement all stop closed and retain evidence. A distinct
+`put-back-symlink-finalizer-manual` command fixes settle delay at zero and keeps the
+unfinalized delay command as its control. This closes the automated-lifecycle evidence
+gap but does not authorize or implement production dispatch.
+
+2026-08-10 — The first automated real-menu finalizer acceptance passed with run
+`c74f26f6-9f38-45d2-858f-59bb7c333265`, `CYCLES=1`, fixture
+`symbolic-link`, and `settle-seconds=0.0`. After the maintainer used Finder's
+real Put Back command, the runner immediately performed the second user-visible
+Foundation Trash call, issued the owned Foundation finalizer call, restored and
+verified the exact returned finalizer URL, and reported
+`foundation-finalizer=cleaned`. The maintainer inspected the user-visible Trash
+item immediately after command completion, without a post-Trash wait, and Finder
+offered Put Back. This validates one complete test-only finalizer lifecycle on the
+reporting host; reliability over repeated cycles and production integration remain
+separate acceptance questions.

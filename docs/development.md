@@ -310,19 +310,29 @@ five.
 `SETTLE_SECONDS` (0-60, default 0) declares the ticket's re-trash delay bucket between the observed
 restore and the second Trash call. It is an explicit experiment parameter, not an implicit wait: the
 default performs no sleep, and the value that actually applied is echoed as `settle-seconds=` beside
-the result so every evidence line is traceable to its bucket. Because Finder's deferred write-back
-window is roughly 2-4 seconds, the printed protocol requires waiting at least 5 seconds after the
-second Trash before judging whether Put Back survived; judging inside that window yields false
-positives.
+the result so every evidence line is traceable to its bucket. Issue 12's symbolic-link investigation
+later proved that menu availability for the final Foundation Trash item changes only after another
+successful Foundation Trash call, at both 0- and 15-second settle endpoints. Maintainers therefore
+inspect the menu immediately after the command completes; no post-Trash observation delay is part of
+the protocol.
 
 `put-back-symlink-delay-manual` runs the same real-menu sequence with both Trash calls routed through
 the test-only Foundation symbolic-link adapter. It accepts only `symbolic-link` and
 `broken-symbolic-link` fixtures. Its declared settle interval is applied after the exact Put Back is
 observed and before the second Foundation call; delaying only the command response after that call
-would not test the proposed mitigation. This is a threshold-characterization experiment, not a
-production fallback or a claim that ten seconds is safe. A valid batch includes a zero-delay
-positive control, records the actual bucket, and judges the second item only after Finder's deferred
-write-back window.
+would not test the proposed mitigation. The completed 0- and 15-second probes falsified delay as a
+viable mitigation: every non-final item acquired Put Back after the next successful call, while the
+final item did not. This command remains available as the unfinalized control and is not a production
+fallback.
+
+`put-back-symlink-finalizer-manual` adds one owned Foundation symbolic-link Trash call immediately
+after the second user-visible Trash call. It then moves the exact Foundation-returned finalizer URL
+back to its exact Run Directory source, revalidates the Test Safety Context, UUID prefix, resource
+identifier when available, symbolic-link type, and original device/inode identity, and removes only
+that restored link through the retained Run Directory descriptor. It never permanently deletes an
+item inside Trash and stops closed if the source is occupied or any identity changes. The scenario
+fixes the settle bucket at zero and reports `foundation-finalizer=cleaned`; it is an automated
+test-only feasibility check, not production wiring.
 
 `FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
 (default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.
@@ -375,6 +385,7 @@ make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swif
 make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=] [FIXTURE=] Put Back
 make test-put-back-symlink-delay-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=]
                                          [SYMLINK_FIXTURE=]
+make test-put-back-symlink-finalizer-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLINK_FIXTURE=]
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint
@@ -558,7 +569,8 @@ through `makeInjectedFinderTrashClient(...)`; concrete production type reference
 metatypes, and constructor references remain forbidden in all tests. The test-only Put Back wrapper
 may be referenced only by the authoritative acceptance module and its dedicated pure test. The
 injectable `WhitelistedTrashClient.testingOnly(...)` factory may appear only in its dedicated spy
-test. `make check-system-trash-boundary` runs this check directly, and `make check` includes it.
+test and the Foundation finalizer's dedicated safety test. `make check-system-trash-boundary` runs
+this check directly, and `make check` includes it.
 
 Unresolved critical or high-risk findings block merge. Medium-risk findings are fixed or explicitly
 accepted with a written maintainer rationale.

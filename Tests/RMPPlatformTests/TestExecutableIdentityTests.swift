@@ -14,6 +14,7 @@ struct TestExecutableIdentityTests {
           Usage: rmp-test put-back-race --test-run-id <uuid>
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -25,6 +26,10 @@ struct TestExecutableIdentityTests {
           put-back-symlink-delay-manual options:
             --settle-seconds <n>  pre-Trash delay after Put Back, 0-60, default 0
             --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      symbolic-link | broken-symbolic-link
+
+          put-back-symlink-finalizer-manual options:
+            --cycles <n>          finalizer validation cycles, 1-30, default 1
             --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
@@ -39,6 +44,7 @@ struct TestExecutableIdentityTests {
           Usage: rmp-test put-back-race --test-run-id <uuid>
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -50,6 +56,10 @@ struct TestExecutableIdentityTests {
           put-back-symlink-delay-manual options:
             --settle-seconds <n>  pre-Trash delay after Put Back, 0-60, default 0
             --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      symbolic-link | broken-symbolic-link
+
+          put-back-symlink-finalizer-manual options:
+            --cycles <n>          finalizer validation cycles, 1-30, default 1
             --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
@@ -140,6 +150,18 @@ struct TestExecutableIdentityTests {
     #expect(process.terminationStatus != 0)
     #expect(!diagnostic.contains("no such module 'rmp_test'"))
     #expect(diagnostic.contains("cannot find 'RMPTestEntrypoint' in scope"))
+  }
+
+  @Test("the Foundation finalizer scenario rejects a nonzero settle delay before test setup")
+  func finalizerScenarioRejectsDelay() throws {
+    let result = try runBuiltTestExecutable(
+      arguments: ["put-back-symlink-finalizer-manual", "--settle-seconds", "1"]
+    )
+
+    #expect(result.exitCode == 2)
+    #expect(result.standardOutput.isEmpty)
+    #expect(result.standardError.contains("test-safety.invalid-command-arguments"))
+    #expect(result.standardError.contains("requires zero settle delay"))
   }
 }
 

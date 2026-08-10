@@ -291,16 +291,11 @@ struct PutBackRaceAcceptanceSequenceTests {
     let secondTrashURL = URL(fileURLWithPath: "/Trash/second-put-back-race")
     let resourceIdentifier = Data("fixture-identity".utf8)
     var events: [String] = []
-    var trashEvidence = [
-      TrashVerificationEvidence(
-        returnedURL: firstTrashURL,
-        resourceIdentifier: resourceIdentifier
-      ),
-      TrashVerificationEvidence(
-        returnedURL: secondTrashURL,
-        resourceIdentifier: resourceIdentifier
-      ),
-    ]
+    var trashEvidence = makeTrashEvidence(
+      firstURL: firstTrashURL,
+      secondURL: secondTrashURL,
+      resourceIdentifier: resourceIdentifier
+    )
     let operations = PutBackRaceOperations(
       prepare: { receivedContext in
         #expect(receivedContext === context)
@@ -319,7 +314,8 @@ struct PutBackRaceAcceptanceSequenceTests {
           returnedURL: sourceURL,
           resourceIdentifier: resourceIdentifier
         )
-      }
+      },
+      finalize: { events.append("finalize") }
     )
 
     let report = try PutBackRaceAcceptance.run(context: context, operations: operations)
@@ -331,6 +327,7 @@ struct PutBackRaceAcceptanceSequenceTests {
           "trash:first-put-back-race",
           "put-back:first-put-back-race",
           "trash:second-put-back-race",
+          "finalize",
         ]
     )
     #expect(
@@ -343,6 +340,16 @@ struct PutBackRaceAcceptanceSequenceTests {
           settleSeconds: 0
         )
     )
+  }
+}
+
+private func makeTrashEvidence(
+  firstURL: URL,
+  secondURL: URL,
+  resourceIdentifier: Data
+) -> [TrashVerificationEvidence] {
+  [firstURL, secondURL].map {
+    TrashVerificationEvidence(returnedURL: $0, resourceIdentifier: resourceIdentifier)
   }
 }
 

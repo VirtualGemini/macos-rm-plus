@@ -13,7 +13,8 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
 	build build-release test test-unit test-integration test-put-back-race \
-	test-put-back-race-manual test-put-back-symlink-delay-manual check-spdx check-dangerous \
+	test-put-back-race-manual test-put-back-symlink-delay-manual \
+	test-put-back-symlink-finalizer-manual check-spdx check-dangerous \
 	test-policy coverage-report check-tool-versions check-swift-toolchain \
 	check-system-trash-boundary \
 	check-policy-ownership check ci clean
@@ -94,6 +95,11 @@ test-put-back-symlink-delay-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-delay-manual \
 		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
 		--fixture "$(SYMLINK_FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
+
+test-put-back-symlink-finalizer-manual:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-finalizer-manual \
+		--cycles "$(CYCLES)" --fixture "$(SYMLINK_FIXTURE)" \
+		--test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:
 	./scripts/check-spdx.sh

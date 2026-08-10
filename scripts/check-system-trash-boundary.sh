@@ -16,6 +16,7 @@ whitelist_file=TestSupport/RMPTestSafety/WhitelistedTrashClient.swift
 finder_injection_test_file=Tests/RMPPlatformTests/FinderTrashClientTests.swift
 foundation_symlink_test_file=Tests/RMPPlatformTests/FoundationSymlinkTrashClientTests.swift
 injection_test_file=Tests/RMPPlatformTests/WhitelistedTrashClientTests.swift
+finalizer_test_file=Tests/RMPPlatformTests/FoundationTrashFinalizerTests.swift
 finder_injection_factory=makeInjectedFinderTrashClient
 failed=0
 
@@ -89,6 +90,7 @@ while IFS= read -r file; do
   fi
 
   if [ "$file" != "$injection_test_file" ] \
+    && [ "$file" != "$finalizer_test_file" ] \
     && printf '%s\n' "$normalized" \
       | grep -E '\.[[:space:]]*testingOnly([^[:alnum:]_]|$)' >/dev/null 2>&1; then
     echo "error: injectable Trash client construction is outside $injection_test_file: $file" >&2

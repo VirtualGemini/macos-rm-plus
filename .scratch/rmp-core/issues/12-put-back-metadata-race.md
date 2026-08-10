@@ -1,13 +1,13 @@
 # 12 — Put Back entry lost when re-trashing a same-named item soon after Put Back
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 **Classification:** defect — user-visible product anomaly at the macOS Trash
 integration boundary. Recoverability of `rmp` deletions is degraded relative
 to Finder-native deletion; reclassified from environment noise by the
 maintainer on 2026-07-18.
 
-## Current state (2026-08-01)
+## Current state (2026-08-10)
 
 The defect is reproduced, diagnosed, and fixed on
 `fix/12-put-back-metadata-race`. `FinderTrashClient` delegates the delete to
@@ -16,18 +16,22 @@ writer. The ticket's 30-cycle actual-menu differential passed **30/30** against
 roughly 10% retention for the previous Foundation client in the same flow.
 
 Confirmed working: ordinary files (30 cycles across all three delay buckets),
-directories, and names containing quotes or newlines. **Symbolic links are the
-exception** — Finder will not delete them over Apple Events at all, so they need
-a separate path that reintroduces this ticket's race for that shape alone.
+directories, and names containing quotes or newlines. Finder will not delete
+symbolic links over Apple Events. The production candidate now routes final symbolic
+links through Foundation and an owned Finalizer protocol: one complete preflight,
+two prepared activation helpers, identity verification before and after every restore,
+and no permanent deletion inside Trash. Pure failure tests cover preflight, target,
+activation, cleanup, wrong-returned-identity, broken-link, and moved-before-throw cases.
 
 Outstanding before release:
 
-- **Agent-runnable.** Extend the acceptance scenario to the platform set —
-  directories, symbolic links, broken symbolic links, duplicate Trash names, and
-  path text containing quotes and newlines. Every differential cycle so far used
-  one ordinary small file on one local volume, so fixture shape is the largest
-  untested dimension. The agent builds the fixtures and drives the sequence; only
-  the final Finder menu judgment needs the maintainer.
+- **Maintainer + agent.** Run `put-back-symlink-production-manual` for resolving and
+  broken symbolic links. The first call is the Foundation control; after the
+  maintainer's real Finder Put Back, the second call uses the production algorithm.
+  Inspect Put Back immediately after completion. Every internal real call is
+  independently whitelisted.
+- **Agent-runnable.** Complete the duplicate-Trash-name fixture and remaining release
+  gates.
 - **Maintainer only.** The Feedback Assistant report to Apple about the
   `.DS_Store` coherence race, and the release decision itself.
 
@@ -592,12 +596,11 @@ Neither path gives symbolic links Finder-grade recoverability. That is a macOS
 constraint, not an implementation choice: Finder will not touch the link, and
 anything that bypasses Finder re-enters the metadata race.
 
-#### Recorded remediation direction (not implemented)
+#### Implemented remediation
 
-The maintainer selected dispatch-by-type on 2026-08-01, on the grounds that
-"deletes, with a metadata limitation" is strictly better than "shows an
-inexplicable dialog, hangs, then fails". Implementation is deliberately deferred
-until the rest of the acceptance set has been measured.
+The maintainer selected dispatch-by-type on 2026-08-01. The finalizer evidence on
+2026-08-10 replaced the earlier known-limitation-only plan with the production
+protocol in ADR-0002.
 
 - Route symbolic links through a Foundation client and everything else through
   Finder, deciding by `lstat` rather than by any resolved path.
@@ -605,12 +608,15 @@ until the rest of the acceptance set has been measured.
   script currently forbids it everywhere and must be narrowed rather than
   relaxed, and the new client must itself refuse any target that is not a
   symbolic link.
-- A new ADR records that "Finder is the single `.DS_Store` writer" no longer
-  holds for symbolic links, and why no alternative was available.
-- README, `docs/help.md`, and this ticket carry the known limitation: a symbolic
-  link re-trashed shortly after a Put Back can lose its Put Back entry.
-- Issue 12's conclusion splits: fixed for ordinary files and directories,
-  constrained by macOS for symbolic links.
+- Run a complete same-volume Finalizer preflight before moving the user target, and
+  prepare two UUID helpers before the irreversible point.
+- Retry a failed activation only when the exact helper remains at its source and can
+  be verified and removed. If it moved before throwing, stop rather than shifting
+  metadata again and report `finalizer_state_uncertain`.
+- Preserve exact moved receipts and report activation or cleanup degradation with
+  stable warnings and exit code 1.
+- ADR-0002, README, `docs/help.md`, the product spec, and this ticket define the
+  behavior and the unavoidable crash/unmount/concurrent-replacement boundary.
 
 ### Finder candidate acceptance
 
@@ -648,9 +654,9 @@ until the rest of the acceptance set has been measured.
       2026-08-01: directories, quoted names, and newline names all retain Put
       Back; symbolic links and broken symbolic links cannot be deleted through
       Finder at all.
-- [ ] Implement dispatch-by-type so symbolic links delete through Foundation,
-      with the boundary, ADR, and known-limitation documentation it requires.
-      Direction recorded below; deliberately not implemented yet.
+- [x] Implement dispatch-by-type and the production Foundation Finalizer protocol,
+      including static capability boundaries, ADR-0002, honest moved warnings, pure
+      failure-state tests, and a whitelisted production acceptance entry.
 - [ ] Test duplicate Trash names, the one shape in acceptance criterion 5 with
       no fixture kind yet. It needs a same-basename decoy already in the Trash,
       which the current single-Run-Directory scenario cannot produce.
@@ -929,3 +935,27 @@ item immediately after command completion, without a post-Trash wait, and Finder
 offered Put Back. This validates one complete test-only finalizer lifecycle on the
 reporting host; reliability over repeated cycles and production integration remain
 separate acceptance questions.
+
+2026-08-10 — The production candidate was implemented through `MacOSTrashClient` and
+ADR-0002. It dispatches ordinary entries to Finder and final symbolic links to Foundation.
+Before moving a link it completes a same-directory Finalizer preflight and prepares two
+additional UUID helpers. The target identity is rechecked immediately before Trash and the
+returned target identity is checked before its URL can be reported. Successful activation
+restores and removes only the exact returned helper outside Trash.
+
+The pure suite now covers the critical target-moved/finalizer-failed matrix. A definitely
+not-moved first activation failure uses the prepared backup; two definitely not-moved
+failures return the exact target receipt with `symlink_put_back_not_guaranteed`; an
+activation that moved its helper before throwing stops without invoking the backup and
+returns `finalizer_state_uncertain`; a successful activation followed by restore or cleanup
+failure returns `finalizer_cleanup_failed` without claiming Put Back was lost. Wrong target
+and helper return identities are rejected without touching unrelated entries. The same
+matrix covers resolving and broken symbolic links.
+
+`put-back-symlink-production-manual` is the real-menu gate for this implementation. Its
+first Foundation Trash call supplies the control item for the maintainer's real Finder Put
+Back. Only after that restore is observed and revalidated does its second Trash call run the
+production algorithm. Every production preflight, target, and activation call is separately
+authorized by the Test Safety Context; internal helpers must be direct Run Directory children
+with exact `.rmp-finalizer-<canonical-lowercase-uuid>` names. Pure tests pass; the repeated
+resolving-link and broken-link Finder menu rounds remain pending maintainer execution.

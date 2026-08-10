@@ -27,7 +27,8 @@ commands reject root and unsupported output before filesystem construction, plan
 prompting, and construct the Trash capability only for approved inputs.
 `RMPPlatform.StandardInputConfirmationPrompt` checks stdin TTY state, writes prompts to stderr, and
 maps terminal lines or interruption into raw confirmation responses; approval remains pure RMPCore
-policy. `RMPPlatform.FinderTrashClient` contains the Finder Automation Trash call, while the
+policy. `RMPPlatform.MacOSTrashClient` owns production type dispatch and
+`RMPPlatform.FinderTrashClient` contains the Finder Automation Trash call, while the
 compile-time-isolated test executable reaches it only through `WhitelistedTrashClient`.
 Compatibility diagnostics remain beside the parsed command in the CLI envelope rather than entering
 a Trash Operation request or Trash Plan.
@@ -38,6 +39,10 @@ Finder item's `URL` property for the existing synchronous `TrashMoveReceipt`. Th
 interpolates path text into script source, applies a finite Finder timeout, maps Automation consent,
 denial, timeout, and availability failures to stable core codes, and never falls back to
 `FileManager.trashItem`, `NSWorkspace.recycle`, or direct Trash-directory manipulation.
+
+`MacOSTrashClient` dispatches final symbolic links to the Foundation Trash Finalizer protocol in
+ADR-0002 and delegates every other supported entry to Finder. It preserves exact moved receipts and
+stable post-move warnings without exposing platform details to RMPCore.
 
 The compile-time-isolated `rmp-test` module owns one separate, test-only Finder Put Back adapter for
 issue 12 acceptance. It can move only the exact UUID-prefixed URL returned by the whitelisted Trash

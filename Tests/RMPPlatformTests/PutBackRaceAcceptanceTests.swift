@@ -341,6 +341,42 @@ struct PutBackRaceAcceptanceSequenceTests {
         )
     )
   }
+
+  @Test("uses a dedicated production retrash operation only after Put Back")
+  func usesDedicatedProductionRetrash() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let sourceURL = context.runDirectoryURL.appendingPathComponent("production-retrash")
+    let firstTrashURL = URL(fileURLWithPath: "/Trash/first")
+    let secondTrashURL = URL(fileURLWithPath: "/Trash/second")
+    var events: [String] = []
+    let operations = PutBackRaceOperations(
+      prepare: { _ in
+        PutBackRaceTrashSession(
+          sourceURL: sourceURL,
+          trash: {
+            events.append("foundation-control")
+            return TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil)
+          },
+          retrash: {
+            events.append("production-finalizer")
+            return TrashVerificationEvidence(returnedURL: secondTrashURL, resourceIdentifier: nil)
+          }
+        )
+      },
+      putBack: { _, _ in
+        events.append("put-back")
+        return PutBackVerificationEvidence(returnedURL: sourceURL, resourceIdentifier: nil)
+      }
+    )
+
+    let report = try PutBackRaceAcceptance.run(context: context, operations: operations)
+
+    #expect(events == ["foundation-control", "put-back", "production-finalizer"])
+    #expect(report.firstTrashURL == firstTrashURL)
+    #expect(report.secondTrashURL == secondTrashURL)
+  }
 }
 
 private func makeTrashEvidence(

@@ -137,6 +137,93 @@ func singleItemCLIExecutionReportsExactDestination() {
   #expect(probes.receivedTrashPaths == ["report.txt"])
 }
 
+@Test("A moved symbolic link reports degraded Put Back without losing its destination")
+func movedSymbolicLinkReportsPutBackWarning() {
+  let probes = ApplicationProbes()
+  probes.trashResult = .success(
+    .init(
+      destinationPath: "/Users/test/.Trash/shortcut",
+      warnings: [.init(code: .symlinkPutBackNotGuaranteed)]
+    )
+  )
+  let identity = FileSystemIdentity(device: 1, inode: 15)
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: ["shortcut": .entry(.init(kind: .symbolicLink, identity: identity))]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: ["shortcut"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardOutput.contains("/Users/test/.Trash/shortcut"))
+  #expect(result.standardError.contains("symlink_put_back_not_guaranteed"))
+  #expect(result.standardError.contains("(moved)"))
+  #expect(result.standardError.contains("Put Back"))
+}
+
+@Test("A moved symbolic link reports finalizer cleanup failure without losing its destination")
+func movedSymbolicLinkReportsFinalizerCleanupWarning() {
+  let probes = ApplicationProbes()
+  probes.trashResult = .success(
+    .init(
+      destinationPath: "/Users/test/.Trash/shortcut",
+      warnings: [.init(code: .finalizerCleanupFailed)]
+    )
+  )
+  let identity = FileSystemIdentity(device: 1, inode: 16)
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: ["shortcut": .entry(.init(kind: .symbolicLink, identity: identity))]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: ["shortcut"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardOutput.contains("/Users/test/.Trash/shortcut"))
+  #expect(result.standardError.contains("finalizer_cleanup_failed"))
+  #expect(result.standardError.contains("(moved)"))
+  #expect(result.standardError.contains("Put Back was activated"))
+}
+
+@Test("A moved symbolic link reports an uncertain finalizer without losing its destination")
+func movedSymbolicLinkReportsUncertainFinalizerWarning() {
+  let probes = ApplicationProbes()
+  probes.trashResult = .success(
+    .init(
+      destinationPath: "/Users/test/.Trash/shortcut",
+      warnings: [.init(code: .finalizerStateUncertain)]
+    )
+  )
+  let identity = FileSystemIdentity(device: 1, inode: 17)
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: ["shortcut": .entry(.init(kind: .symbolicLink, identity: identity))]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: ["shortcut"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardOutput.contains("/Users/test/.Trash/shortcut"))
+  #expect(result.standardError.contains("finalizer_state_uncertain"))
+  #expect(result.standardError.contains("(moved)"))
+  #expect(result.standardError.contains("could not be confirmed"))
+}
+
 @Test("System Trash failure exposes a stable code, source path, and honest status")
 func singleItemCLIExecutionReportsNotMovedFailure() {
   let probes = ApplicationProbes()

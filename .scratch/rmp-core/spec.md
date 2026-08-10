@@ -310,15 +310,15 @@ rmp --help -a -zh
 
 ### 10.1 系统废纸篓 API
 
-FR-SAFE-001：所有实际移动必须由 Finder 通过 Apple Event `delete` 命令完成，并且只能从
-`FinderTrashClient` 的固定脚本边界发起。`FileManager.trashItem(at:resultingItemURL:)`、
-`NSWorkspace.recycle(_:completionHandler:)` 和直接移动到废纸篓目录均被禁止；Finder 调用失败或
-未返回当前项目的 file URL 时不得回退到另一种移动能力。
+FR-SAFE-001：普通文件和目录必须由 Finder 通过 Apple Event `delete` 命令移动，并且只能从
+`FinderTrashClient` 的固定脚本边界发起。最终路径组件为符号链接或断开的符号链接时，必须由
+`MacOSTrashClient` 的 Foundation 分支调用 `FileManager.trashItem(at:resultingItemURL:)`，不得先让
+Finder 失败再回退。`NSWorkspace.recycle(_:completionHandler:)` 和直接移动到废纸篓目录均被禁止。
 
 FR-SAFE-002：不得直接拼接或移动到 `~/.Trash`。
 
-FR-SAFE-003：必须使用 Finder `delete` 返回项目的 `URL` 属性作为最终废纸篓 URL，因为重名时目标
-名称可能变化。
+FR-SAFE-003：必须使用 Finder `delete` 或 Foundation `trashItem` 返回的当前项目 URL 作为最终
+废纸篓 URL，因为重名时目标名称可能变化。
 
 ### 10.2 禁止永久删除回退
 
@@ -351,6 +351,22 @@ FR-SAFE-013：不得对最终路径组件调用符号链接解析后再执行移
 FR-SAFE-014：路径规范化必须保留“移动符号链接本身”的语义。
 
 FR-SAFE-015：必须正确处理空格、Unicode、换行、前导连字符和长路径。
+
+FR-SAFE-016：移动用户符号链接之前，必须在同一父目录和同一卷完成一次 Trash Finalizer 全流程
+预检，并预创建至少两个 exclusive UUID Finalizer。创建、Trash、返回身份验证、精确恢复、恢复后
+身份验证或 descriptor-relative unlink 任一步失败，都必须发生在用户目标移动之前并阻止该移动。
+
+FR-SAFE-017：用户符号链接进入废纸篓后，必须串行尝试已经预创建的 Finalizer，直到一次 Foundation
+Trash 成功。成功返回的 Finalizer URL 必须在恢复前验证符号链接类型和原 device/inode，恢复后再次
+验证，并且只能在源目录中 unlink；不得在废纸篓内永久删除或按名称搜索项目。Foundation 调用抛错后，
+只有仍能在源目录验证并移除原 Finalizer 时才允许尝试备用项；源已消失或改变时必须立即停止，避免再次
+移动备用项而推进错误的“上一项”元数据。
+
+FR-SAFE-018：所有 Finalizer 激活尝试失败时，结果仍必须保留用户目标的精确废纸篓 URL，状态为
+`moved`，并附加 `symlink_put_back_not_guaranteed`。激活已经成功但恢复或清理失败时必须附加
+`finalizer_cleanup_failed`，不得误报 Put Back 未激活。调用抛错且 Finalizer 源已消失或改变时必须附加
+`finalizer_state_uncertain`，说明 Put Back 与内部残留状态均无法确认。三种警告均写入 stderr 并使操作
+退出码为 1，同时保留已知的精确用户目标 URL。
 
 ## 11. 执行模型
 
@@ -433,7 +449,9 @@ Moved 3 items to Trash; 1 failed.
 所有执行失败诊断必须包含稳定的机器可读错误码和受影响的源路径。系统调用前拒绝的不支持输入使用
 `rejected` 状态；`not_moved` 与 `state_uncertain` 仅用于系统废纸篓调用失败后的最终状态分类。
 当前构建尚未实现非 dry-run JSON 时，必须以稳定的 `unsupported_output_mode` 码和源路径 fail-closed。
-当前确认切片可以将已批准的多个顶层输入按输入顺序交给系统 Trash 能力；完整的 missing、
+已移动结果可以携带稳定 Trash Warning；warning 不得删除或隐藏精确 destination，也不得改写为
+`not_moved` 或 `state_uncertain`。当前确认切片可以将已批准的多个顶层输入按输入顺序交给系统 Trash
+能力；完整的 missing、
 partial-success 和 skipped 批量结果模型仍由有序批处理切片实现。
 
 ## 13. JSON 输出契约
@@ -507,10 +525,10 @@ FR-RESTORE-002：不得承诺所有情况下都能“放回原处”。以下情
 - 用户在废纸篓中重命名或移动了项目。
 - 网络卷或 File Provider 有不同实现。
 
-FR-RESTORE-003：生产 TrashClient 必须将移动委托给 Finder，使同一个 Finder writer 负责
-“放回原处”和快速同名再次移入废纸篓，作为 issue 12 的候选修复。在关闭该 issue 或发布该变更前，
-维护者必须完成 ticket 规定的 Foundation 基线与 Finder 候选差分验证；不得仅凭纯单元测试宣称
-Finder metadata 竞态已经修复。
+FR-RESTORE-003：生产 TrashClient 必须按最终目录条目类型分派。普通文件和目录委托给 Finder，使
+同一个 Finder writer 负责“放回原处”和快速同名再次移入废纸篓；Finder 拒绝的符号链接通过
+Foundation Trash 和 ADR-0002 的 Finalizer 协议处理。在关闭 issue 12 或发布该变更前，维护者必须
+完成 ticket 规定的真实 Finder 菜单差分，不得仅凭纯单元测试宣称 metadata 竞态已经修复。
 
 FR-RESTORE-004：首次 Finder Trash Operation 可以触发 macOS Automation 授权。权限待确认、被拒、
 Finder 不可用和超时必须使用稳定错误码并 fail closed；同一 sender-to-Finder 授权通常可复用，但产品
@@ -665,8 +683,8 @@ FR-TEST-030：观察到恢复之后、第二次 Trash 之前，允许插入一�
 参数而非实现中的隐式等待；默认值 0 表示完全不等待。实际生效的档位必须随验收结果一并输出
 （`settle-seconds=`），使每条证据都能追溯到自己的档位。
 
-判定协议：第二次 Trash 完成后必须**至少等待 5 秒**让 Finder 的延迟写回窗口过去，再检查最终项目是否
-仍提供“放回原处”。命令输出必须写明这一等待要求，不得让维护者在窗口内提前判定。
+判定协议：第二次 Trash 或 Finalizer 完成后立即检查最终项目是否仍提供“放回原处”；post-Trash
+等待不属于协议，因为 0 秒与 15 秒端点已经证明 final-call 行为取决于后续成功调用而非时间。
 
 FR-TEST-031：issue 12 的验收必须覆盖平台夹具集，因为元数据竞态是废纸篓条目的属性，被删对象的**形态**
 是一个独立于延迟档位的维度。`--fixture` 至少支持：普通文件、目录、符号链接、断开的符号链接、名称含
@@ -681,19 +699,24 @@ FR-TEST-031：issue 12 的验收必须覆盖平台夹具集，因为元数据竞
 Event 参数传递、而非被拼接进脚本源码的最终实证。每次验收输出必须写明本次使用的夹具形态
 （`fixture=`），使每条证据都能追溯到自己的形态与档位。
 
-FR-TEST-032：为测定符号链接的 Foundation 预等待阈值，编译期隔离的 `rmp-test` 可以提供
+FR-TEST-032：为复现和验证符号链接的 Foundation 行为，编译期隔离的 `rmp-test` 可以提供
 `put-back-symlink-delay-manual` 实验入口。该入口的第一次和第二次 Trash 都必须经过既有
 `WhitelistedTrashClient`，并由只接受 `lstat` 判定为最终符号链接的
-`FoundationSymlinkTrashClient` 调用 `FileManager.trashItem`。生产 target 不得导入或引用该 adapter，
-Finder 失败不得回退到该 adapter，普通单元测试和 CI 不得执行其真实系统调用。
+`FoundationSymlinkTrashClient` 调用 `FileManager.trashItem`。生产 target 不得导入或引用该测试
+adapter；生产 Foundation 能力只属于 `MacOSTrashClient`，Finder 失败不得回退到该分支，普通单元
+测试和 CI 不得执行真实系统调用。
 
 该实验只接受符号链接和断开的符号链接。`--settle-seconds` 必须发生在维护者真实 Put Back 被观察并
-复核之后、第二次 Foundation Trash 之前；调用 Foundation 后再延迟输出不满足实验定义。每批结果必须
-包含零延迟阳性对照，并在 Finder 延迟写回窗口之后验证第二个项目仍能精确放回原路径。有限轮次只能形成
-带适用系统版本和置信度的经验阈值，不得表述成 macOS 提供的完成保证。
+复核之后、第二次 Foundation Trash 之前；调用 Foundation 后再延迟输出不满足实验定义。0 秒和 15 秒
+端点已经证明等待不改变 final-call 行为，因此不得再把 post-Trash 等待作为判定条件或生产缓解措施。
 
-Foundation 符号链接实验在第二次 Trash 后必须至少等待 15 秒再作菜单判定，避免把尚未发生的延迟覆盖
-误报为保留成功；命令输出必须写明该等待要求。
+Foundation Finalizer 验收必须固定 `settle-seconds=0`，并在命令完成后立即作菜单判定。
+
+生产候选必须另提供 `put-back-symlink-production-manual`：第一次 Trash 仍使用白名单 Foundation control，
+维护者执行真实 Finder Put Back 并由 runner 重验后，第二次 Trash 必须通过生产 `MacOSTrashClient` 的
+预检、目标移动、激活与清理协议。生产算法内部每一次 Foundation 调用都必须重新经过 Test Safety Context；
+内部 Finalizer 仅允许当前 Run Directory 直属、严格 `.rmp-finalizer-<canonical-lowercase-uuid>` 命名且
+`lstat` 为符号链接的条目。该入口固定零延迟，完成后立即检查菜单。
 
 #### 17.1.3 断言与不可省略的安全检查
 
@@ -777,6 +800,7 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 在正常本地卷场景下，对系统返回的精确 URL验证 Finder“放回原处”；操作前核对 run UUID 前缀和文件资源标识符。
 - 使用 `rmp-test put-back-race` 的单进程 Swift 场景验证“第一次 Trash → 精确恢复 → 立即第二次 Trash”，并只对输出的第二次精确 URL进行最终 Finder 菜单检查。
 - 使用 `rmp-test put-back-race-manual` 以维护者真实的“放回原处”命令完成同一条顺序契约；该变体无需完全磁盘访问权限，是菜单级差分的权威入口。
+- 使用 `rmp-test put-back-symlink-production-manual` 验证第二次符号链接 Trash 的生产 Finalizer 全流程；每个 Foundation 调用都必须重新通过白名单，任何生产警告都使验收失败并保留证据。
 - 外接卷、iCloud/File Provider 和网络卷作为兼容性矩阵记录结果，不将所有场景设为发布阻塞项。
 
 ## 18. 可观测性与隐私

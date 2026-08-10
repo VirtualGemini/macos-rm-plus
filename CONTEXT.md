@@ -47,6 +47,18 @@ Finder Automation consent, denial, timeout, and availability failures remain fai
 with stable codes; they never imply that another Trash API was attempted as a fallback.
 _Avoid_: Delete result, removal response
 
+**Trash Finalizer**:
+An rmp-owned, UUID-named broken symbolic link used only after a user symbolic link enters Trash. A
+successful Foundation Trash call on the finalizer activates Put Back for the preceding user item;
+the exact returned finalizer is then restored, identity-checked, and removed outside Trash.
+_Avoid_: Temporary file, dummy file
+
+**Trash Warning**:
+A stable diagnostic attached to a moved Trash Result when the destination is known but either Put
+Back could not be guaranteed, a failed Finalizer call left its source state uncertain, or an
+already-activated Trash Finalizer could not be cleaned up.
+_Avoid_: Trash failure, state-uncertain error
+
 ## Testing Language
 
 **Test Safety Context**:

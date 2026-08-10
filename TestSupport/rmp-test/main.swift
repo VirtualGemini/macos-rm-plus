@@ -12,6 +12,7 @@ private let helpText = """
          rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
+         rmp-test put-back-symlink-production-manual [OPTIONS] --test-run-id <uuid>
          rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
   put-back-race-manual options:
@@ -27,6 +28,10 @@ private let helpText = """
 
   put-back-symlink-finalizer-manual options:
     --cycles <n>          finalizer validation cycles, 1-30, default 1
+    --fixture <kind>      symbolic-link | broken-symbolic-link
+
+  put-back-symlink-production-manual options:
+    --cycles <n>          production finalizer validation cycles, 1-30, default 1
     --fixture <kind>      symbolic-link | broken-symbolic-link
 
   """
@@ -57,6 +62,12 @@ private enum RMPTestEntrypoint {
       executePutBackRace(
         arguments: Array(arguments.dropFirst()),
         restore: .manualFoundationSymlinkFinalizer
+      )
+    }
+    if arguments.first == "put-back-symlink-production-manual" {
+      executePutBackRace(
+        arguments: Array(arguments.dropFirst()),
+        restore: .manualProductionSymlinkFinalizer
       )
     }
 
@@ -143,10 +154,10 @@ private enum RMPTestEntrypoint {
     restore: PutBackRaceRestore,
     settleSeconds: TimeInterval
   ) {
-    guard restore.usesFoundationFinalizer, settleSeconds != 0 else { return }
+    guard restore.requiresZeroSettle, settleSeconds != 0 else { return }
     let diagnostic = TestSafetyDiagnostic(
       code: .invalidCommandArguments,
-      message: "put-back-symlink-finalizer-manual requires zero settle delay."
+      message: "\(restore.scenarioName) requires zero settle delay."
     )
     FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
     exit(2)
@@ -187,7 +198,7 @@ private enum RMPTestEntrypoint {
     case .finderScript:
       return try PutBackRaceAcceptance.run(context: context)
     case .manualFinderMenu, .manualFoundationSymlinkDelay,
-      .manualFoundationSymlinkFinalizer:
+      .manualFoundationSymlinkFinalizer, .manualProductionSymlinkFinalizer:
       return try PutBackRaceAcceptance.runManual(
         context: context,
         suffix: kind.suffix(cycle: "put-back-race"),
@@ -195,6 +206,7 @@ private enum RMPTestEntrypoint {
         trashBackend: restore.trashBackend,
         settleSeconds: settleSeconds,
         finalizeWithFoundation: restore.usesFoundationFinalizer,
+        retrashWithProductionFinalizer: restore.usesProductionFinalizer,
         announce: { message in
           FileHandle.standardOutput.write(Data("\(message)\n".utf8))
         },
@@ -220,6 +232,7 @@ private enum RMPTestEntrypoint {
         trashBackend: restore.trashBackend,
         settleSeconds: settleSeconds,
         finalizeWithFoundation: restore.usesFoundationFinalizer,
+        retrashWithProductionFinalizer: restore.usesProductionFinalizer,
         announce: { cycle, message in
           FileHandle.standardOutput.write(Data("cycle=\(cycle)/\(cycles)\n\(message)\n".utf8))
         },
@@ -259,7 +272,7 @@ private enum RMPTestEntrypoint {
       restored=\(report.restoredURL.path)
       settle-seconds=\(report.settleSeconds)
       second-trash=\(report.secondTrashURL.path)
-      foundation-finalizer=\(restore.usesFoundationFinalizer ? "cleaned" : "disabled")
+      foundation-finalizer=\(restore.finalizerDescription)
       run-directory=\(context.runDirectoryURL.path)
       \(manualCheckText(backend: restore.trashBackend, plural: false))
       manual-target=\(report.secondTrashURL.lastPathComponent)
@@ -283,7 +296,7 @@ private enum RMPTestEntrypoint {
       "fixture=\(kind.rawValue)",
       "trash-backend=\(restore.trashBackend.rawValue)",
       "completed-cycles=\(reports.count)/\(cycles)",
-      "foundation-finalizer=\(restore.usesFoundationFinalizer ? "cleaned" : "disabled")",
+      "foundation-finalizer=\(restore.finalizerDescription)",
       "run-directory=\(context.runDirectoryURL.path)",
       manualCheckText(backend: restore.trashBackend, plural: true),
     ]
@@ -304,65 +317,6 @@ private enum RMPTestEntrypoint {
       executableName: try loadedExecutableName()
     )
   }
-}
-
-private enum PutBackRaceRestore {
-  case finderScript
-  case manualFinderMenu
-  case manualFoundationSymlinkDelay
-  case manualFoundationSymlinkFinalizer
-
-  var scenarioName: String {
-    switch self {
-    case .finderScript: "put-back-race"
-    case .manualFinderMenu: "put-back-race-manual"
-    case .manualFoundationSymlinkDelay: "put-back-symlink-delay-manual"
-    case .manualFoundationSymlinkFinalizer: "put-back-symlink-finalizer-manual"
-    }
-  }
-
-  var restoreDescription: String {
-    switch self {
-    case .finderScript: "finder-apple-event-move"
-    case .manualFinderMenu, .manualFoundationSymlinkDelay,
-      .manualFoundationSymlinkFinalizer:
-      "maintainer-finder-put-back-command"
-    }
-  }
-
-  var trashBackend: TestSystemTrashBackend {
-    switch self {
-    case .finderScript, .manualFinderMenu: .finder
-    case .manualFoundationSymlinkDelay, .manualFoundationSymlinkFinalizer: .foundationSymlink
-    }
-  }
-
-  var defaultFixtureKind: PutBackRaceFixtureKind {
-    switch self {
-    case .finderScript, .manualFinderMenu: .file
-    case .manualFoundationSymlinkDelay, .manualFoundationSymlinkFinalizer: .symbolicLink
-    }
-  }
-
-  var supportsCycles: Bool {
-    switch self {
-    case .finderScript: false
-    case .manualFinderMenu, .manualFoundationSymlinkDelay,
-      .manualFoundationSymlinkFinalizer:
-      true
-    }
-  }
-
-  var usesFoundationFinalizer: Bool {
-    self == .manualFoundationSymlinkFinalizer
-  }
-}
-
-private struct RaceOptions {
-  let settleSeconds: TimeInterval
-  let cycles: Int
-  let kind: PutBackRaceFixtureKind
-  let driverArguments: [String]
 }
 
 private func loadedExecutableName() throws -> String {

@@ -10,6 +10,7 @@ struct PutBackVerificationEvidence: Equatable, Sendable {
 struct PutBackRaceTrashSession {
   let sourceURL: URL
   let trash: () throws -> TrashVerificationEvidence
+  var retrash: (() throws -> TrashVerificationEvidence)?
 }
 
 struct PutBackRaceOperations {
@@ -86,6 +87,7 @@ enum PutBackRaceAcceptance {
     trashBackend: TestSystemTrashBackend = .finder,
     settleSeconds: TimeInterval = 0,
     finalizeWithFoundation: Bool = false,
+    retrashWithProductionFinalizer: Bool = false,
     announce: @escaping (String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in }
   ) throws -> PutBackRaceReport {
@@ -95,13 +97,23 @@ enum PutBackRaceAcceptance {
       heartbeat: heartbeat
     )
     let finalizer = finalizeWithFoundation ? FoundationTrashFinalizer(context: context) : nil
+    let productionClient =
+      retrashWithProductionFinalizer ? WhitelistedMacOSTrashClient(context: context) : nil
+    let prepare = makePrepare(
+      context: context,
+      suffix: suffix,
+      kind: kind,
+      trashBackend: trashBackend
+    )
     let operations = PutBackRaceOperations(
-      prepare: makePrepare(
-        context: context,
-        suffix: suffix,
-        kind: kind,
-        trashBackend: trashBackend
-      ),
+      prepare: { receivedContext in
+        var session = try prepare(receivedContext)
+        if let productionClient {
+          let sourceURL = session.sourceURL
+          session.retrash = { try productionClient.trashItem(sourceURL) }
+        }
+        return session
+      },
       putBack: waiter.putBack,
       settle: { seconds in
         guard seconds > 0 else { return }
@@ -128,6 +140,7 @@ enum PutBackRaceAcceptance {
     trashBackend: TestSystemTrashBackend = .finder,
     settleSeconds: TimeInterval = 0,
     finalizeWithFoundation: Bool = false,
+    retrashWithProductionFinalizer: Bool = false,
     announce: @escaping (Int, String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in },
     runCycle: ((Int, String) throws -> PutBackRaceReport)? = nil
@@ -142,6 +155,7 @@ enum PutBackRaceAcceptance {
           trashBackend: trashBackend,
           settleSeconds: settleSeconds,
           finalizeWithFoundation: finalizeWithFoundation,
+          retrashWithProductionFinalizer: retrashWithProductionFinalizer,
           announce: { announce(cycle, $0) },
           heartbeat: heartbeat
         )
@@ -220,7 +234,7 @@ enum PutBackRaceAcceptance {
     let firstTrash = try session.trash()
     let restored = try operations.putBack(firstTrash, session.sourceURL)
     try operations.settle(operations.settleSeconds)
-    let secondTrash = try session.trash()
+    let secondTrash = try session.retrash?() ?? session.trash()
     try operations.finalize()
     return PutBackRaceReport(
       sourceURL: session.sourceURL,

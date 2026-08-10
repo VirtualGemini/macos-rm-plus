@@ -9,8 +9,16 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 ### Changed
 
 - Route approved Trash Inputs through Finder's Apple Event `delete` command, pass path text as a
-  structured argument, preserve the returned Finder item URL, and prohibit silent fallback to the
-  Foundation and Workspace APIs that failed issue 12's metadata differential.
+  structured argument, and preserve the returned Finder item URL for ordinary files and directories.
+- Route final symbolic links through Foundation without following their targets. Before moving the
+  target, complete an identity-verified same-directory finalizer preflight and prepare a backup;
+  after the target moves, use a successful finalizer call to activate Put Back and remove only the
+  exact restored helper outside Trash.
+- Preserve the exact moved destination when all finalizer activations fail, an activation may have
+  moved before throwing, or post-activation cleanup fails, reporting
+  `symlink_put_back_not_guaranteed`, `finalizer_state_uncertain`, or
+  `finalizer_cleanup_failed` with exit code 1. Retry only when the failed finalizer's original
+  identity can still be verified and removed at its source.
 - Resolve the AppleScript file specification outside Finder's `tell` block so approved paths reach
   Finder correctly, and add a compile-time-isolated Swift acceptance that performs first Trash,
   exact Put Back, and immediate second Trash in one process for issue 12's manual Finder check.
@@ -23,10 +31,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Run the manual acceptance for up to 30 numbered cycles in one Run Directory through `CYCLES`, so
   the issue 12 differential costs one command and one inspection pass; evidence from completed
   cycles is reported even when a later cycle fails.
-- Print a live countdown while that variant waits, declare the re-trash delay bucket explicitly
-  through `SETTLE_SECONDS`, echo the applied bucket beside the result, and state the mandatory
-  five-second wait before judging Put Back so results cannot be read inside Finder's write-back
-  window.
+- Print a live countdown while that variant waits for the maintainer's Put Back action, declare the
+  pre-Trash delay bucket explicitly through `SETTLE_SECONDS`, and echo the applied bucket. Final menu
+  availability is checked immediately because later probes falsified post-Trash waiting as a factor.
 - Report Finder Automation consent, denial, timeout, and availability failures with stable,
   actionable codes; release remains gated on issue 12's permission and real Put Back acceptance.
 - Keep Finder Automation in one reviewed adapter by rejecting direct AppleScript, Apple Event,
@@ -36,7 +43,7 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   previously observed ten-second workaround as a proven threshold.
 - Document the rapid same-name restore/re-trash Put Back limitation and its wait, rename, and
   Finder-delete workarounds for existing Foundation-backed builds.
-- Ratchet the production line-coverage baseline from 95.70% to 96.28% with platform-adapter tests,
+- Ratchet the production line-coverage baseline from 95.70% to 96.74% with platform-adapter tests,
   without changing the coverage metric.
 - Reserve `not_moved` and `state_uncertain` for post-system-call outcome classification, report
   pre-capability unsupported inputs as `rejected`, and include stable codes plus affected source
@@ -49,6 +56,10 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   protected.
 
 ### Added
+
+- Add a maintainer-only production-finalizer acceptance whose first symbolic-link Trash is the
+  Foundation control and whose post-Put-Back second Trash runs `MacOSTrashClient`; every internal
+  Foundation call is independently reauthorized by the Test Safety Context whitelist.
 
 - Add deterministic `smart`, `never`, `once`, and `each` confirmation with top-level-only summaries,
   `-f`/`-i`/`-I` precedence, non-interactive and non-TTY fail-closed behavior, stable declined,

@@ -33,25 +33,29 @@ whitespace, approves a move. A declined, invalid, interrupted, non-interactive, 
 confirmation exits with code 1 and never authorizes the affected Trash call.
 
 All inputs are planned before confirmation, so root execution and Protected Paths still fail with
-exit code 3 before any prompt or Trash capability. Approved inputs are passed as top-level entries to
-Finder in input order through a structured Apple Event, without recursive traversal, and each
-success reports the deleted Finder item's exact URL. A Finder Trash failure never falls back to
-permanent deletion, `FileManager.trashItem`, `NSWorkspace.recycle`, or direct Trash-directory
-manipulation, and reports `not_moved` only when the original entry identity can be confirmed
-unchanged; otherwise it reports `state_uncertain`.
+exit code 3 before any prompt or Trash capability. Approved ordinary files and directories are
+passed to Finder in input order through a structured Apple Event. Symbolic links use Foundation
+without following their targets, plus an identity-verified finalizer that preserves Finder Put Back.
+Every success reports the system-returned exact URL. A Finder failure never falls back to Foundation,
+and no failure falls back to permanent deletion, `NSWorkspace.recycle`, or direct Trash-directory
+manipulation. Failures report `not_moved` only when the original entry identity is confirmed
+unchanged; otherwise they report `state_uncertain`.
 
 The first real Trash Operation may show a macOS Automation prompt allowing the invoking terminal or
 `rmp` to control Finder. An accepted permission is normally reused for that sender-to-Finder pair.
 If permission is required, denied, reset, or used from another terminal host, `rmp` fails closed with
 an actionable stable error instead of silently using a less reliable Trash API.
 
-Finder owns the private metadata behind “Put Back.” Current `FileManager.trashItem`-based releases
-can lose that entry when an item is restored and the same name is sent to Trash again within roughly
-10 seconds. Waiting at least 10 seconds, using another name, or performing the second deletion in
-Finder avoids the observed race. `NSWorkspace.recycle` failed the automated differential with the
-same result as Foundation. This branch now delegates deletion to Finder as the candidate fix; it
-must pass the Automation and real Put Back differentials in
-[issue 12](.scratch/rmp-core/issues/12-put-back-metadata-race.md) before release.
+Finder owns the private metadata behind “Put Back.” Ordinary entries therefore use Finder directly.
+Finder refuses symbolic links, so rmp preflights and prepares owned hidden symbolic-link finalizers,
+moves the user link through Foundation, then performs one successful Foundation finalizer call and
+cleans up the exact identity outside Trash. Normal success leaves no finalizer residue. If every
+prepared activation fails, or an activated finalizer cannot be cleaned up, rmp preserves the target
+destination and emits a stable warning with exit code 1. A failed finalizer call is retried only when
+the exact helper is still verified at its source; if it moved before throwing, rmp stops with
+`finalizer_state_uncertain` instead of shifting the metadata again. The evidence and release
+acceptance remain tracked in
+[issue 12](.scratch/rmp-core/issues/12-put-back-metadata-race.md).
 
 ## Project status
 

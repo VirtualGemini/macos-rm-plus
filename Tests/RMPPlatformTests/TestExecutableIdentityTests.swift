@@ -15,6 +15,7 @@ struct TestExecutableIdentityTests {
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-production-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -30,6 +31,10 @@ struct TestExecutableIdentityTests {
 
           put-back-symlink-finalizer-manual options:
             --cycles <n>          finalizer validation cycles, 1-30, default 1
+            --fixture <kind>      symbolic-link | broken-symbolic-link
+
+          put-back-symlink-production-manual options:
+            --cycles <n>          production finalizer validation cycles, 1-30, default 1
             --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
@@ -45,6 +50,7 @@ struct TestExecutableIdentityTests {
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-production-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -60,6 +66,10 @@ struct TestExecutableIdentityTests {
 
           put-back-symlink-finalizer-manual options:
             --cycles <n>          finalizer validation cycles, 1-30, default 1
+            --fixture <kind>      symbolic-link | broken-symbolic-link
+
+          put-back-symlink-production-manual options:
+            --cycles <n>          production finalizer validation cycles, 1-30, default 1
             --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
@@ -152,10 +162,16 @@ struct TestExecutableIdentityTests {
     #expect(diagnostic.contains("cannot find 'RMPTestEntrypoint' in scope"))
   }
 
-  @Test("the Foundation finalizer scenario rejects a nonzero settle delay before test setup")
-  func finalizerScenarioRejectsDelay() throws {
+  @Test(
+    "finalizer scenarios reject a nonzero settle delay before test setup",
+    arguments: [
+      "put-back-symlink-finalizer-manual",
+      "put-back-symlink-production-manual",
+    ]
+  )
+  func finalizerScenarioRejectsDelay(scenario: String) throws {
     let result = try runBuiltTestExecutable(
-      arguments: ["put-back-symlink-finalizer-manual", "--settle-seconds", "1"]
+      arguments: [scenario, "--settle-seconds", "1"]
     )
 
     #expect(result.exitCode == 2)

@@ -110,6 +110,45 @@ struct WhitelistedTrashClientTests {
     #expect(try fixture.snapshot() == before)
   }
 
+  @Test("verifies the same symbolic link after its relative target becomes broken in Trash")
+  func verifiesMovedSymbolicLinkIdentity() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let target = try context.createFixtureFile(
+      suffix: "identity-target",
+      contents: Data("target".utf8)
+    )
+    let link = try context.createFixtureSymbolicLink(
+      suffix: "identity-link",
+      target: target.lastPathComponent
+    )
+    let fakeTrashDirectory = fixture.homeURL.appendingPathComponent("Trash", isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: fakeTrashDirectory,
+      withIntermediateDirectories: false
+    )
+    let returnedURL = fakeTrashDirectory.appendingPathComponent(link.lastPathComponent)
+    let client = WhitelistedTrashClient.testingOnly(
+      context: context,
+      authorization: TrashAuthorizationOperations(
+        inspectVolume: { _ in .accepted },
+        deviceMatchesRun: { $0 == $1 },
+        resourceIdentifier: testSafetyResourceIdentifier
+      ),
+      systemTrash: { sourceURL in
+        try FileManager.default.moveItem(at: sourceURL, to: returnedURL)
+        return returnedURL
+      }
+    )
+
+    let evidence = try trash(client: client, target: link)
+
+    #expect(evidence.returnedURL == returnedURL)
+    #expect(evidence.resourceIdentifier != nil)
+    #expect(FileManager.default.fileExists(atPath: target.path))
+  }
+
   @Test(
     "rejects unsafe volume classes without a system Trash call",
     arguments: AuthorizationRejectionCase.volumeCases

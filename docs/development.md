@@ -274,6 +274,14 @@ returns read-only verification evidence. Pure tests inject Trash spies and never
 capability. The integration runner remains separately guarded and cannot be enabled through an
 environment switch in the production executable.
 
+The compile-time-isolated `rmp-test` target has one additional capability solely for measuring issue
+12's symbolic-link delay threshold. `FoundationSymlinkTrashClient` uses
+`FileManager.trashItem(at:resultingItemURL:)`, but refuses every entry that `lstat` does not identify
+as a final symbolic link. It remains behind `WhitelistedTrashClient`, so the complete Test Safety
+Context, planned link identity, local-volume policy, UUID prefix, and returned Trash evidence are
+revalidated exactly as they are for Finder. Production cannot import this adapter, Finder failures
+never fall back to it, and ordinary tests inject a fake system call.
+
 Issue 12's authoritative rapid Put Back acceptance lives entirely in the compile-time-isolated test
 target. `PutBackRaceAcceptance` exclusive-creates one UUID-prefixed Test Fixture, authorizes its
 identity once, performs the first Finder Trash call, restores the exact returned URL through
@@ -306,6 +314,15 @@ the result so every evidence line is traceable to its bucket. Because Finder's d
 window is roughly 2-4 seconds, the printed protocol requires waiting at least 5 seconds after the
 second Trash before judging whether Put Back survived; judging inside that window yields false
 positives.
+
+`put-back-symlink-delay-manual` runs the same real-menu sequence with both Trash calls routed through
+the test-only Foundation symbolic-link adapter. It accepts only `symbolic-link` and
+`broken-symbolic-link` fixtures. Its declared settle interval is applied after the exact Put Back is
+observed and before the second Foundation call; delaying only the command response after that call
+would not test the proposed mitigation. This is a threshold-characterization experiment, not a
+production fallback or a claim that ten seconds is safe. A valid batch includes a zero-delay
+positive control, records the actual bucket, and judges the second item only after Finder's deferred
+write-back window.
 
 `FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
 (default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.
@@ -356,6 +373,8 @@ make test               Run safe pure tests
 make test-unit          Run safe pure tests
 make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
 make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=] [FIXTURE=] Put Back
+make test-put-back-symlink-delay-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=]
+                                         [SYMLINK_FIXTURE=]
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint
@@ -528,8 +547,11 @@ configuration, or development standards.
 
 Repository policy also enforces the test Trash boundary statically: `NSAppleScript`, Apple Event
 descriptor construction, Finder bundle targeting, and `osascript` execution may appear only in
-`FinderTrashClient.swift` and the compile-time-isolated `WhitelistedPutBackClient.swift`, while the
-legacy Foundation `trashItem` and failed Workspace `recycle` APIs are forbidden everywhere.
+`FinderTrashClient.swift` and the compile-time-isolated `WhitelistedPutBackClient.swift`.
+Foundation `trashItem` may appear only in the compile-time-isolated
+`FoundationSymlinkTrashClient.swift`; the failed Workspace `recycle` API remains forbidden
+everywhere. References to the Foundation experiment adapter are confined to its file,
+`WhitelistedTrashClient`, and its dedicated pure test.
 `FinderTrashClient` construction is limited to production wiring, the whitelist wrapper, and its
 private platform implementation. The adapter test may obtain only an `any TrashClient` existential
 through `makeInjectedFinderTrashClient(...)`; concrete production type references, aliases,

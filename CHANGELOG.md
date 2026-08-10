@@ -31,6 +31,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   actionable codes; release remains gated on issue 12's permission and real Put Back acceptance.
 - Keep Finder Automation in one reviewed adapter by rejecting direct AppleScript, Apple Event,
   `osascript`, Foundation Trash, and Workspace recycle capability elsewhere.
+- Add a compile-time-isolated, maintainer-only Foundation symbolic-link experiment that measures the
+  pre-Trash delay needed after Put Back without exposing a production fallback or treating the
+  previously observed ten-second workaround as a proven threshold.
 - Document the rapid same-name restore/re-trash Put Back limitation and its wait, rename, and
   Finder-delete workarounds for existing Foundation-backed builds.
 - Ratchet the production line-coverage baseline from 95.70% to 96.28% with platform-adapter tests,

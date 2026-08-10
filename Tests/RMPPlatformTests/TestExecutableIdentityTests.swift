@@ -13,6 +13,7 @@ struct TestExecutableIdentityTests {
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -20,6 +21,11 @@ struct TestExecutableIdentityTests {
             --cycles <n>          differential cycles, 1-30, default 1
             --fixture <kind>      file | directory | symbolic-link |
                                   broken-symbolic-link | quoted-name | newline-name
+
+          put-back-symlink-delay-manual options:
+            --settle-seconds <n>  pre-Trash delay after Put Back, 0-60, default 0
+            --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
       ),
@@ -32,6 +38,7 @@ struct TestExecutableIdentityTests {
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -39,6 +46,11 @@ struct TestExecutableIdentityTests {
             --cycles <n>          differential cycles, 1-30, default 1
             --fixture <kind>      file | directory | symbolic-link |
                                   broken-symbolic-link | quoted-name | newline-name
+
+          put-back-symlink-delay-manual options:
+            --settle-seconds <n>  pre-Trash delay after Put Back, 0-60, default 0
+            --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
       ),

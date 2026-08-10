@@ -125,6 +125,7 @@ enum TestSafetyDiagnosticCode: String, Sendable {
   case trashPathInspectionFailed = "test-safety.trash-path-inspection-failed"
   case trashPlanIdentityMismatch = "test-safety.trash-plan-identity-mismatch"
   case trashSafetyDirectory = "test-safety.trash-safety-directory"
+  case trashSymlinkRequired = "test-safety.trash-symlink-required"
   case trashSystemCallFailed = "test-safety.trash-system-call-failed"
   case trashVolumeMismatch = "test-safety.trash-volume-mismatch"
 }

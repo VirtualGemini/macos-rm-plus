@@ -7,12 +7,14 @@ ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
 capability_file=Sources/RMPPlatform/FinderTrashClient.swift
+foundation_symlink_capability_file=TestSupport/RMPTestSafety/FoundationSymlinkTrashClient.swift
 put_back_capability_file=TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift
 put_back_wiring_file=TestSupport/RMPTestSafety/PutBackRaceAcceptance.swift
 put_back_test_file=Tests/RMPPlatformTests/PutBackRaceAcceptanceTests.swift
 production_wiring_file=Sources/rmp/main.swift
 whitelist_file=TestSupport/RMPTestSafety/WhitelistedTrashClient.swift
 finder_injection_test_file=Tests/RMPPlatformTests/FinderTrashClientTests.swift
+foundation_symlink_test_file=Tests/RMPPlatformTests/FoundationSymlinkTrashClientTests.swift
 injection_test_file=Tests/RMPPlatformTests/WhitelistedTrashClientTests.swift
 finder_injection_factory=makeInjectedFinderTrashClient
 failed=0
@@ -30,9 +32,10 @@ while IFS= read -r file; do
 
   normalized=$(tr '\n' ' ' <"$file")
 
-  if printf '%s\n' "$normalized" \
+  if [ "$file" != "$foundation_symlink_capability_file" ] \
+    && printf '%s\n' "$normalized" \
     | grep -E 'FileManager([[:space:]]*\.[[:space:]]*default)?[[:space:]]*\.[[:space:]]*trashItem|resultingItemURL[[:space:]]*:' >/dev/null 2>&1; then
-    echo "error: legacy Foundation Trash API is prohibited: $file" >&2
+    echo "error: Foundation Trash API is outside $foundation_symlink_capability_file: $file" >&2
     failed=1
   fi
 
@@ -47,6 +50,15 @@ while IFS= read -r file; do
     && printf '%s\n' "$normalized" \
       | grep -E 'NSAppleScript|NSAppleEventDescriptor|com\.apple\.finder|(^|[^[:alnum:]_])osascript([^[:alnum:]_]|$)' >/dev/null 2>&1; then
     echo "error: Finder Automation capability is outside $capability_file: $file" >&2
+    failed=1
+  fi
+
+  if [ "$file" != "$foundation_symlink_capability_file" ] \
+    && [ "$file" != "$whitelist_file" ] \
+    && [ "$file" != "$foundation_symlink_test_file" ] \
+    && printf '%s\n' "$normalized" \
+      | grep -E '(^|[^[:alnum:]_])FoundationSymlinkTrashClient([^[:alnum:]_]|$)' >/dev/null 2>&1; then
+    echo "error: Foundation symbolic-link Trash client bypasses approved test wiring: $file" >&2
     failed=1
   fi
 

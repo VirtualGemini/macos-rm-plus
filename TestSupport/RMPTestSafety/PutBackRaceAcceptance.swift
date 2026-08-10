@@ -82,6 +82,7 @@ enum PutBackRaceAcceptance {
     context: TestSafetyContext,
     suffix: String = "put-back-race",
     kind: PutBackRaceFixtureKind = .file,
+    trashBackend: TestSystemTrashBackend = .finder,
     settleSeconds: TimeInterval = 0,
     announce: @escaping (String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in }
@@ -92,7 +93,12 @@ enum PutBackRaceAcceptance {
       heartbeat: heartbeat
     )
     let operations = PutBackRaceOperations(
-      prepare: makePrepare(context: context, suffix: suffix, kind: kind),
+      prepare: makePrepare(
+        context: context,
+        suffix: suffix,
+        kind: kind,
+        trashBackend: trashBackend
+      ),
       putBack: waiter.putBack,
       settle: { seconds in
         guard seconds > 0 else { return }
@@ -112,6 +118,7 @@ enum PutBackRaceAcceptance {
     context: TestSafetyContext,
     cycles: Int,
     kind: PutBackRaceFixtureKind = .file,
+    trashBackend: TestSystemTrashBackend = .finder,
     settleSeconds: TimeInterval = 0,
     announce: @escaping (Int, String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in },
@@ -124,6 +131,7 @@ enum PutBackRaceAcceptance {
           context: context,
           suffix: suffix,
           kind: kind,
+          trashBackend: trashBackend,
           settleSeconds: settleSeconds,
           announce: { announce(cycle, $0) },
           heartbeat: heartbeat
@@ -145,9 +153,10 @@ enum PutBackRaceAcceptance {
   private static func makePrepare(
     context: TestSafetyContext,
     suffix: String,
-    kind: PutBackRaceFixtureKind = .file
+    kind: PutBackRaceFixtureKind = .file,
+    trashBackend: TestSystemTrashBackend = .finder
   ) -> (TestSafetyContext) throws -> PutBackRaceTrashSession {
-    let trashClient = WhitelistedTrashClient(context: context)
+    let trashClient = WhitelistedTrashClient(context: context, backend: trashBackend)
     return { receivedContext in
       guard receivedContext === context else {
         throw TestSafetyDiagnostic(

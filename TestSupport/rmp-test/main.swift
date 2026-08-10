@@ -17,6 +17,7 @@ private enum RMPTestEntrypoint {
           """
           Usage: rmp-test put-back-race --test-run-id <uuid>
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -24,6 +25,11 @@ private enum RMPTestEntrypoint {
             --cycles <n>          differential cycles, 1-30, default 1
             --fixture <kind>      file | directory | symbolic-link |
                                   broken-symbolic-link | quoted-name | newline-name
+
+          put-back-symlink-delay-manual options:
+            --settle-seconds <n>  pre-Trash delay after Put Back, 0-60, default 0
+            --cycles <n>          differential cycles, 1-30, default 1
+            --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """.utf8
         )
@@ -39,6 +45,12 @@ private enum RMPTestEntrypoint {
     }
     if arguments.first == "put-back-race-manual" {
       executePutBackRace(arguments: Array(arguments.dropFirst()), restore: .manualFinderMenu)
+    }
+    if arguments.first == "put-back-symlink-delay-manual" {
+      executePutBackRace(
+        arguments: Array(arguments.dropFirst()),
+        restore: .manualFoundationSymlinkDelay
+      )
     }
 
     let result = TestSafetyDriver.runWithInjectedRuntime(arguments: arguments) {
@@ -58,27 +70,52 @@ private enum RMPTestEntrypoint {
   private enum PutBackRaceRestore {
     case finderScript
     case manualFinderMenu
+    case manualFoundationSymlinkDelay
 
     var scenarioName: String {
       switch self {
       case .finderScript: "put-back-race"
       case .manualFinderMenu: "put-back-race-manual"
+      case .manualFoundationSymlinkDelay: "put-back-symlink-delay-manual"
       }
     }
 
     var restoreDescription: String {
       switch self {
       case .finderScript: "finder-apple-event-move"
-      case .manualFinderMenu: "maintainer-finder-put-back-command"
+      case .manualFinderMenu, .manualFoundationSymlinkDelay:
+        "maintainer-finder-put-back-command"
       }
     }
+
+    var trashBackend: TestSystemTrashBackend {
+      switch self {
+      case .finderScript, .manualFinderMenu: .finder
+      case .manualFoundationSymlinkDelay: .foundationSymlink
+      }
+    }
+
+    var defaultFixtureKind: PutBackRaceFixtureKind {
+      switch self {
+      case .finderScript, .manualFinderMenu: .file
+      case .manualFoundationSymlinkDelay: .symbolicLink
+      }
+    }
+
+    var supportsCycles: Bool {
+      switch self {
+      case .finderScript: false
+      case .manualFinderMenu, .manualFoundationSymlinkDelay: true
+      }
+    }
+
   }
 
   private static func executePutBackRace(
     arguments: [String],
     restore: PutBackRaceRestore
   ) -> Never {
-    let options = parseRaceOptions(arguments)
+    let options = parseRaceOptions(arguments, defaultKind: restore.defaultFixtureKind)
     let settleSeconds = options.settleSeconds
     let cycles = options.cycles
     let driverArguments = options.driverArguments
@@ -95,20 +132,32 @@ private enum RMPTestEntrypoint {
           message: "\(restore.scenarioName) creates its own Test Fixture and accepts no paths."
         )
       }
+      try validateFixtureKind(
+        options.kind,
+        backend: restore.trashBackend,
+        scenarioName: restore.scenarioName
+      )
       if cycles > 1 {
-        guard case .manualFinderMenu = restore else {
+        guard restore.supportsCycles else {
           throw TestSafetyDiagnostic(
             code: .invalidCommandArguments,
-            message: "--cycles is available only for put-back-race-manual."
+            message: "--cycles is available only for a manual Put Back scenario."
           )
         }
         let reports = try runManualDifferential(
           context: context,
           cycles: cycles,
           kind: options.kind,
+          trashBackend: restore.trashBackend,
           settleSeconds: settleSeconds
         )
-        writeDifferentialSummary(reports, cycles: cycles, kind: options.kind, context: context)
+        writeDifferentialSummary(
+          reports,
+          cycles: cycles,
+          kind: options.kind,
+          restore: restore,
+          context: context
+        )
         return 0
       }
       let report = try runScenario(
@@ -126,18 +175,17 @@ private enum RMPTestEntrypoint {
     exit(result.exitCode)
   }
 
-  private struct RaceOptions {
-    let settleSeconds: TimeInterval
-    let cycles: Int
-    let kind: PutBackRaceFixtureKind
-    let driverArguments: [String]
-  }
-
-  private static func parseRaceOptions(_ arguments: [String]) -> RaceOptions {
+  private static func parseRaceOptions(
+    _ arguments: [String],
+    defaultKind: PutBackRaceFixtureKind
+  ) -> RaceOptions {
     do {
       let (settleSeconds, afterSettle) = try extractSettleSeconds(arguments)
       let (cycles, afterCycles) = try extractCycles(afterSettle)
-      let (kind, driverArguments) = try extractFixtureKind(afterCycles)
+      let (kind, driverArguments) = try extractFixtureKind(
+        afterCycles,
+        defaultKind: defaultKind
+      )
       return RaceOptions(
         settleSeconds: settleSeconds,
         cycles: cycles,
@@ -161,11 +209,12 @@ private enum RMPTestEntrypoint {
     switch restore {
     case .finderScript:
       return try PutBackRaceAcceptance.run(context: context)
-    case .manualFinderMenu:
+    case .manualFinderMenu, .manualFoundationSymlinkDelay:
       return try PutBackRaceAcceptance.runManual(
         context: context,
         suffix: kind.suffix(cycle: "put-back-race"),
         kind: kind,
+        trashBackend: restore.trashBackend,
         settleSeconds: settleSeconds,
         announce: { message in
           FileHandle.standardOutput.write(Data("\(message)\n".utf8))
@@ -181,6 +230,7 @@ private enum RMPTestEntrypoint {
     context: TestSafetyContext,
     cycles: Int,
     kind: PutBackRaceFixtureKind,
+    trashBackend: TestSystemTrashBackend,
     settleSeconds: TimeInterval
   ) throws -> [PutBackRaceReport] {
     do {
@@ -188,6 +238,7 @@ private enum RMPTestEntrypoint {
         context: context,
         cycles: cycles,
         kind: kind,
+        trashBackend: trashBackend,
         settleSeconds: settleSeconds,
         announce: { cycle, message in
           FileHandle.standardOutput.write(Data("cycle=\(cycle)/\(cycles)\n\(message)\n".utf8))
@@ -201,6 +252,7 @@ private enum RMPTestEntrypoint {
         failure.completedReports,
         cycles: cycles,
         kind: kind,
+        restore: trashBackend == .finder ? .manualFinderMenu : .manualFoundationSymlinkDelay,
         context: context
       )
       FileHandle.standardError.write(
@@ -221,14 +273,14 @@ private enum RMPTestEntrypoint {
       run=\(context.runID.uuidString.lowercased())
       scenario=\(restore.scenarioName)
       fixture=\(kind.rawValue)
+      trash-backend=\(restore.trashBackend.rawValue)
       status=complete
       first-trash=\(report.firstTrashURL.path)
       restored=\(report.restoredURL.path)
       settle-seconds=\(report.settleSeconds)
       second-trash=\(report.secondTrashURL.path)
       run-directory=\(context.runDirectoryURL.path)
-      manual-check=Wait at least 5 seconds for Finder's deferred write-back, then open Trash and \
-      verify Put Back is offered for manual-target below.
+      \(manualCheckText(backend: restore.trashBackend, plural: false))
       manual-target=\(report.secondTrashURL.lastPathComponent)
       restore-method=\(restore.restoreDescription)
 
@@ -240,17 +292,18 @@ private enum RMPTestEntrypoint {
     _ reports: [PutBackRaceReport],
     cycles: Int,
     kind: PutBackRaceFixtureKind,
+    restore: PutBackRaceRestore,
     context: TestSafetyContext
   ) {
     var lines = [
       "rmp-test build=RMP_TESTING",
       "run=\(context.runID.uuidString.lowercased())",
-      "scenario=put-back-race-manual-differential",
+      "scenario=\(restore.scenarioName)-differential",
       "fixture=\(kind.rawValue)",
+      "trash-backend=\(restore.trashBackend.rawValue)",
       "completed-cycles=\(reports.count)/\(cycles)",
       "run-directory=\(context.runDirectoryURL.path)",
-      "manual-check=Wait at least 5 seconds for Finder's deferred write-back, then verify Put "
-        + "Back is offered for every target below.",
+      manualCheckText(backend: restore.trashBackend, plural: true),
     ]
     for (index, report) in reports.enumerated() {
       lines.append(
@@ -269,6 +322,13 @@ private enum RMPTestEntrypoint {
       executableName: try loadedExecutableName()
     )
   }
+}
+
+private struct RaceOptions {
+  let settleSeconds: TimeInterval
+  let cycles: Int
+  let kind: PutBackRaceFixtureKind
+  let driverArguments: [String]
 }
 
 private func loadedExecutableName() throws -> String {
@@ -291,6 +351,32 @@ private func executableIdentityUnavailable() -> TestSafetyDiagnostic {
     code: .executableIdentityUnavailable,
     message: "The loaded executable identity could not be obtained from macOS."
   )
+}
+
+private func validateFixtureKind(
+  _ kind: PutBackRaceFixtureKind,
+  backend: TestSystemTrashBackend,
+  scenarioName: String
+) throws {
+  guard backend == .foundationSymlink else { return }
+  guard kind == .symbolicLink || kind == .brokenSymbolicLink else {
+    throw TestSafetyDiagnostic(
+      code: .invalidCommandArguments,
+      message: "\(scenarioName) accepts only symbolic-link fixtures."
+    )
+  }
+}
+
+private func verificationWaitSeconds(for backend: TestSystemTrashBackend) -> Int {
+  backend == .foundationSymlink ? 15 : 5
+}
+
+private func manualCheckText(backend: TestSystemTrashBackend, plural: Bool) -> String {
+  let waitSeconds = verificationWaitSeconds(for: backend)
+  let target = plural ? "every target below" : "manual-target below"
+  return
+    "manual-check=Wait at least \(waitSeconds) seconds for Finder's deferred write-back, then "
+    + "open Trash and verify Put Back is offered for \(target)."
 }
 
 /// Strips `--settle-seconds <n>` before the Test Safety Context driver sees the arguments; the
@@ -352,9 +438,10 @@ private func extractCycles(_ arguments: [String]) throws -> (Int, [String]) {
 
 /// Strips `--fixture <kind>` for the same reason as the other race options.
 private func extractFixtureKind(
-  _ arguments: [String]
+  _ arguments: [String],
+  defaultKind: PutBackRaceFixtureKind = .file
 ) throws -> (PutBackRaceFixtureKind, [String]) {
-  var kind = PutBackRaceFixtureKind.file
+  var kind = defaultKind
   var remaining: [String] = []
   var index = arguments.startIndex
   while index < arguments.endIndex {

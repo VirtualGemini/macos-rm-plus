@@ -681,6 +681,20 @@ FR-TEST-031：issue 12 的验收必须覆盖平台夹具集，因为元数据竞
 Event 参数传递、而非被拼接进脚本源码的最终实证。每次验收输出必须写明本次使用的夹具形态
 （`fixture=`），使每条证据都能追溯到自己的形态与档位。
 
+FR-TEST-032：为测定符号链接的 Foundation 预等待阈值，编译期隔离的 `rmp-test` 可以提供
+`put-back-symlink-delay-manual` 实验入口。该入口的第一次和第二次 Trash 都必须经过既有
+`WhitelistedTrashClient`，并由只接受 `lstat` 判定为最终符号链接的
+`FoundationSymlinkTrashClient` 调用 `FileManager.trashItem`。生产 target 不得导入或引用该 adapter，
+Finder 失败不得回退到该 adapter，普通单元测试和 CI 不得执行其真实系统调用。
+
+该实验只接受符号链接和断开的符号链接。`--settle-seconds` 必须发生在维护者真实 Put Back 被观察并
+复核之后、第二次 Foundation Trash 之前；调用 Foundation 后再延迟输出不满足实验定义。每批结果必须
+包含零延迟阳性对照，并在 Finder 延迟写回窗口之后验证第二个项目仍能精确放回原路径。有限轮次只能形成
+带适用系统版本和置信度的经验阈值，不得表述成 macOS 提供的完成保证。
+
+Foundation 符号链接实验在第二次 Trash 后必须至少等待 15 秒再作菜单判定，避免把尚未发生的延迟覆盖
+误报为保留成功；命令输出必须写明该等待要求。
+
 #### 17.1.3 断言与不可省略的安全检查
 
 测试代码应尽量使用断言尽早暴露违反安全边界的状态，包括：

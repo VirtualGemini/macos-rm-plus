@@ -23,11 +23,16 @@ cat >"$repo/Sources/RMPPlatform/FinderTrashClient.swift" <<'EOF'
 let script = NSAppleScript(source: "tell application id \"com.apple.finder\"")
 let event = NSAppleEventDescriptor.list()
 EOF
+cat >"$repo/TestSupport/RMPTestSafety/FoundationSymlinkTrashClient.swift" <<'EOF'
+let client = FileManager.default
+try client.trashItem(at: target, resultingItemURL: &result)
+EOF
 cat >"$repo/Sources/rmp/main.swift" <<'EOF'
 let client = FinderTrashClient()
 EOF
 cat >"$repo/TestSupport/RMPTestSafety/WhitelistedTrashClient.swift" <<'EOF'
 let client = FinderTrashClient()
+let symlinkClient = FoundationSymlinkTrashClient()
 EOF
 cat >"$repo/TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift" <<'EOF'
 let script = NSAppleScript(source: "tell application id \"com.apple.finder\"")
@@ -38,6 +43,9 @@ let client = WhitelistedPutBackClient(context: context)
 EOF
 cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
 let client = makeInjectedFinderTrashClient(finderDelete: spy.call)
+EOF
+cat >"$repo/Tests/RMPPlatformTests/FoundationSymlinkTrashClientTests.swift" <<'EOF'
+let client = FoundationSymlinkTrashClient(systemTrash: spy.call)
 EOF
 cat >"$repo/Tests/RMPPlatformTests/WhitelistedTrashClientTests.swift" <<'EOF'
 let client = WhitelistedTrashClient.testingOnly(
@@ -190,6 +198,14 @@ let client = WhitelistedPutBackClient(context: context)
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
   echo "test failure: Finder Put Back client escaped its acceptance wiring" >&2
+  exit 1
+fi
+
+cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
+let client = FoundationSymlinkTrashClient()
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: Foundation symbolic-link Trash client escaped approved test wiring" >&2
   exit 1
 fi
 

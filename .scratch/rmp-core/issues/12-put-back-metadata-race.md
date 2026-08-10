@@ -671,6 +671,36 @@ until the rest of the acceptance set has been measured.
 
 ## Comments
 
+2026-08-07 — Opened `test/12-symlink-put-back-delay-threshold` to test the maintainer-selected
+dispatch direction before production implementation. The previously observed `>= 10 s` workaround
+is not accepted as a safe threshold: it lacks a Foundation symbolic-link delay differential and a
+statistical confidence bound. The test-only command routes both symbolic-link Trash calls through a
+whitelisted Foundation adapter, applies the declared delay only after the real Finder Put Back and
+before the second call, and retains a zero-delay positive control. No production fallback is added by
+this branch.
+
+2026-08-07 — The first zero-delay positive-control attempt used run
+`340d7c85-ef6d-4041-aa8d-52a0536029de`. The first whitelisted Foundation Trash call succeeded and
+returned the exact UUID-prefixed symbolic link, but no real Finder Put Back was observed during the
+180-second manual window. The command failed closed with
+`test-safety.put-back-manual-timeout`; it made no second Trash call, and the round is not threshold
+evidence. The Run Directory retains only its marker and the link target, while the link remains in
+Trash for explicit maintainer handling.
+
+2026-08-07 — A fully automated symbolic-link restore feasibility probe found no red-capable path on
+the current host. Direct reads of `~/.Trash` fail with `Operation not permitted`, and Accessibility
+UI control is disabled. Finder can enumerate the UUID-prefixed link in the home Trash, but reports
+its `original item` as `missing value`; moving it back through Finder's `trash` container fails with
+Apple Event `-5000`. A separately created 32 MB disposable APFS image confirmed the same result
+outside the Home Trash TCC boundary: Foundation moved the link itself to
+`/Volumes/rmp-pb-c04fc7ca/.Trashes/501/`, Finder initially returned `-1728` before the documented
+post-population remount, then returned `-5000` after remount. The image was detached and deleted.
+Using `FileManager.moveItem` to restore would not exercise Finder's deferred metadata cleanup, while
+using Finder `move` to verify the second item does not depend on Put Back metadata and could produce
+a false green. Therefore the exact symbolic-link symptom cannot be tested fully automatically on
+this host without enabling Accessibility control of Finder's real Put Back menu. No delay threshold
+result was produced by these feasibility probes.
+
 2026-07-18 — The investigation initially recorded this in the manual-testing
 notes as an environment/system-boundary pattern. The maintainer reclassified
 it as a product defect: the failure is user-visible in the product's core
@@ -731,3 +761,118 @@ were recorded. The temporary shell/`osascript` race attempt was rejected because
 it introduced a second Automation sender; the checked-in authority is now the
 single-process Swift `rmp-test put-back-race` scenario. The 30-cycle metadata and
 actual-menu differentials remain human release gates.
+
+2026-08-09 — The first valid symbolic-link delay smoke completed on run
+`9b285816-9005-435c-89dc-05c9f5821576` (macOS 26.5.1 build `25F80`, Finder 26.4).
+The command used fixture `symbolic-link`, `settle-seconds=0.0`, and one cycle with
+`trash-backend=foundation-symlink`. The maintainer performed the real Finder Put
+Back for `rmp-test-9b285816-9005-435c-89dc-05c9f5821576-put-back-race-symbolic-link`,
+and the runner then completed the second Foundation Trash call. After the required
+15-second deferred-write-back window, Finder did **not** offer Put Back for the
+second Trash item. The authorized Run Directory remained
+`/Users/virtualgemini/rmp-test/test/9b285816-9005-435c-89dc-05c9f5821576`; its link
+target remained present in a read-only post-run check. No alternate restore or
+cleanup was attempted. This is red smoke evidence for the exact symptom, not yet
+the required 10-cycle zero-delay positive control or a threshold result.
+
+2026-08-09 — An attempted zero-delay positive-control batch completed on run
+`299f6173-3994-4955-8e8e-210ed578fba4` (macOS 26.5.1 build `25F80`, Finder 26.4),
+with fixture `symbolic-link`, `settle-seconds=0.0`, and `completed-cycles=10/10`.
+The maintainer performed all ten real Finder Put Back actions. Corrected on 2026-08-10:
+the maintainer inspected each cycle's second Trash item immediately after the runner
+re-trashed it, rather than waiting until 15 seconds after the batch completed. Targets
+01–09 immediately offered Put Back and were restored; target 10, the final cycle, did
+not immediately offer Put Back and remains in Trash. A read-only Run Directory check
+found 9 restored symbolic links and all 10 sibling link-target files present. Because
+the successful observations occurred inside Finder's deferred write-back window, this
+batch does not satisfy the required positive control. It is diagnostic evidence of a
+final-cycle asymmetry, not threshold evidence.
+
+2026-08-10 — Two 1.5-second diagnostic batches reproduced the same final-cycle
+asymmetry during immediate per-cycle inspection. Run
+`44791fef-e392-42d1-b9ba-3439fdcf7bac` completed 10/10 cycles: targets 01–09
+immediately offered Put Back, while final target 10 did not. Run
+`19d82344-30f9-4002-8485-c1c778c389c4` completed 5/5 cycles: targets 01–04
+immediately offered Put Back, while final target 05 did not. Moving the failure from
+target 10 to target 05 when only the requested cycle count changed strongly implicates
+the runner's final-call lifecycle or another final-cycle-only effect. Neither batch is
+threshold evidence because the menu observations occurred before the required
+15-second window elapsed.
+
+2026-08-09 — An attempted inverse-order control used run
+`31ca92e6-e731-4cef-b33a-3865b2979a26` with fixture `symbolic-link`,
+`settle-seconds=1.5`, and five requested cycles. The maintainer did not complete
+the first Put Back for cycle 5 within the 180-second window. The runner stopped
+closed at `completed-cycles=4/5` with `test-safety.put-back-manual-timeout` and
+made no second Trash call for cycle 5. This round is invalid and is not threshold
+evidence; its Run Directory and Trash item are retained.
+
+2026-08-10 — The maintainer reset the symbolic-link delay-threshold experiment.
+Every run recorded before this reset is excluded from the formal threshold matrix:
+the multi-cycle runs mixed final and non-final process lifecycles, several menu
+observations occurred immediately rather than under one consistent protocol, and
+the latest clean-restart attempts were interrupted or left unjudged. Those runs
+remain diagnostic history only. The replacement matrix uses one fresh process and
+fresh UUID per sample (`CYCLES=1`) and scans the pre-Trash settle buckets in descending
+order: 15, 10, 7.5, 5, 3, 1.5, then 0 seconds. In every sample the declared settle
+interval begins only after the runner observes and revalidates the maintainer's real
+Finder Put Back, and ends immediately before the second Foundation Trash call.
+
+2026-08-10 — Formal descending-matrix sample 1/10 for the 15-second bucket used
+run `ea5bc65d-52b1-4784-a19b-02a3fbf49f49` on macOS 26.5.1 build `25F80`
+with Finder 26.4. The independent `CYCLES=1` process observed and revalidated the
+maintainer's real Finder Put Back, applied `settle-seconds=15.0`, and completed the
+second `foundation-symlink` Trash call. After the required 15-second observation
+window, Finder did not offer Put Back for the second Trash item. The item remains in
+Trash as evidence; a read-only Run Directory check confirmed that its sibling link
+target remained present. Result: **failure (0/1 retained) at 15 seconds**.
+
+2026-08-10 — A complete two-cycle sentinel control used run
+`1d8bf2d1-8c7a-46ec-94e9-f864c54c719c` with `settle-seconds=15.0`. The
+maintainer checked each second Trash item immediately, without a post-Trash wait.
+Cycle 1 immediately offered Put Back while the runner remained alive in cycle 2 and
+was restored. Cycle 2 completed the same 15-second pre-Trash settle, then the runner
+finished; that final item did not immediately offer Put Back. Together with the
+earlier 10-, 5-, and 1-cycle diagnostics, immediate Put Back availability has matched
+`requested cycles - 1` in every completed batch. This establishes a final-call or
+next-call-dependent harness effect. Non-final cycles are not valid threshold samples
+because each is followed by another Foundation Trash call; delay scanning remains
+paused until that variable is isolated.
+
+2026-08-10 — A no-code LLDB lifecycle probe used independent run
+`85141e35-5390-4dd9-864f-81f9c2633dc5` with `CYCLES=1` and
+`settle-seconds=15.0`. LLDB stopped at `main.swift:169` after the final second
+Foundation Trash call returned but before the single-run summary, operation closure
+return, or process exit. The maintainer immediately inspected the exact Trash item
+and Put Back was already absent. Continuing the process then produced the normal
+summary and clean exit. This falsifies summary generation and process exit as the
+cause of the final-item failure. The remaining differential is inside the transition
+to a subsequent cycle, most notably its additional Foundation Trash call.
+
+2026-08-10 — A second no-code LLDB probe isolated the subsequent Trash call with
+run `f7f7f31d-5768-4192-93f1-6d7e8664bbec`, `CYCLES=2`, and
+`settle-seconds=15.0`. LLDB first stopped at `PutBackRaceAcceptance.swift:143`
+after cycle 1's second Foundation Trash returned but before its report was appended
+or cycle 2 began. The maintainer immediately inspected target 01: Put Back was absent.
+After continuing only far enough for cycle 2 to create its fixture and complete its
+first Foundation Trash call, while the runner waited for cycle 2's real Finder Put
+Back, the maintainer rechecked target 01: Put Back was now present. Cycle 2 was then
+completed normally with the same 15-second pre-Trash settle; its final second Trash
+item did not offer Put Back. This directly establishes the observed transition as
+`absent before the next Foundation Trash call -> present after that call`, while the
+new final item remains absent. A pre-Trash delay therefore cannot by itself make the
+last or only symbolic-link Trash item reliable; the planned delay-threshold matrix is
+not a viable production mitigation under the current Foundation call behavior.
+
+2026-08-10 — The same LLDB before/after probe was repeated at zero pre-Trash delay
+with run `25626d8e-abc8-4b61-95c4-f13967141545`, `CYCLES=2`, and
+`settle-seconds=0.0`. After cycle 1's second Foundation Trash returned but before
+cycle 2 began, target 01 did not offer Put Back. Immediately after cycle 2's first
+Foundation Trash call, target 01 offered Put Back. After cycle 2's own immediate
+second Trash, final target 02 did not offer Put Back. This exactly matches the
+15-second probe and demonstrates that the observed state transition is independent
+of the pre-Trash settle interval across the tested endpoints: the prior item changes
+from absent to present only when the next Foundation Trash call occurs, while the
+tail item remains absent. The empirical abstraction is that the final call has no
+subsequent call to materialize or refresh its Put Back state; the private Foundation
+and Finder implementation prevents claiming a more specific internal mechanism.

@@ -53,6 +53,11 @@ struct TrashAuthorizationOperations: Sendable {
   )
 }
 
+enum TestSystemTrashBackend: String, Sendable {
+  case finder
+  case foundationSymlink = "foundation-symlink"
+}
+
 // The ticket and PRD define this safety-boundary name.
 // swiftlint:disable:next inclusive_language
 final class WhitelistedTrashClient {
@@ -62,10 +67,18 @@ final class WhitelistedTrashClient {
   private let authorization: TrashAuthorizationOperations
   private let systemTrash: SystemTrash
 
-  init(context: TestSafetyContext) {
+  init(
+    context: TestSafetyContext,
+    backend: TestSystemTrashBackend = .finder
+  ) {
     self.context = context
     authorization = .system
-    systemTrash = platformSystemTrash
+    switch backend {
+    case .finder:
+      systemTrash = platformSystemTrash
+    case .foundationSymlink:
+      systemTrash = foundationSymlinkSystemTrash
+    }
   }
 
   private init(
@@ -350,6 +363,10 @@ private enum FileProviderInspectionError: Error {
 private func platformSystemTrash(_ sourceURL: URL) throws -> URL {
   let receipt = try FinderTrashClient().trashItem(atPath: sourceURL.path)
   return URL(fileURLWithPath: receipt.destinationPath)
+}
+
+private func foundationSymlinkSystemTrash(_ sourceURL: URL) throws -> URL {
+  try FoundationSymlinkTrashClient().trashItem(sourceURL)
 }
 
 private func diagnostic(

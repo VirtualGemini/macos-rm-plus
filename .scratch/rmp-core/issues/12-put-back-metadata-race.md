@@ -876,3 +876,31 @@ from absent to present only when the next Foundation Trash call occurs, while th
 tail item remains absent. The empirical abstraction is that the final call has no
 subsequent call to materialize or refresh its Put Back state; the private Foundation
 and Finder implementation prevents claiming a more specific internal mechanism.
+
+2026-08-10 — Three Foundation-only controls ruled out clean lifecycle or failure-path
+finalization. In run `1dd0528d-4cb5-42fb-b28b-394192f6b341`, the final second Trash
+item had no Put Back before an additional `FileManager.trashItem` call against its
+now-missing original URL; that call returned the expected Cocoa file-not-found error,
+and the same item still had no Put Back afterward. Run
+`51932ff3-ec57-4ded-a099-44cb505cffdf` replaced `FileManager.default` with a newly
+constructed `FileManager` for every Foundation call, and run
+`dd2989b0-b22a-4280-b1bb-ec474729d7e6` additionally enclosed each call in an explicit
+autorelease pool. Each independent `CYCLES=1`, zero-delay run completed both Trash
+calls, but its final item still lacked Put Back. A failed next call, a fresh manager
+instance, and explicit Objective-C temporary-object drainage therefore do not replace
+the successful subsequent Foundation Trash call observed by the earlier probes.
+
+2026-08-10 — A Foundation-only finalizer cleanup probe used run
+`eb884e39-12b2-4e2d-9d57-78fca9c2da31`. Cycle 1's second Foundation Trash was the
+user-visible item under test. Cycle 2's first Foundation Trash was treated as an
+application-owned finalizer and the debugger stopped immediately after that successful
+call. Target 01 then offered Put Back. Using target 02's exact Foundation-returned
+Trash URL, the same process moved the finalizer back to its exact original Test Fixture
+URL, verified that the UUID-scoped entry was again a symbolic link, and removed only
+that restored link. Both sibling link-target files remained present, target 02 no
+longer existed in either Trash or the Run Directory, and target 01 still offered Put
+Back after cleanup. The LLDB move expression did not return before interruption even
+though the filesystem move had completed, so this establishes behavioral feasibility,
+not yet an acceptable production implementation. A production candidate still needs
+an explicit ownership/identity boundary, bounded cleanup behavior, failure-state
+classification, and an automated acceptance path for the finalizer lifecycle.

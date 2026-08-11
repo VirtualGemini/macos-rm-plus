@@ -976,3 +976,12 @@ then makes Finalizer restore/cleanup fail. The client preserves the exact moved-
 reports `finalizer_cleanup_failed`; it does not claim that Put Back was lost. This is the safe,
 repeatable way to verify the target-moved/finalizer-failed contract, since manufacturing a real
 Finder/Trash cleanup fault would require unsafe interference with the user's Trash.
+
+2026-08-11 — The first broken-symbolic-link production-algorithm real-menu acceptance passed with
+run `0ee3eefa-cc00-48c8-a7fa-d41bb0e92e6b`, `CYCLES=1`, and `settle-seconds=0.0`.
+After the maintainer's real Finder Put Back, the runner immediately completed the production
+preflight, target Trash, Finalizer activation, exact restore, and cleanup, reporting
+`foundation-finalizer=production-cleaned`. The maintainer checked immediately after completion and
+confirmed that Finder offered Put Back. The integrated smoke set now has one resolving-link and one
+broken-link pass; repeated reliability rounds and injected post-target failure acceptance remain
+open.

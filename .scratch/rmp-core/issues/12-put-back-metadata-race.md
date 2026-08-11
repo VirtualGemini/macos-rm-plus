@@ -26,7 +26,8 @@ activation, cleanup, wrong-returned-identity, broken-link, and moved-before-thro
 The first integrated real-menu smoke passed for both a resolving symbolic link and a broken
 symbolic link. Both injected Finalizer failure modes also passed real-menu acceptance: backup
 takeover after a definitely-not-moved failure, and target Put Back retention after a Finalizer moved
-before throwing. The pure suite has 208 tests, including deterministic cleanup-failure coverage.
+before throwing. The pure suite has 209 tests, including deterministic cleanup-failure and control
+Finalizer ordering coverage.
 
 Outstanding before release:
 
@@ -1016,3 +1017,17 @@ backup, retained the exact target receipt, and reported `foundation-finalizer=st
 `trash-warning=finalizer_state_uncertain`. The moved UUID Finalizer remains in Trash as intended
 evidence. The maintainer checked the target immediately and confirmed Put Back. This directly
 validates the target-moved/finalizer-state-uncertain behavior on the reporting host.
+
+2026-08-11 — The first attempted five-cycle resolving-link production batch used run
+`424dd437-9778-4f10-a60d-15f8780c9ea9`. Cycle 1 completed, but cycle 2's first Foundation control
+item did not offer Put Back, so the maintainer could not continue and the agent interrupted the
+runner. No cycle-2 production target Trash occurred. This reproduced the earlier `CYCLES-1`
+asymmetry in the test protocol itself: each cycle finalized its second production target but did not
+Finalize the next cycle's first control before waiting for Finder Put Back. The batch is invalid as
+production reliability evidence.
+
+The runner now performs an identity-verified, whitelisted test Finalizer immediately after every
+Foundation control Trash and before waiting for the maintainer. A deterministic regression test
+requires the event order `control Trash -> control Finalizer -> Finder Put Back -> production target
+Trash`; the full pure suite passes 209 tests in 19 suites. The interrupted Run Directory and Trash
+items remain as evidence. A fresh real five-cycle rerun is still required.

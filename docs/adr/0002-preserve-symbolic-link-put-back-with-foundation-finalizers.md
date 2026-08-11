@@ -58,7 +58,8 @@ target moves, prepares a retry before the irreversible point, and never sacrific
 reporting after the target has moved.
 
 The production manual acceptance uses `put-back-symlink-production-manual`. Its first Trash call is
-the Foundation control used for the maintainer's real Finder Put Back. Only after that restore is
+the Foundation control used for the maintainer's real Finder Put Back. A test-only Finalizer first
+activates Put Back for that control, including in every repeated cycle. Only after that restore is
 observed and revalidated does the second Trash use the production `MacOSTrashClient`. Every internal
 preflight, target, and finalizer Foundation call passes through the Test Safety Context whitelist.
 The test executable can inject a single first-activation failure either before the Foundation call

@@ -20,6 +20,7 @@ struct PutBackRaceOperations {
       _ evidence: TrashVerificationEvidence,
       _ expectedSourceURL: URL
     ) throws -> PutBackVerificationEvidence
+  var activateFirstPutBack: () throws -> Void = {}
   /// The ticket's declared re-trash delay bucket, applied between the observed restore and the
   /// second Trash call. The default performs no wait at all.
   var settle: (TimeInterval) throws -> Void = { _ in }
@@ -98,6 +99,8 @@ enum PutBackRaceAcceptance {
       heartbeat: heartbeat
     )
     let finalizer = finalizeWithFoundation ? FoundationTrashFinalizer(context: context) : nil
+    let controlFinalizer =
+      trashBackend == .foundationSymlink ? FoundationTrashFinalizer(context: context) : nil
     let productionClient =
       retrashWithProductionFinalizer
       ? WhitelistedMacOSTrashClient(context: context, fault: productionFinalizerFault) : nil
@@ -123,6 +126,10 @@ enum PutBackRaceAcceptance {
         return session
       },
       putBack: waiter.putBack,
+      activateFirstPutBack: {
+        guard let controlFinalizer else { return }
+        _ = try controlFinalizer.finalize(suffix: "\(suffix)-foundation-control-finalizer")
+      },
       settle: { seconds in
         guard seconds > 0 else { return }
         Thread.sleep(forTimeInterval: seconds)
@@ -240,6 +247,7 @@ enum PutBackRaceAcceptance {
   ) throws -> PutBackRaceReport {
     let session = try operations.prepare(context)
     let firstTrash = try session.trash()
+    try operations.activateFirstPutBack()
     let restored = try operations.putBack(firstTrash, session.sourceURL)
     try operations.settle(operations.settleSeconds)
     let secondTrash = try session.retrash?() ?? session.trash()

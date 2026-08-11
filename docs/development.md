@@ -338,10 +338,13 @@ fixes the settle bucket at zero and reports `foundation-finalizer=test-only-clea
 test-only feasibility check, not production wiring.
 
 `put-back-symlink-production-manual` keeps the first Trash call as the whitelisted Foundation
-control, waits for and revalidates the maintainer's real Finder Put Back, then routes only the second
-Trash through the production `MacOSTrashClient` algorithm. Its preflight, target, and activation
-Foundation calls are independently authorized immediately before execution. User fixtures retain
-the run UUID prefix; internal helpers must be direct Run Directory children named exactly
+control, immediately activates that control's Put Back with the existing identity-verified test
+Finalizer, waits for and revalidates the maintainer's real Finder Put Back, then routes only the
+second Trash through the production `MacOSTrashClient` algorithm. Finalizing the control is required
+for every cycle; otherwise the next cycle's control becomes the process's final Foundation item and
+cannot be put back. Production preflight, target, and activation Foundation calls are independently
+authorized immediately before execution. User fixtures retain the run UUID prefix; internal
+helpers must be direct Run Directory children named exactly
 `.rmp-finalizer-<canonical-lowercase-uuid>` and must remain symbolic links with their planned
 identity. Any production warning fails the acceptance while retaining the exact target evidence.
 The scenario fixes the settle bucket at zero, performs no post-Trash wait, and reports

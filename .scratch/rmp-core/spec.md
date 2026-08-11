@@ -713,10 +713,12 @@ adapter；生产 Foundation 能力只属于 `MacOSTrashClient`，Finder 失败�
 Foundation Finalizer 验收必须固定 `settle-seconds=0`，并在命令完成后立即作菜单判定。
 
 生产候选必须另提供 `put-back-symlink-production-manual`：第一次 Trash 仍使用白名单 Foundation control，
-维护者执行真实 Finder Put Back 并由 runner 重验后，第二次 Trash 必须通过生产 `MacOSTrashClient` 的
+runner 必须先通过现有白名单 Foundation Finalizer 激活该 control 的 Put Back，维护者执行真实 Finder
+Put Back 并由 runner 重验后，第二次 Trash 必须通过生产 `MacOSTrashClient` 的
 预检、目标移动、激活与清理协议。生产算法内部每一次 Foundation 调用都必须重新经过 Test Safety Context；
 内部 Finalizer 仅允许当前 Run Directory 直属、严格 `.rmp-finalizer-<canonical-lowercase-uuid>` 命名且
 `lstat` 为符号链接的条目。该入口固定零延迟，完成后立即检查菜单。
+每个 cycle 的 control 都必须独立 Finalize；不得依赖下一个 cycle 的 Trash 调用使前一项获得 Put Back。
 
 该生产候选验收还必须提供仅编译进 `rmp-test` 的单轮故障注入：`not-moved-before-error` 在第一次激活
 Finalizer 已授权但尚未调用 Foundation 时抛错，验证备用 Finalizer 接管；`moved-before-error` 先通过真实

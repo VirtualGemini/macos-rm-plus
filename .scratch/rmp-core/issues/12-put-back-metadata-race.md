@@ -969,3 +969,10 @@ Finalizer restore, and verified cleanup. It reported
 command completion, with no post-Trash delay, and confirmed that Finder offered Put Back. This
 is one resolving-link smoke pass for the integrated production algorithm; repeated resolving-link,
 broken-link, and target-moved/finalizer-failed acceptance remain open.
+
+2026-08-11 — The deterministic failure-path regression passed in the full pure suite (204 tests,
+19 suites). Its injected scenario moves the target successfully, moves a Finalizer successfully,
+then makes Finalizer restore/cleanup fail. The client preserves the exact moved-target receipt and
+reports `finalizer_cleanup_failed`; it does not claim that Put Back was lost. This is the safe,
+repeatable way to verify the target-moved/finalizer-failed contract, since manufacturing a real
+Finder/Trash cleanup fault would require unsafe interference with the user's Trash.

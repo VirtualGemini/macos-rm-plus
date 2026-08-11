@@ -347,6 +347,16 @@ identity. Any production warning fails the acceptance while retaining the exact 
 The scenario fixes the settle bucket at zero, performs no post-Trash wait, and reports
 `foundation-finalizer=production-cleaned` on normal completion.
 
+`FINALIZER_FAULT` is a test-target-only fault mode for this production-algorithm acceptance. Its
+default is `none`. `not-moved-before-error` injects a failure after the first activation helper is
+authorized but before its Foundation call, so the prepared backup must recover and the summary
+reports `foundation-finalizer=backup-recovered`. `moved-before-error` performs the first activation
+through the real whitelisted Foundation boundary and then throws, so production must stop before the
+backup; the acceptance succeeds only when the exact target receipt is retained with
+`finalizer_state_uncertain`. It reports `foundation-finalizer=state-uncertain` and leaves the moved
+helper in Trash as evidence. A fault mode requires `CYCLES=1`. Without an explicit fault, every
+production warning still fails acceptance.
+
 `FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
 (default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.
 The metadata race is a property of the Trash entry, so shape is a dimension independent of the delay
@@ -400,6 +410,7 @@ make test-put-back-symlink-delay-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CY
                                          [SYMLINK_FIXTURE=]
 make test-put-back-symlink-finalizer-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLINK_FIXTURE=]
 make test-put-back-symlink-production-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLINK_FIXTURE=]
+                                                [FINALIZER_FAULT=]
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

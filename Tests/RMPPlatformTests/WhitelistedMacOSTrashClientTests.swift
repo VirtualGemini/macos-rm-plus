@@ -38,6 +38,45 @@ struct WhitelistedMacOSTrashClientTests {
     #expect(try harness.sourceEntryNames() == [harness.targetURL.lastPathComponent])
     #expect(try harness.trashEntryNames() == [harness.linkURL.lastPathComponent])
   }
+
+  @Test("a definitely-not-moved activation failure is recovered by the backup Finalizer")
+  func backupRecoversDefinitelyNotMovedActivationFailure() throws {
+    let harness = try ProductionFinalizerHarness()
+    defer { harness.remove() }
+    let client = harness.makeClient(fault: .firstActivationNotMoved)
+
+    let evidence = try client.trashItem(harness.linkURL)
+
+    #expect(
+      evidence.returnedURL
+        == harness.trashDirectoryURL.appendingPathComponent(harness.linkURL.lastPathComponent)
+    )
+    #expect(harness.simulator.recoverablePaths.contains(evidence.returnedURL.path))
+    #expect(try harness.sourceEntryNames() == [harness.targetURL.lastPathComponent])
+    #expect(try harness.trashEntryNames() == [harness.linkURL.lastPathComponent])
+  }
+
+  @Test("a moved-before-error activation preserves the target with an uncertain warning")
+  func movedBeforeErrorPreservesTargetWarning() throws {
+    let harness = try ProductionFinalizerHarness()
+    defer { harness.remove() }
+    let client = harness.makeClient(fault: .firstActivationMovedBeforeError)
+
+    let evidence = try client.trashItem(
+      harness.linkURL,
+      expecting: .finalizerStateUncertain
+    )
+
+    #expect(
+      evidence.returnedURL
+        == harness.trashDirectoryURL.appendingPathComponent(harness.linkURL.lastPathComponent)
+    )
+    #expect(harness.simulator.recoverablePaths.contains(evidence.returnedURL.path))
+    #expect(try harness.sourceEntryNames() == [harness.targetURL.lastPathComponent])
+    #expect(
+      try harness.trashEntryNames().count { $0.hasPrefix(".rmp-finalizer-") } == 1
+    )
+  }
 }
 // swiftlint:enable inclusive_language
 
@@ -70,7 +109,9 @@ private final class ProductionFinalizerHarness {
     self.failActivationCalls = failActivationCalls
   }
 
-  func makeClient() -> WhitelistedMacOSTrashClient {
+  func makeClient(
+    fault: ProductionFinalizerFault = .none
+  ) -> WhitelistedMacOSTrashClient {
     let calls = ActivationFailureSwitch(
       simulator: simulator,
       failActivationCalls: failActivationCalls
@@ -89,7 +130,8 @@ private final class ProductionFinalizerHarness {
     return WhitelistedMacOSTrashClient(
       context: context,
       foundationTrashClient: trashClient,
-      resourceIdentifier: testSafetyResourceIdentifier
+      resourceIdentifier: testSafetyResourceIdentifier,
+      fault: fault
     )
   }
 

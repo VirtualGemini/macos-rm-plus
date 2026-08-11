@@ -36,6 +36,8 @@ struct TestExecutableIdentityTests {
           put-back-symlink-production-manual options:
             --cycles <n>          production finalizer validation cycles, 1-30, default 1
             --fixture <kind>      symbolic-link | broken-symbolic-link
+            --finalizer-fault <mode>
+                                  none | not-moved-before-error | moved-before-error
 
           """
       ),
@@ -71,6 +73,8 @@ struct TestExecutableIdentityTests {
           put-back-symlink-production-manual options:
             --cycles <n>          production finalizer validation cycles, 1-30, default 1
             --fixture <kind>      symbolic-link | broken-symbolic-link
+            --finalizer-fault <mode>
+                                  none | not-moved-before-error | moved-before-error
 
           """
       ),

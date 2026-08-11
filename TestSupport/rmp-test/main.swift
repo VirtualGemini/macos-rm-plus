@@ -33,6 +33,8 @@ private let helpText = """
   put-back-symlink-production-manual options:
     --cycles <n>          production finalizer validation cycles, 1-30, default 1
     --fixture <kind>      symbolic-link | broken-symbolic-link
+    --finalizer-fault <mode>
+                          none | not-moved-before-error | moved-before-error
 
   """
 
@@ -94,6 +96,11 @@ private enum RMPTestEntrypoint {
     let cycles = options.cycles
     let driverArguments = options.driverArguments
     rejectNonzeroFinalizerDelay(restore: restore, settleSeconds: settleSeconds)
+    rejectUnsupportedFinalizerFault(
+      restore: restore,
+      fault: options.finalizerFault,
+      cycles: cycles
+    )
 
     let result = TestSafetyDriver.runWithInjectedRuntime(
       arguments: driverArguments,
@@ -101,53 +108,74 @@ private enum RMPTestEntrypoint {
     ) {
       try currentRuntime()
     } operation: { context, paths in
-      guard paths.isEmpty else {
-        throw TestSafetyDiagnostic(
-          code: .invalidCommandArguments,
-          message: "\(restore.scenarioName) creates its own Test Fixture and accepts no paths."
-        )
-      }
-      try validateFixtureKind(
-        options.kind,
-        backend: restore.trashBackend,
-        scenarioName: restore.scenarioName
-      )
-      if cycles > 1 {
-        guard restore.supportsCycles else {
-          throw TestSafetyDiagnostic(
-            code: .invalidCommandArguments,
-            message: "--cycles is available only for a manual Put Back scenario."
-          )
-        }
-        let reports = try runManualDifferential(
-          context: context,
-          cycles: cycles,
-          kind: options.kind,
-          restore: restore,
-          settleSeconds: settleSeconds
-        )
-        writeDifferentialSummary(
-          reports,
-          cycles: cycles,
-          kind: options.kind,
-          restore: restore,
-          context: context
-        )
-        return 0
-      }
-      let report = try runScenario(
-        restore,
+      try runPutBackRaceOperation(
         context: context,
-        kind: options.kind,
-        settleSeconds: settleSeconds
+        paths: paths,
+        options: options,
+        restore: restore
       )
-      writeSingleRunSummary(report, restore: restore, kind: options.kind, context: context)
-      return 0
     }
     if let diagnostic = result.diagnostic {
       FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
     }
     exit(result.exitCode)
+  }
+
+  private static func runPutBackRaceOperation(
+    context: TestSafetyContext,
+    paths: [String],
+    options: RaceOptions,
+    restore: PutBackRaceRestore
+  ) throws -> Int32 {
+    guard paths.isEmpty else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "\(restore.scenarioName) creates its own Test Fixture and accepts no paths."
+      )
+    }
+    try validateFixtureKind(
+      options.kind,
+      backend: restore.trashBackend,
+      scenarioName: restore.scenarioName
+    )
+    if options.cycles > 1 {
+      guard restore.supportsCycles else {
+        throw TestSafetyDiagnostic(
+          code: .invalidCommandArguments,
+          message: "--cycles is available only for a manual Put Back scenario."
+        )
+      }
+      let reports = try runManualDifferential(
+        context: context,
+        cycles: options.cycles,
+        kind: options.kind,
+        restore: restore,
+        settleSeconds: options.settleSeconds
+      )
+      writeDifferentialSummary(
+        reports,
+        cycles: options.cycles,
+        kind: options.kind,
+        restore: restore,
+        context: context
+      )
+      return 0
+    }
+    let report = try runScenario(
+      restore,
+      context: context,
+      kind: options.kind,
+      settleSeconds: options.settleSeconds,
+      finalizerFault: options.finalizerFault
+    )
+    writeSingleRunSummary(
+      report,
+      restore: restore,
+      kind: options.kind,
+      finalizerFault: options.finalizerFault,
+      context: context
+    )
+    return 0
   }
 
   private static func rejectNonzeroFinalizerDelay(
@@ -163,12 +191,37 @@ private enum RMPTestEntrypoint {
     exit(2)
   }
 
+  private static func rejectUnsupportedFinalizerFault(
+    restore: PutBackRaceRestore,
+    fault: ProductionFinalizerFault,
+    cycles: Int
+  ) {
+    guard fault != .none else { return }
+    guard restore.usesProductionFinalizer else {
+      let diagnostic = TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "--finalizer-fault is available only for the production Finalizer scenario."
+      )
+      FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+      exit(2)
+    }
+    guard cycles == 1 else {
+      let diagnostic = TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "An injected Finalizer fault requires exactly one cycle."
+      )
+      FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+      exit(2)
+    }
+  }
+
   private static func parseRaceOptions(
     _ arguments: [String],
     defaultKind: PutBackRaceFixtureKind
   ) -> RaceOptions {
     do {
-      let (settleSeconds, afterSettle) = try extractSettleSeconds(arguments)
+      let (finalizerFault, afterFault) = try extractProductionFinalizerFault(arguments)
+      let (settleSeconds, afterSettle) = try extractSettleSeconds(afterFault)
       let (cycles, afterCycles) = try extractCycles(afterSettle)
       let (kind, driverArguments) = try extractFixtureKind(
         afterCycles,
@@ -178,6 +231,7 @@ private enum RMPTestEntrypoint {
         settleSeconds: settleSeconds,
         cycles: cycles,
         kind: kind,
+        finalizerFault: finalizerFault,
         driverArguments: driverArguments
       )
     } catch let diagnostic as TestSafetyDiagnostic {
@@ -192,7 +246,8 @@ private enum RMPTestEntrypoint {
     _ restore: PutBackRaceRestore,
     context: TestSafetyContext,
     kind: PutBackRaceFixtureKind,
-    settleSeconds: TimeInterval
+    settleSeconds: TimeInterval,
+    finalizerFault: ProductionFinalizerFault
   ) throws -> PutBackRaceReport {
     switch restore {
     case .finderScript:
@@ -207,6 +262,7 @@ private enum RMPTestEntrypoint {
         settleSeconds: settleSeconds,
         finalizeWithFoundation: restore.usesFoundationFinalizer,
         retrashWithProductionFinalizer: restore.usesProductionFinalizer,
+        productionFinalizerFault: finalizerFault,
         announce: { message in
           FileHandle.standardOutput.write(Data("\(message)\n".utf8))
         },
@@ -255,60 +311,6 @@ private enum RMPTestEntrypoint {
     }
   }
 
-  private static func writeSingleRunSummary(
-    _ report: PutBackRaceReport,
-    restore: PutBackRaceRestore,
-    kind: PutBackRaceFixtureKind,
-    context: TestSafetyContext
-  ) {
-    let output = """
-      rmp-test build=RMP_TESTING
-      run=\(context.runID.uuidString.lowercased())
-      scenario=\(restore.scenarioName)
-      fixture=\(kind.rawValue)
-      trash-backend=\(restore.trashBackend.rawValue)
-      status=complete
-      first-trash=\(report.firstTrashURL.path)
-      restored=\(report.restoredURL.path)
-      settle-seconds=\(report.settleSeconds)
-      second-trash=\(report.secondTrashURL.path)
-      foundation-finalizer=\(restore.finalizerDescription)
-      run-directory=\(context.runDirectoryURL.path)
-      \(manualCheckText(backend: restore.trashBackend, plural: false))
-      manual-target=\(report.secondTrashURL.lastPathComponent)
-      restore-method=\(restore.restoreDescription)
-
-      """
-    FileHandle.standardOutput.write(Data(output.utf8))
-  }
-
-  private static func writeDifferentialSummary(
-    _ reports: [PutBackRaceReport],
-    cycles: Int,
-    kind: PutBackRaceFixtureKind,
-    restore: PutBackRaceRestore,
-    context: TestSafetyContext
-  ) {
-    var lines = [
-      "rmp-test build=RMP_TESTING",
-      "run=\(context.runID.uuidString.lowercased())",
-      "scenario=\(restore.scenarioName)-differential",
-      "fixture=\(kind.rawValue)",
-      "trash-backend=\(restore.trashBackend.rawValue)",
-      "completed-cycles=\(reports.count)/\(cycles)",
-      "foundation-finalizer=\(restore.finalizerDescription)",
-      "run-directory=\(context.runDirectoryURL.path)",
-      manualCheckText(backend: restore.trashBackend, plural: true),
-    ]
-    for (index, report) in reports.enumerated() {
-      lines.append(
-        "target-\(String(format: "%02d", index + 1)) settle=\(report.settleSeconds) "
-          + report.secondTrashURL.lastPathComponent
-      )
-    }
-    FileHandle.standardOutput.write(Data((lines.joined(separator: "\n") + "\n\n").utf8))
-  }
-
   private static func currentRuntime() throws -> TestSafetyRuntime {
     let effectiveUserID = geteuid()
     return TestSafetyRuntime(
@@ -339,114 +341,6 @@ private func executableIdentityUnavailable() -> TestSafetyDiagnostic {
     code: .executableIdentityUnavailable,
     message: "The loaded executable identity could not be obtained from macOS."
   )
-}
-
-private func validateFixtureKind(
-  _ kind: PutBackRaceFixtureKind,
-  backend: TestSystemTrashBackend,
-  scenarioName: String
-) throws {
-  guard backend == .foundationSymlink else { return }
-  guard kind == .symbolicLink || kind == .brokenSymbolicLink else {
-    throw TestSafetyDiagnostic(
-      code: .invalidCommandArguments,
-      message: "\(scenarioName) accepts only symbolic-link fixtures."
-    )
-  }
-}
-
-private func manualCheckText(backend: TestSystemTrashBackend, plural: Bool) -> String {
-  _ = backend
-  let target = plural ? "every target below" : "manual-target below"
-  return
-    "manual-check=Open Trash now and verify Put Back is offered for \(target); no wait is needed."
-}
-
-/// Strips `--settle-seconds <n>` before the Test Safety Context driver sees the arguments; the
-/// driver treats every unrecognized token as a path.
-private func extractSettleSeconds(
-  _ arguments: [String]
-) throws -> (TimeInterval, [String]) {
-  var settleSeconds: TimeInterval = 0
-  var remaining: [String] = []
-  var index = arguments.startIndex
-  while index < arguments.endIndex {
-    guard arguments[index] == "--settle-seconds" else {
-      remaining.append(arguments[index])
-      index = arguments.index(after: index)
-      continue
-    }
-    let valueIndex = arguments.index(after: index)
-    guard valueIndex < arguments.endIndex,
-      let parsed = TimeInterval(arguments[valueIndex]),
-      parsed >= 0, parsed <= 60
-    else {
-      throw TestSafetyDiagnostic(
-        code: .invalidCommandArguments,
-        message: "--settle-seconds requires a value between 0 and 60."
-      )
-    }
-    settleSeconds = parsed
-    index = arguments.index(after: valueIndex)
-  }
-  return (settleSeconds, remaining)
-}
-
-/// Strips `--cycles <n>` for the same reason as `--settle-seconds`.
-private func extractCycles(_ arguments: [String]) throws -> (Int, [String]) {
-  var cycles = 1
-  var remaining: [String] = []
-  var index = arguments.startIndex
-  while index < arguments.endIndex {
-    guard arguments[index] == "--cycles" else {
-      remaining.append(arguments[index])
-      index = arguments.index(after: index)
-      continue
-    }
-    let valueIndex = arguments.index(after: index)
-    guard valueIndex < arguments.endIndex,
-      let parsed = Int(arguments[valueIndex]),
-      parsed >= 1, parsed <= 30
-    else {
-      throw TestSafetyDiagnostic(
-        code: .invalidCommandArguments,
-        message: "--cycles requires a value between 1 and 30."
-      )
-    }
-    cycles = parsed
-    index = arguments.index(after: valueIndex)
-  }
-  return (cycles, remaining)
-}
-
-/// Strips `--fixture <kind>` for the same reason as the other race options.
-private func extractFixtureKind(
-  _ arguments: [String],
-  defaultKind: PutBackRaceFixtureKind = .file
-) throws -> (PutBackRaceFixtureKind, [String]) {
-  var kind = defaultKind
-  var remaining: [String] = []
-  var index = arguments.startIndex
-  while index < arguments.endIndex {
-    guard arguments[index] == "--fixture" else {
-      remaining.append(arguments[index])
-      index = arguments.index(after: index)
-      continue
-    }
-    let valueIndex = arguments.index(after: index)
-    guard valueIndex < arguments.endIndex,
-      let parsed = PutBackRaceFixtureKind(rawValue: arguments[valueIndex])
-    else {
-      let known = PutBackRaceFixtureKind.allCases.map(\.rawValue).joined(separator: ", ")
-      throw TestSafetyDiagnostic(
-        code: .invalidCommandArguments,
-        message: "--fixture requires one of: \(known)."
-      )
-    }
-    kind = parsed
-    index = arguments.index(after: valueIndex)
-  }
-  return (kind, remaining)
 }
 
 RMPTestEntrypoint.execute(arguments: Array(CommandLine.arguments.dropFirst()))

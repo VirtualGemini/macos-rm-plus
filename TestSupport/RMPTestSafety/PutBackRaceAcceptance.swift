@@ -88,6 +88,7 @@ enum PutBackRaceAcceptance {
     settleSeconds: TimeInterval = 0,
     finalizeWithFoundation: Bool = false,
     retrashWithProductionFinalizer: Bool = false,
+    productionFinalizerFault: ProductionFinalizerFault = .none,
     announce: @escaping (String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in }
   ) throws -> PutBackRaceReport {
@@ -98,7 +99,8 @@ enum PutBackRaceAcceptance {
     )
     let finalizer = finalizeWithFoundation ? FoundationTrashFinalizer(context: context) : nil
     let productionClient =
-      retrashWithProductionFinalizer ? WhitelistedMacOSTrashClient(context: context) : nil
+      retrashWithProductionFinalizer
+      ? WhitelistedMacOSTrashClient(context: context, fault: productionFinalizerFault) : nil
     let prepare = makePrepare(
       context: context,
       suffix: suffix,
@@ -110,7 +112,13 @@ enum PutBackRaceAcceptance {
         var session = try prepare(receivedContext)
         if let productionClient {
           let sourceURL = session.sourceURL
-          session.retrash = { try productionClient.trashItem(sourceURL) }
+          if let expectedWarning = productionFinalizerFault.expectedWarning {
+            session.retrash = {
+              try productionClient.trashItem(sourceURL, expecting: expectedWarning)
+            }
+          } else {
+            session.retrash = { try productionClient.trashItem(sourceURL) }
+          }
         }
         return session
       },

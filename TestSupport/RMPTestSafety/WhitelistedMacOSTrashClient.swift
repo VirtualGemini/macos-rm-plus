@@ -16,14 +16,18 @@ final class WhitelistedMacOSTrashClient {
   private let resourceIdentifier: ResourceIdentifier
   private let trashClient: any TrashClient
 
-  convenience init(context: TestSafetyContext) {
+  convenience init(
+    context: TestSafetyContext,
+    fault: ProductionFinalizerFault = .none
+  ) {
     self.init(
       context: context,
       foundationTrashClient: WhitelistedTrashClient(
         context: context,
         backend: .foundationSymlink
       ),
-      resourceIdentifier: testSafetyResourceIdentifier
+      resourceIdentifier: testSafetyResourceIdentifier,
+      fault: fault
     )
   }
 
@@ -33,11 +37,13 @@ final class WhitelistedMacOSTrashClient {
     resourceIdentifier: @escaping ResourceIdentifier,
     restoreItem: @escaping @Sendable (URL, URL) throws -> Void = { trashURL, sourceURL in
       try FileManager.default.moveItem(at: trashURL, to: sourceURL)
-    }
+    },
+    fault: ProductionFinalizerFault = .none
   ) {
     self.context = context
     self.foundationTrashClient = foundationTrashClient
     self.resourceIdentifier = resourceIdentifier
+    let faultInjector = ProductionFinalizerFaultInjector(fault: fault)
     trashClient = makeInjectedMacOSTrashClient(
       finderTrash: { _ in
         throw TestSafetyDiagnostic(
@@ -52,13 +58,37 @@ final class WhitelistedMacOSTrashClient {
             targetURL: sourceURL
           )
           : try foundationTrashClient.authorizeForPlanning(targetURL: sourceURL)
-        return try foundationTrashClient.trashItem(authorizedTarget).returnedURL
+        return try faultInjector.trash(sourceURL) {
+          try foundationTrashClient.trashItem(authorizedTarget).returnedURL
+        }
       },
       restoreItem: restoreItem
     )
   }
 
   func trashItem(_ sourceURL: URL) throws -> TrashVerificationEvidence {
+    let result = try verifiedTrashItem(sourceURL)
+    if let warning = result.warnings.first {
+      throw degradationDiagnostic(warning)
+    }
+    return result.evidence
+  }
+
+  func trashItem(
+    _ sourceURL: URL,
+    expecting expectedWarning: TrashWarningCode
+  ) throws -> TrashVerificationEvidence {
+    let result = try verifiedTrashItem(sourceURL)
+    guard result.warnings.map(\.code) == [expectedWarning] else {
+      throw TestSafetyDiagnostic(
+        code: .trashSystemCallFailed,
+        message: "The production symbolic-link Trash warning did not match the expected fault."
+      )
+    }
+    return result.evidence
+  }
+
+  private func verifiedTrashItem(_ sourceURL: URL) throws -> VerifiedProductionTrashResult {
     try context.revalidate()
     _ = try foundationTrashClient.authorizeForPlanning(targetURL: sourceURL)
     let sourceIdentifier = try identifiedResource(at: sourceURL, role: "source")
@@ -75,16 +105,6 @@ final class WhitelistedMacOSTrashClient {
       )
     }
 
-    if let warning = receipt.warnings.first {
-      let code: TestSafetyDiagnosticCode =
-        warning.code == .finalizerCleanupFailed ? .finalizerCleanupFailed : .trashSystemCallFailed
-      throw TestSafetyDiagnostic(
-        code: code,
-        message: "The production symbolic-link Trash operation moved the target but degraded: "
-          + warning.code.rawValue
-      )
-    }
-
     let returnedURL = URL(fileURLWithPath: receipt.destinationPath)
     let returnedIdentifier = try identifiedResource(at: returnedURL, role: "returned Trash item")
     if let sourceIdentifier, returnedIdentifier != sourceIdentifier {
@@ -93,9 +113,22 @@ final class WhitelistedMacOSTrashClient {
         message: "The production Trash receipt does not identify the original symbolic link."
       )
     }
-    return TrashVerificationEvidence(
-      returnedURL: returnedURL,
-      resourceIdentifier: returnedIdentifier
+    return VerifiedProductionTrashResult(
+      evidence: TrashVerificationEvidence(
+        returnedURL: returnedURL,
+        resourceIdentifier: returnedIdentifier
+      ),
+      warnings: receipt.warnings
+    )
+  }
+
+  private func degradationDiagnostic(_ warning: TrashMoveWarning) -> TestSafetyDiagnostic {
+    let code: TestSafetyDiagnosticCode =
+      warning.code == .finalizerCleanupFailed ? .finalizerCleanupFailed : .trashSystemCallFailed
+    return TestSafetyDiagnostic(
+      code: code,
+      message: "The production symbolic-link Trash operation moved the target but degraded: "
+        + warning.code.rawValue
     )
   }
 
@@ -111,3 +144,41 @@ final class WhitelistedMacOSTrashClient {
   }
 }
 // swiftlint:enable inclusive_language
+
+private struct VerifiedProductionTrashResult {
+  let evidence: TrashVerificationEvidence
+  let warnings: [TrashMoveWarning]
+}
+
+private final class ProductionFinalizerFaultInjector: @unchecked Sendable {
+  private let fault: ProductionFinalizerFault
+  private let lock = NSLock()
+  private var targetMoved = false
+  private var injected = false
+
+  init(fault: ProductionFinalizerFault) {
+    self.fault = fault
+  }
+
+  func trash(_ sourceURL: URL, operation: () throws -> URL) throws -> URL {
+    lock.lock()
+    defer { lock.unlock() }
+    let isFinalizer = sourceURL.lastPathComponent.hasPrefix(".rmp-finalizer-")
+    if isFinalizer, targetMoved, !injected, fault == .firstActivationNotMoved {
+      injected = true
+      throw InjectedProductionFinalizerFailure()
+    }
+    if isFinalizer, targetMoved, !injected, fault == .firstActivationMovedBeforeError {
+      injected = true
+      _ = try operation()
+      throw InjectedProductionFinalizerFailure()
+    }
+    let returnedURL = try operation()
+    if !isFinalizer {
+      targetMoved = true
+    }
+    return returnedURL
+  }
+}
+
+private struct InjectedProductionFinalizerFailure: Error {}

@@ -1,6 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import Foundation
+import RMPCore
+
+enum ProductionFinalizerFault: String, CaseIterable, Sendable {
+  case none
+  case firstActivationNotMoved = "not-moved-before-error"
+  case firstActivationMovedBeforeError = "moved-before-error"
+
+  var expectedWarning: TrashWarningCode? {
+    switch self {
+    case .none, .firstActivationNotMoved: nil
+    case .firstActivationMovedBeforeError: .finalizerStateUncertain
+    }
+  }
+
+  var finalizerDescription: String {
+    switch self {
+    case .none: "production-cleaned"
+    case .firstActivationNotMoved: "backup-recovered"
+    case .firstActivationMovedBeforeError: "state-uncertain"
+    }
+  }
+}
 
 enum PutBackRaceRestore {
   case finderScript
@@ -67,9 +89,9 @@ enum PutBackRaceRestore {
     usesFoundationFinalizer || usesProductionFinalizer
   }
 
-  var finalizerDescription: String {
+  func finalizerDescription(fault: ProductionFinalizerFault = .none) -> String {
     if usesFoundationFinalizer { return "test-only-cleaned" }
-    if usesProductionFinalizer { return "production-cleaned" }
+    if usesProductionFinalizer { return fault.finalizerDescription }
     return "disabled"
   }
 }
@@ -78,5 +100,34 @@ struct RaceOptions {
   let settleSeconds: TimeInterval
   let cycles: Int
   let kind: PutBackRaceFixtureKind
+  let finalizerFault: ProductionFinalizerFault
   let driverArguments: [String]
+}
+
+func extractProductionFinalizerFault(
+  _ arguments: [String]
+) throws -> (ProductionFinalizerFault, [String]) {
+  var fault = ProductionFinalizerFault.none
+  var remaining: [String] = []
+  var index = arguments.startIndex
+  while index < arguments.endIndex {
+    guard arguments[index] == "--finalizer-fault" else {
+      remaining.append(arguments[index])
+      index = arguments.index(after: index)
+      continue
+    }
+    let valueIndex = arguments.index(after: index)
+    guard valueIndex < arguments.endIndex,
+      let parsed = ProductionFinalizerFault(rawValue: arguments[valueIndex])
+    else {
+      let known = ProductionFinalizerFault.allCases.map(\.rawValue).joined(separator: ", ")
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "--finalizer-fault requires one of: \(known)."
+      )
+    }
+    fault = parsed
+    index = arguments.index(after: valueIndex)
+  }
+  return (fault, remaining)
 }

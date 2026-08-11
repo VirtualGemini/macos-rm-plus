@@ -100,7 +100,7 @@ final class ActivationRetrySimulator: @unchecked Sendable {
 final class MovedActivationFailureSimulator: @unchecked Sendable {
   private let trashDirectoryURL: URL
   private(set) var recoverablePaths: Set<String> = []
-  private var callCount = 0
+  private(set) var callCount = 0
   private var previousTrashURL: URL?
 
   init(trashDirectoryURL: URL) {

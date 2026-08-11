@@ -61,6 +61,9 @@ The production manual acceptance uses `put-back-symlink-production-manual`. Its 
 the Foundation control used for the maintainer's real Finder Put Back. Only after that restore is
 observed and revalidated does the second Trash use the production `MacOSTrashClient`. Every internal
 preflight, target, and finalizer Foundation call passes through the Test Safety Context whitelist.
+The test executable can inject a single first-activation failure either before the Foundation call
+or after the real whitelisted call has moved the Finalizer. These modes verify backup recovery and
+the moved-before-error stop rule without exposing fault controls in production `rmp`.
 
 ## Rejected alternatives
 

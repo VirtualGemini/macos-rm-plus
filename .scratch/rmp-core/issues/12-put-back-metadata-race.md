@@ -7,7 +7,7 @@ integration boundary. Recoverability of `rmp` deletions is degraded relative
 to Finder-native deletion; reclassified from environment noise by the
 maintainer on 2026-07-18.
 
-## Current state (2026-08-10)
+## Current state (2026-08-11)
 
 The defect is reproduced, diagnosed, and fixed on
 `fix/12-put-back-metadata-race`. `FinderTrashClient` delegates the delete to
@@ -23,13 +23,18 @@ two prepared activation helpers, identity verification before and after every re
 and no permanent deletion inside Trash. Pure failure tests cover preflight, target,
 activation, cleanup, wrong-returned-identity, broken-link, and moved-before-throw cases.
 
+The first integrated real-menu smoke passed for both a resolving symbolic link and a broken
+symbolic link. The pure suite now has 208 tests, including deterministic target-moved failure
+coverage and test-only Finalizer fault injection.
+
 Outstanding before release:
 
-- **Maintainer + agent.** Run `put-back-symlink-production-manual` for resolving and
-  broken symbolic links. The first call is the Foundation control; after the
-  maintainer's real Finder Put Back, the second call uses the production algorithm.
-  Inspect Put Back immediately after completion. Every internal real call is
-  independently whitelisted.
+- **Maintainer + agent.** Run the production manual acceptance once with
+  `FINALIZER_FAULT=not-moved-before-error` and once with
+  `FINALIZER_FAULT=moved-before-error`. Inspect Put Back immediately after each completion. The
+  second mode intentionally retains one UUID Finalizer in Trash as failure evidence.
+- **Maintainer + agent.** Run repeated normal production-Finalizer reliability rounds for resolving
+  and broken symbolic links after the injected-failure smoke.
 - **Agent-runnable.** Complete the duplicate-Trash-name fixture and remaining release
   gates.
 - **Maintainer only.** The Feedback Assistant report to Apple about the
@@ -985,3 +990,13 @@ preflight, target Trash, Finalizer activation, exact restore, and cleanup, repor
 confirmed that Finder offered Put Back. The integrated smoke set now has one resolving-link and one
 broken-link pass; repeated reliability rounds and injected post-target failure acceptance remain
 open.
+
+2026-08-11 — A test-only production Finalizer fault injector was added behind
+`put-back-symlink-production-manual` and the existing Test Safety Context. The
+`not-moved-before-error` mode authorizes the first activation helper and throws before Foundation;
+the prepared backup must complete the real activation and cleanup. The `moved-before-error` mode
+performs the first activation through the real whitelisted Foundation call and then throws; the
+production algorithm must retain the exact target receipt with `finalizer_state_uncertain`, stop
+before the backup, and leave the moved helper as evidence. Fault modes require one cycle, never
+enter production `rmp`, and accept only their exact expected warning. The full pure suite passes
+208 tests in 19 suites; real-menu execution of both modes remains pending.

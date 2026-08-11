@@ -86,6 +86,7 @@ SETTLE_SECONDS ?= 0
 CYCLES ?= 1
 FIXTURE ?= file
 SYMLINK_FIXTURE ?= symbolic-link
+FINALIZER_FAULT ?= none
 
 test-put-back-race-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
@@ -105,6 +106,7 @@ test-put-back-symlink-finalizer-manual:
 test-put-back-symlink-production-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-production-manual \
 		--cycles "$(CYCLES)" --fixture "$(SYMLINK_FIXTURE)" \
+		--finalizer-fault "$(FINALIZER_FAULT)" \
 		--test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:

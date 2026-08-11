@@ -166,6 +166,7 @@ extension MacOSTrashClientTests {
     #expect(receipt.destinationPath == fixture.trashedLinkURL.path)
     #expect(receipt.warnings.map(\.code) == [.finalizerStateUncertain])
     #expect(simulator.recoverablePaths.contains(receipt.destinationPath))
+    #expect(simulator.callCount == 3)
     #expect(try fixture.sourceEntryNames() == ["target.txt"])
     #expect(try fixture.trashEntryNames().contains("shortcut"))
     #expect(

@@ -121,4 +121,37 @@ struct PutBackRaceFixtureKindTests {
     #expect(Set(suffixes).count == PutBackRaceFixtureKind.allCases.count)
     #expect(PutBackRaceFixtureKind.allCases.count == 6)
   }
+
+  @Test("maps production finalizer fault modes to their expected warning contract")
+  func mapsProductionFinalizerFaultModes() {
+    #expect(
+      ProductionFinalizerFault(rawValue: "not-moved-before-error")
+        == .firstActivationNotMoved
+    )
+    #expect(
+      ProductionFinalizerFault(rawValue: "moved-before-error")
+        == .firstActivationMovedBeforeError
+    )
+    #expect(ProductionFinalizerFault(rawValue: "unknown") == nil)
+    #expect(ProductionFinalizerFault.firstActivationNotMoved.expectedWarning == nil)
+    #expect(
+      ProductionFinalizerFault.firstActivationMovedBeforeError.expectedWarning
+        == .finalizerStateUncertain
+    )
+  }
+
+  @Test("extracts only a known production finalizer fault option")
+  func extractsProductionFinalizerFaultOption() throws {
+    let (fault, remaining) = try extractProductionFinalizerFault([
+      "--fixture", "symbolic-link", "--finalizer-fault", "moved-before-error",
+    ])
+
+    #expect(fault == .firstActivationMovedBeforeError)
+    #expect(remaining == ["--fixture", "symbolic-link"])
+    #expect(
+      captureDiagnostic {
+        _ = try extractProductionFinalizerFault(["--finalizer-fault", "unknown"])
+      }?.code == .invalidCommandArguments
+    )
+  }
 }

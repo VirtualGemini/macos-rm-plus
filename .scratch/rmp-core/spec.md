@@ -718,6 +718,12 @@ Foundation Finalizer 验收必须固定 `settle-seconds=0`，并在命令完成�
 内部 Finalizer 仅允许当前 Run Directory 直属、严格 `.rmp-finalizer-<canonical-lowercase-uuid>` 命名且
 `lstat` 为符号链接的条目。该入口固定零延迟，完成后立即检查菜单。
 
+该生产候选验收还必须提供仅编译进 `rmp-test` 的单轮故障注入：`not-moved-before-error` 在第一次激活
+Finalizer 已授权但尚未调用 Foundation 时抛错，验证备用 Finalizer 接管；`moved-before-error` 先通过真实
+白名单 Foundation 边界移动第一次激活 Finalizer，再抛错，验证生产算法停止而不调用备用项，并保留精确
+目标与 `finalizer_state_uncertain`。故障模式不得进入生产 `rmp`，不得用于多 cycle，且只有实际 warning
+与声明故障完全匹配时验收才可成功。
+
 #### 17.1.3 断言与不可省略的安全检查
 
 测试代码应尽量使用断言尽早暴露违反安全边界的状态，包括：

@@ -26,8 +26,8 @@ activation, cleanup, wrong-returned-identity, broken-link, and moved-before-thro
 The first integrated real-menu smoke passed for both a resolving symbolic link and a broken
 symbolic link. Both injected Finalizer failure modes also passed real-menu acceptance: backup
 takeover after a definitely-not-moved failure, and target Put Back retention after a Finalizer moved
-before throwing. The pure suite has 209 tests, including deterministic cleanup-failure and control
-Finalizer ordering coverage.
+before throwing. The pure suite has 209 tests, including deterministic cleanup-failure coverage and
+proof that both acceptance Trash calls use independent production lifecycles.
 
 Outstanding before release:
 
@@ -1031,3 +1031,18 @@ Foundation control Trash and before waiting for the maintainer. A deterministic 
 requires the event order `control Trash -> control Finalizer -> Finder Put Back -> production target
 Trash`; the full pure suite passes 209 tests in 19 suites. The interrupted Run Directory and Trash
 items remain as evidence. A fresh real five-cycle rerun is still required.
+
+2026-08-11 — That proposed external control-Finalizer fix was falsified by fresh run
+`0363f907-eead-40e3-87cc-6ffe100d4466`. Cycle 1 completed, but cycle 2's raw Foundation control still
+did not offer Put Back even though the runner had completed and cleaned the separate test Finalizer
+before asking the maintainer. The agent interrupted the runner before cycle 2's production target.
+This proves that sequencing an external test Finalizer is not an adequate control setup for repeated
+production acceptance; the ordering-only regression test was removed.
+
+The production acceptance now uses two independent whitelisted production clients in every cycle.
+The first is always fault-free and performs its own production preflight, target Trash, activation,
+restore, and cleanup before the maintainer's Put Back. The second runs the normal or fault-injected
+scenario under test after that restore. A deterministic regression test verifies that the raw
+Foundation control closure is bypassed and the event order is
+`production first -> Finder Put Back -> production second`. The pure suite passes 209 tests; a fresh
+real five-cycle rerun is required before this runner change is accepted.

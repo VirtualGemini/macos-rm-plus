@@ -18,7 +18,6 @@ func writeSingleRunSummary(
     trash-backend=\(restore.trashBackend.rawValue)
     status=complete
     first-trash=\(report.firstTrashURL.path)
-    foundation-control-finalizer=\(controlFinalizerDescription(restore: restore))
     restored=\(report.restoredURL.path)
     settle-seconds=\(report.settleSeconds)
     second-trash=\(report.secondTrashURL.path)
@@ -47,7 +46,6 @@ func writeDifferentialSummary(
     "fixture=\(kind.rawValue)",
     "trash-backend=\(restore.trashBackend.rawValue)",
     "completed-cycles=\(reports.count)/\(cycles)",
-    "foundation-control-finalizer=\(controlFinalizerDescription(restore: restore))",
     "foundation-finalizer=\(restore.finalizerDescription())",
     "run-directory=\(context.runDirectoryURL.path)",
     manualCheckText(backend: restore.trashBackend, plural: true),
@@ -172,8 +170,4 @@ private func productionFaultSummary(
   guard restore.usesProductionFinalizer else { return "" }
   let warning = fault.expectedWarning?.rawValue ?? "none"
   return "injected-finalizer-fault=\(fault.rawValue)\ntrash-warning=\(warning)"
-}
-
-private func controlFinalizerDescription(restore: PutBackRaceRestore) -> String {
-  restore.trashBackend == .foundationSymlink ? "cleaned" : "not-required"
 }

@@ -58,9 +58,9 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 ### Added
 
 - Add a maintainer-only production-finalizer acceptance whose first symbolic-link Trash is the
-  Foundation control, immediately activates that control through an identity-verified test
-  Finalizer, and whose post-Put-Back second Trash runs `MacOSTrashClient`; every internal Foundation
-  call is independently reauthorized by the Test Safety Context whitelist.
+  fault-free production setup and whose post-Put-Back second Trash runs an independent normal or
+  fault-injected `MacOSTrashClient`; every internal Foundation call is independently reauthorized by
+  the Test Safety Context whitelist.
 - Add test-only single-cycle Finalizer fault modes that verify backup recovery after a definitely
   not-moved failure and preserve `finalizer_state_uncertain` without invoking the backup when the
   first Finalizer moved before the injected error.

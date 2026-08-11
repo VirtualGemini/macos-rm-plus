@@ -378,46 +378,40 @@ struct PutBackRaceAcceptanceSequenceTests {
     #expect(report.secondTrashURL == secondTrashURL)
   }
 
-  @Test("activates the Foundation control before waiting for Finder Put Back")
-  func activatesFoundationControlBeforePutBack() throws {
+  @Test("uses the production Finalizer lifecycle for both Trash calls")
+  func usesProductionFinalizerForBothTrashCalls() throws {
     let fixture = try SafetyHomeFixture()
     defer { fixture.remove() }
     let context = try fixture.establishContext()
-    let sourceURL = context.runDirectoryURL.appendingPathComponent("control-finalizer-order")
-    let firstTrashURL = URL(fileURLWithPath: "/Trash/control")
-    let secondTrashURL = URL(fileURLWithPath: "/Trash/target")
+    let sourceURL = context.runDirectoryURL.appendingPathComponent("production-both-calls")
+    let firstTrashURL = URL(fileURLWithPath: "/Trash/production-first")
+    let secondTrashURL = URL(fileURLWithPath: "/Trash/production-second")
     var events: [String] = []
-    var controlActivated = false
-    var trashEvidence = [
-      TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil),
-      TrashVerificationEvidence(returnedURL: secondTrashURL, resourceIdentifier: nil),
-    ]
-    let operations = PutBackRaceOperations(
-      prepare: { _ in
-        PutBackRaceTrashSession(sourceURL: sourceURL) {
-          events.append(trashEvidence.count == 2 ? "control-trash" : "target-trash")
-          return trashEvidence.removeFirst()
-        }
+    var session = PutBackRaceTrashSession(sourceURL: sourceURL) {
+      events.append("raw-foundation-control")
+      return TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil)
+    }
+    session.useProductionTrash(
+      first: {
+        events.append("production-first")
+        return TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil)
       },
+      second: {
+        events.append("production-second")
+        return TrashVerificationEvidence(returnedURL: secondTrashURL, resourceIdentifier: nil)
+      }
+    )
+    let operations = PutBackRaceOperations(
+      prepare: { _ in session },
       putBack: { _, _ in
-        guard controlActivated else {
-          throw TestSafetyDiagnostic(
-            code: .putBackManualTimeout,
-            message: "The control item did not receive Put Back."
-          )
-        }
         events.append("put-back")
         return PutBackVerificationEvidence(returnedURL: sourceURL, resourceIdentifier: nil)
-      },
-      activateFirstPutBack: {
-        controlActivated = true
-        events.append("control-finalizer")
       }
     )
 
     _ = try PutBackRaceAcceptance.run(context: context, operations: operations)
 
-    #expect(events == ["control-trash", "control-finalizer", "put-back", "target-trash"])
+    #expect(events == ["production-first", "put-back", "production-second"])
   }
 }
 

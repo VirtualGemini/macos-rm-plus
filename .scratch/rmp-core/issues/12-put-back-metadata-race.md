@@ -1000,3 +1000,12 @@ production algorithm must retain the exact target receipt with `finalizer_state_
 before the backup, and leave the moved helper as evidence. Fault modes require one cycle, never
 enter production `rmp`, and accept only their exact expected warning. The full pure suite passes
 208 tests in 19 suites; real-menu execution of both modes remains pending.
+
+2026-08-11 — The first real injected-failure acceptance passed with run
+`fae052b3-5bc5-4571-8037-72e34c3a0d02`, `CYCLES=1`, fixture `symbolic-link`, and
+`FINALIZER_FAULT=not-moved-before-error`. After the maintainer's real Finder Put Back, the target
+was re-trashed immediately. The injected first activation failed before its Foundation call; the
+prepared backup activated and cleaned successfully. The command reported
+`foundation-finalizer=backup-recovered`, `trash-warning=none`, and retained the exact target
+receipt. The maintainer checked immediately after completion and confirmed Put Back. This validates
+the real backup takeover path on the reporting host.

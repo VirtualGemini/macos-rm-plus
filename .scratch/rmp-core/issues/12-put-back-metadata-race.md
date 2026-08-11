@@ -24,17 +24,14 @@ and no permanent deletion inside Trash. Pure failure tests cover preflight, targ
 activation, cleanup, wrong-returned-identity, broken-link, and moved-before-throw cases.
 
 The first integrated real-menu smoke passed for both a resolving symbolic link and a broken
-symbolic link. The pure suite now has 208 tests, including deterministic target-moved failure
-coverage and test-only Finalizer fault injection.
+symbolic link. Both injected Finalizer failure modes also passed real-menu acceptance: backup
+takeover after a definitely-not-moved failure, and target Put Back retention after a Finalizer moved
+before throwing. The pure suite has 208 tests, including deterministic cleanup-failure coverage.
 
 Outstanding before release:
 
-- **Maintainer + agent.** Run the production manual acceptance once with
-  `FINALIZER_FAULT=not-moved-before-error` and once with
-  `FINALIZER_FAULT=moved-before-error`. Inspect Put Back immediately after each completion. The
-  second mode intentionally retains one UUID Finalizer in Trash as failure evidence.
 - **Maintainer + agent.** Run repeated normal production-Finalizer reliability rounds for resolving
-  and broken symbolic links after the injected-failure smoke.
+  and broken symbolic links.
 - **Agent-runnable.** Complete the duplicate-Trash-name fixture and remaining release
   gates.
 - **Maintainer only.** The Feedback Assistant report to Apple about the
@@ -1009,3 +1006,13 @@ prepared backup activated and cleaned successfully. The command reported
 `foundation-finalizer=backup-recovered`, `trash-warning=none`, and retained the exact target
 receipt. The maintainer checked immediately after completion and confirmed Put Back. This validates
 the real backup takeover path on the reporting host.
+
+2026-08-11 — The real moved-before-error acceptance passed with run
+`518542ae-04b5-49be-a7ea-75ffe18a5ee7`, `CYCLES=1`, fixture `symbolic-link`, and
+`FINALIZER_FAULT=moved-before-error`. After the maintainer's real Finder Put Back, the target was
+re-trashed immediately and the first activation Finalizer entered Trash through the real
+whitelisted Foundation call before the injected error. The production algorithm stopped before the
+backup, retained the exact target receipt, and reported `foundation-finalizer=state-uncertain` with
+`trash-warning=finalizer_state_uncertain`. The moved UUID Finalizer remains in Trash as intended
+evidence. The maintainer checked the target immediately and confirmed Put Back. This directly
+validates the target-moved/finalizer-state-uncertain behavior on the reporting host.

@@ -959,3 +959,13 @@ production algorithm. Every production preflight, target, and activation call is
 authorized by the Test Safety Context; internal helpers must be direct Run Directory children
 with exact `.rmp-finalizer-<canonical-lowercase-uuid>` names. Pure tests pass; the repeated
 resolving-link and broken-link Finder menu rounds remain pending maintainer execution.
+
+2026-08-11 — The first production-algorithm real-menu acceptance passed with run
+`dcfb1130-ba53-4add-b275-e080ca3b588b`, `CYCLES=1`, fixture `symbolic-link`, and
+`settle-seconds=0.0`. After the maintainer used Finder's real Put Back command, the runner
+immediately performed the production preflight, target Trash, Finalizer activation, exact
+Finalizer restore, and verified cleanup. It reported
+`foundation-finalizer=production-cleaned`. The maintainer checked the target immediately after
+command completion, with no post-Trash delay, and confirmed that Finder offered Put Back. This
+is one resolving-link smoke pass for the integrated production algorithm; repeated resolving-link,
+broken-link, and target-moved/finalizer-failed acceptance remain open.

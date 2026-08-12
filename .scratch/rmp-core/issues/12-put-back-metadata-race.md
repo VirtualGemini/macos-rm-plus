@@ -1121,3 +1121,12 @@ strong causal evidence that the preflight's Foundation Trash-plus-restore operat
 subsequent target's Put Back metadata state. One identical fresh-run replication is required before
 accepting that conclusion; if it succeeds, the same probe must cover a broken symbolic link before
 the production default is changed.
+
+The identical fresh-run replication completed with run
+`0a34c398-056b-4a45-9892-0f3d7fed7614`. It again used fixture `symbolic-link`, `control=none`,
+hidden Finalizer names, and `preflight=disabled`; production activation, restore, and cleanup
+completed without a warning. The maintainer immediately confirmed Put Back was offered for the new
+target. The result is reproducible across two independently named runs and accepts the diagnosis:
+the target-before-move Foundation preflight is the operation that invalidates the following target's
+Put Back outcome in the minimal production sequence on the reporting host. The next required check
+is the same preflight-disabled path with a broken symbolic link.

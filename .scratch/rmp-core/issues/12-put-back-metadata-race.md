@@ -1060,3 +1060,18 @@ identity, a separate symbolic-link fixture enters the production `MacOSTrashClie
 deterministic regression requires `Finder file control -> Finder Put Back -> production symbolic
 link`, and also requires the target URL to differ from the control URL. The targeted pure suite
 passes five tests. A fresh real run is required before this protocol is accepted.
+
+2026-08-12 — The separated Finder-control proposal was falsified by fresh run
+`3624a784-419b-4085-a18a-df5e2052ac8b`, `CYCLES=1`, fixture `symbolic-link`. Finder successfully
+trashed the independent ordinary-file control, the maintainer restored that exact control, and the
+runner immediately executed the production symbolic-link path with zero settle delay. The command
+reported `foundation-finalizer=production-cleaned` and `trash-warning=none`, but the maintainer's
+immediate menu check found no Put Back for the symbolic-link target. This is a production acceptance
+failure, not a menu-observation timing result, and the Finder-control protocol is not accepted.
+
+The next minimal probe removes the control and manual restore entirely. A fresh Run Directory will
+perform exactly one production symbolic-link target operation, including its normal preflight and
+Finalizer lifecycle, and the maintainer will inspect the target immediately. This changes one
+variable: if the target gains Put Back, the preceding Finder control perturbed the relevant
+Foundation state; if it does not, a successful production Finalizer lifecycle is not sufficient in
+a clean standalone invocation on the reporting host.

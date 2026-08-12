@@ -104,6 +104,23 @@ struct RaceOptions {
   let driverArguments: [String]
 }
 
+struct ProductionProbeOptions {
+  let kind: PutBackRaceFixtureKind
+  let driverArguments: [String]
+}
+
+func extractProductionProbeOptions(_ arguments: [String]) throws -> ProductionProbeOptions {
+  let unsupported = ["--cycles", "--settle-seconds", "--finalizer-fault"]
+  guard !arguments.contains(where: unsupported.contains) else {
+    throw TestSafetyDiagnostic(
+      code: .invalidCommandArguments,
+      message: "put-back-symlink-production-probe accepts only --fixture."
+    )
+  }
+  let (kind, driverArguments) = try extractFixtureKind(arguments, defaultKind: .symbolicLink)
+  return ProductionProbeOptions(kind: kind, driverArguments: driverArguments)
+}
+
 func extractProductionFinalizerFault(
   _ arguments: [String]
 ) throws -> (ProductionFinalizerFault, [String]) {

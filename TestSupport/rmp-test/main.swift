@@ -13,6 +13,7 @@ private let helpText = """
          rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-production-manual [OPTIONS] --test-run-id <uuid>
+         rmp-test put-back-symlink-production-probe [OPTIONS] --test-run-id <uuid>
          rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
   put-back-race-manual options:
@@ -35,6 +36,9 @@ private let helpText = """
     --fixture <kind>      symbolic-link | broken-symbolic-link
     --finalizer-fault <mode>
                           none | not-moved-before-error | moved-before-error
+
+  put-back-symlink-production-probe options:
+    --fixture <kind>      symbolic-link | broken-symbolic-link
 
   """
 
@@ -70,6 +74,12 @@ private enum RMPTestEntrypoint {
       executePutBackRace(
         arguments: Array(arguments.dropFirst()),
         restore: .manualProductionSymlinkFinalizer
+      )
+    }
+    if arguments.first == "put-back-symlink-production-probe" {
+      executeProductionProbe(
+        arguments: Array(arguments.dropFirst()),
+        runtime: currentRuntime
       )
     }
 
@@ -319,6 +329,53 @@ private enum RMPTestEntrypoint {
       executableName: try loadedExecutableName()
     )
   }
+}
+
+private func executeProductionProbe(
+  arguments: [String],
+  runtime: @escaping () throws -> TestSafetyRuntime
+) -> Never {
+  let options: ProductionProbeOptions
+  do {
+    options = try extractProductionProbeOptions(arguments)
+  } catch let diagnostic as TestSafetyDiagnostic {
+    FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+    exit(2)
+  } catch {
+    let diagnostic = TestSafetyDiagnostic(
+      code: .invalidCommandArguments,
+      message: "put-back-symlink-production-probe arguments could not be parsed."
+    )
+    FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+    exit(2)
+  }
+  let result = TestSafetyDriver.runWithInjectedRuntime(
+    arguments: options.driverArguments,
+    cleanupPolicy: .preserveRunDirectory,
+    runtime: runtime
+  ) { context, paths in
+    guard paths.isEmpty else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "put-back-symlink-production-probe creates its own Test Fixture."
+      )
+    }
+    try validateFixtureKind(
+      options.kind,
+      backend: .foundationSymlink,
+      scenarioName: "put-back-symlink-production-probe"
+    )
+    let report = try PutBackRaceAcceptance.runProductionProbe(
+      context: context,
+      kind: options.kind
+    )
+    writeProductionProbeSummary(report, kind: options.kind, context: context)
+    return 0
+  }
+  if let diagnostic = result.diagnostic {
+    FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+  }
+  exit(result.exitCode)
 }
 
 private func loadedExecutableName() throws -> String {

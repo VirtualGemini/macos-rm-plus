@@ -16,6 +16,7 @@ struct TestExecutableIdentityTests {
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-production-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-production-probe [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -38,6 +39,9 @@ struct TestExecutableIdentityTests {
             --fixture <kind>      symbolic-link | broken-symbolic-link
             --finalizer-fault <mode>
                                   none | not-moved-before-error | moved-before-error
+
+          put-back-symlink-production-probe options:
+            --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
       ),
@@ -53,6 +57,7 @@ struct TestExecutableIdentityTests {
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-production-manual [OPTIONS] --test-run-id <uuid>
+                 rmp-test put-back-symlink-production-probe [OPTIONS] --test-run-id <uuid>
                  rmp-test [--test-run-id <uuid>] [--] <PATH>...
 
           put-back-race-manual options:
@@ -75,6 +80,9 @@ struct TestExecutableIdentityTests {
             --fixture <kind>      symbolic-link | broken-symbolic-link
             --finalizer-fault <mode>
                                   none | not-moved-before-error | moved-before-error
+
+          put-back-symlink-production-probe options:
+            --fixture <kind>      symbolic-link | broken-symbolic-link
 
           """
       ),

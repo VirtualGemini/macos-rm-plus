@@ -154,4 +154,21 @@ struct PutBackRaceFixtureKindTests {
       }?.code == .invalidCommandArguments
     )
   }
+
+  @Test("the standalone production probe accepts only its symbolic-link fixture option")
+  func extractsStandaloneProductionProbeOptions() throws {
+    let options = try extractProductionProbeOptions([
+      "--fixture", "broken-symbolic-link", "--test-run-id", "run-id",
+    ])
+
+    #expect(options.kind == .brokenSymbolicLink)
+    #expect(options.driverArguments == ["--test-run-id", "run-id"])
+    for unsupported in ["--cycles", "--settle-seconds", "--finalizer-fault"] {
+      #expect(
+        captureDiagnostic {
+          _ = try extractProductionProbeOptions([unsupported, "1"])
+        }?.code == .invalidCommandArguments
+      )
+    }
+  }
 }

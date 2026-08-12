@@ -61,6 +61,30 @@ func writeDifferentialSummary(
   FileHandle.standardOutput.write(Data((lines.joined(separator: "\n") + "\n\n").utf8))
 }
 
+func writeProductionProbeSummary(
+  _ report: ProductionTrashProbeReport,
+  kind: PutBackRaceFixtureKind,
+  context: TestSafetyContext
+) {
+  let output = """
+    rmp-test build=RMP_TESTING
+    run=\(context.runID.uuidString.lowercased())
+    scenario=put-back-symlink-production-probe
+    fixture=\(kind.rawValue)
+    control=none
+    status=complete
+    source=\(report.sourceURL.path)
+    trash=\(report.trashURL.path)
+    foundation-finalizer=production-cleaned
+    trash-warning=none
+    run-directory=\(context.runDirectoryURL.path)
+    manual-check=Open Trash now and verify Put Back is offered for manual-target; no wait is needed.
+    manual-target=\(report.trashURL.lastPathComponent)
+
+    """
+  FileHandle.standardOutput.write(Data(output.utf8))
+}
+
 func validateFixtureKind(
   _ kind: PutBackRaceFixtureKind,
   backend: TestSystemTrashBackend,

@@ -55,6 +55,16 @@ struct PutBackRaceReport: Equatable, Sendable {
   let settleSeconds: TimeInterval
 }
 
+struct ProductionTrashProbeOperations {
+  let prepare: (TestSafetyContext) throws -> URL
+  let trash: (URL) throws -> TrashVerificationEvidence
+}
+
+struct ProductionTrashProbeReport: Equatable, Sendable {
+  let sourceURL: URL
+  let trashURL: URL
+}
+
 /// Issue 12's platform acceptance set. The metadata race is a property of the Trash entry, so the
 /// shape of the deleted item is an independent dimension that the file-only differential leaves
 /// untested.
@@ -96,6 +106,41 @@ enum PutBackRaceAcceptance {
       putBack: putBackClient.putBack
     )
     return try run(context: context, operations: operations)
+  }
+
+  static func runProductionProbe(
+    context: TestSafetyContext,
+    kind: PutBackRaceFixtureKind
+  ) throws -> ProductionTrashProbeReport {
+    let client = WhitelistedMacOSTrashClient(context: context)
+    return try runProductionProbe(
+      context: context,
+      operations: ProductionTrashProbeOperations(
+        prepare: { receivedContext in
+          guard receivedContext === context else {
+            throw TestSafetyDiagnostic(
+              code: .unexpectedError,
+              message: "The production probe context changed unexpectedly."
+            )
+          }
+          return try makeFixture(
+            context: receivedContext,
+            suffix: kind.suffix(cycle: "production-probe"),
+            kind: kind
+          )
+        },
+        trash: client.trashItem
+      )
+    )
+  }
+
+  static func runProductionProbe(
+    context: TestSafetyContext,
+    operations: ProductionTrashProbeOperations
+  ) throws -> ProductionTrashProbeReport {
+    let sourceURL = try operations.prepare(context)
+    let evidence = try operations.trash(sourceURL)
+    return ProductionTrashProbeReport(sourceURL: sourceURL, trashURL: evidence.returnedURL)
   }
 
   /// Restores through the maintainer's real Finder Put Back command instead of scripting the

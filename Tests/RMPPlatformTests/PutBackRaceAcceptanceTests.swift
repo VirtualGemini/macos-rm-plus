@@ -417,6 +417,36 @@ struct PutBackRaceAcceptanceSequenceTests {
     #expect(report.sourceURL == controlURL)
     #expect(report.secondTrashURL == secondTrashURL)
   }
+
+  @Test("runs one production symbolic-link Trash without a control or Put Back")
+  func runsProductionSymbolicLinkProbeWithoutControl() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let sourceURL = context.runDirectoryURL.appendingPathComponent("production-probe")
+    let trashURL = URL(fileURLWithPath: "/Trash/production-probe")
+    var events: [String] = []
+    let operations = ProductionTrashProbeOperations(
+      prepare: { receivedContext in
+        #expect(receivedContext === context)
+        events.append("prepare-target")
+        return sourceURL
+      },
+      trash: { receivedSourceURL in
+        #expect(receivedSourceURL == sourceURL)
+        events.append("production-trash")
+        return TrashVerificationEvidence(returnedURL: trashURL, resourceIdentifier: nil)
+      }
+    )
+
+    let report = try PutBackRaceAcceptance.runProductionProbe(
+      context: context,
+      operations: operations
+    )
+
+    #expect(events == ["prepare-target", "production-trash"])
+    #expect(report == ProductionTrashProbeReport(sourceURL: sourceURL, trashURL: trashURL))
+  }
 }
 
 private func makeTrashEvidence(

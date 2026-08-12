@@ -15,6 +15,7 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 	build build-release test test-unit test-integration test-put-back-race \
 	test-put-back-race-manual test-put-back-symlink-delay-manual \
 	test-put-back-symlink-finalizer-manual test-put-back-symlink-production-manual \
+	test-put-back-symlink-production-probe \
 	check-spdx check-dangerous \
 	test-policy coverage-report check-tool-versions check-swift-toolchain \
 	check-system-trash-boundary \
@@ -108,6 +109,10 @@ test-put-back-symlink-production-manual:
 		--cycles "$(CYCLES)" --fixture "$(SYMLINK_FIXTURE)" \
 		--finalizer-fault "$(FINALIZER_FAULT)" \
 		--test-run-id "$(TEST_RUN_ID)"
+
+test-put-back-symlink-production-probe:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-production-probe \
+		--fixture "$(SYMLINK_FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:
 	./scripts/check-spdx.sh

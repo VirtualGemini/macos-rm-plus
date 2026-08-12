@@ -361,6 +361,13 @@ backup; the acceptance succeeds only when the exact target receipt is retained w
 helper in Trash as evidence. A fault mode requires `CYCLES=1`. Without an explicit fault, every
 production warning still fails acceptance.
 
+`put-back-symlink-production-probe` is the minimal standalone diagnosis for the production
+symbolic-link path. It creates one resolving or broken symbolic-link Test Fixture and invokes one
+whitelisted production `MacOSTrashClient` operation. It creates no control item, performs no Put
+Back, has no settle interval or cycle mode, and prints `control=none` plus the exact target to inspect
+immediately. This probe distinguishes production Finalizer behavior from state introduced by a
+preceding manual-control Trash sequence; it is diagnostic evidence, not a replacement acceptance.
+
 `FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
 (default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.
 The metadata race is a property of the Trash entry, so shape is a dimension independent of the delay
@@ -415,6 +422,7 @@ make test-put-back-symlink-delay-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CY
 make test-put-back-symlink-finalizer-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLINK_FIXTURE=]
 make test-put-back-symlink-production-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLINK_FIXTURE=]
                                                 [FINALIZER_FAULT=]
+make test-put-back-symlink-production-probe TEST_RUN_ID=<uuid> [SYMLINK_FIXTURE=]
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

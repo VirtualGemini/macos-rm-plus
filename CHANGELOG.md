@@ -64,6 +64,8 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Add test-only single-cycle Finalizer fault modes that verify backup recovery after a definitely
   not-moved failure and preserve `finalizer_state_uncertain` without invoking the backup when the
   first Finalizer moved before the injected error.
+- Add a maintainer-only standalone production probe that trashes one symbolic-link target without a
+  control item or manual Put Back, isolating production Finalizer behavior from prior Trash state.
 
 - Add deterministic `smart`, `never`, `once`, and `each` confirmation with top-level-only summaries,
   `-f`/`-i`/`-I` precedence, non-interactive and non-TTY fail-closed behavior, stable declined,

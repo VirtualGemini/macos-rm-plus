@@ -728,6 +728,12 @@ Finalizer 已授权但尚未调用 Foundation 时抛错，验证备用 Finalizer
 目标与 `finalizer_state_uncertain`。故障模式不得进入生产 `rmp`，不得用于多 cycle，且只有实际 warning
 与声明故障完全匹配时验收才可成功。
 
+为隔离人工控制序列对 Foundation 状态的影响，`rmp-test` 还必须提供
+`put-back-symlink-production-probe`。该诊断入口在全新 Run Directory 中只创建一个符号链接目标，只调用
+一次生产 `MacOSTrashClient`（其内部仍执行完整 preflight、目标移动、Finalizer 激活与清理），不得创建控制
+项、不得等待或执行 Put Back、不得提供 cycle、settle 或故障注入。输出必须包含 `control=none` 和精确目标名，
+由维护者在命令完成后立即判定菜单。它只用于区分前置控制序列与生产算法自身，不替代正式验收。
+
 #### 17.1.3 断言与不可省略的安全检查
 
 测试代码应尽量使用断言尽早暴露违反安全边界的状态，包括：

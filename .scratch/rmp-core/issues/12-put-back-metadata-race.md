@@ -1130,3 +1130,11 @@ target. The result is reproducible across two independently named runs and accep
 the target-before-move Foundation preflight is the operation that invalidates the following target's
 Put Back outcome in the minimal production sequence on the reporting host. The next required check
 is the same preflight-disabled path with a broken symbolic link.
+
+The broken-link check completed with run `a6a43b18-bba2-4d8b-b681-0c12d83569ca`, fixture
+`broken-symbolic-link`, `control=none`, hidden Finalizer names, and `preflight=disabled`. Production
+activation, exact restore, and cleanup completed with no warning, and the maintainer immediately
+confirmed Put Back was offered for the broken symbolic-link target. The accepted production change
+is therefore to remove the target-before-move Foundation preflight for both resolving and broken
+symbolic links while retaining target identity verification, two prepared activation Finalizers,
+the backup-on-definitely-not-moved behavior, exact restore, cleanup, and existing warnings.

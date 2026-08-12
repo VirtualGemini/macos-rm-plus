@@ -1110,3 +1110,14 @@ target-before-move Finalizer preflight. Target Trash, prepared activation helper
 activation, exact restore, cleanup, and every whitelist/identity check remain unchanged. If this
 probe succeeds, the preflight's successful Foundation Trash plus restore is causal; if it fails,
 the next variable is retaining the activation helper in Trash instead of immediately restoring it.
+
+2026-08-13 — The preflight-disabled standalone probe completed with run
+`0516390e-686b-4d0d-ba62-cc5b40d22064`, fixture `symbolic-link`, `control=none`, hidden Finalizer
+names, and `preflight=disabled`. It reported `foundation-finalizer=production-cleaned` with
+`trash-warning=none`. The maintainer inspected the exact target immediately and confirmed Put Back
+was offered. Compared with the otherwise equivalent hidden-name standalone failure
+`c858d5b7-5fbf-48f8-ad85-b8f97f8ed75f`, this changes only the production preflight and is therefore
+strong causal evidence that the preflight's Foundation Trash-plus-restore operation perturbs the
+subsequent target's Put Back metadata state. One identical fresh-run replication is required before
+accepting that conclusion; if it succeeds, the same probe must cover a broken symbolic link before
+the production default is changed.

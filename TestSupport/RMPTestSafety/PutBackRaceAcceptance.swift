@@ -9,15 +9,27 @@ struct PutBackVerificationEvidence: Equatable, Sendable {
 
 struct PutBackRaceTrashSession {
   let sourceURL: URL
-  var trash: () throws -> TrashVerificationEvidence
+  let trash: () throws -> TrashVerificationEvidence
   var retrash: (() throws -> TrashVerificationEvidence)?
+}
 
-  mutating func useProductionTrash(
-    first: @escaping () throws -> TrashVerificationEvidence,
-    second: @escaping () throws -> TrashVerificationEvidence
-  ) {
-    trash = first
-    retrash = second
+/// Keeps the human-operated Put Back control independent from the symbolic-link behavior under
+/// test. Finder owns the ordinary-file control; only the second Trash call enters the production
+/// symbolic-link algorithm.
+enum PutBackRaceProductionProtocol {
+  static let controlKind = PutBackRaceFixtureKind.file
+  static let controlBackend = TestSystemTrashBackend.finder
+
+  static func makeSession(
+    control: PutBackRaceTrashSession,
+    targetSourceURL: URL,
+    targetTrash: @escaping (URL) throws -> TrashVerificationEvidence
+  ) -> PutBackRaceTrashSession {
+    PutBackRaceTrashSession(
+      sourceURL: control.sourceURL,
+      trash: control.trash,
+      retrash: { try targetTrash(targetSourceURL) }
+    )
   }
 }
 
@@ -103,41 +115,29 @@ enum PutBackRaceAcceptance {
     let waiter = ManualPutBackWaiter(
       context: context,
       announce: announce,
-      heartbeat: heartbeat
+      heartbeat: heartbeat,
+      postRestoreInstruction: retrashWithProductionFinalizer
+        ? "After Put Back is observed, rmp-test immediately trashes the production symbolic-link "
+          + "target. Check that target in Trash immediately; do not wait."
+        : nil
     )
     let finalizer = finalizeWithFoundation ? FoundationTrashFinalizer(context: context) : nil
-    let firstProductionClient =
-      retrashWithProductionFinalizer ? WhitelistedMacOSTrashClient(context: context) : nil
-    let secondProductionClient =
+    let prepare =
       retrashWithProductionFinalizer
-      ? WhitelistedMacOSTrashClient(context: context, fault: productionFinalizerFault) : nil
-    let prepare = makePrepare(
-      context: context,
-      suffix: suffix,
-      kind: kind,
-      trashBackend: trashBackend
-    )
+      ? makeProductionPrepare(
+        context: context,
+        suffix: suffix,
+        kind: kind,
+        fault: productionFinalizerFault
+      )
+      : makePrepare(
+        context: context,
+        suffix: suffix,
+        kind: kind,
+        trashBackend: trashBackend
+      )
     let operations = PutBackRaceOperations(
-      prepare: { receivedContext in
-        var session = try prepare(receivedContext)
-        if let firstProductionClient, let secondProductionClient {
-          let sourceURL = session.sourceURL
-          if let expectedWarning = productionFinalizerFault.expectedWarning {
-            session.useProductionTrash(
-              first: { try firstProductionClient.trashItem(sourceURL) },
-              second: {
-                try secondProductionClient.trashItem(sourceURL, expecting: expectedWarning)
-              }
-            )
-          } else {
-            session.useProductionTrash(
-              first: { try firstProductionClient.trashItem(sourceURL) },
-              second: { try secondProductionClient.trashItem(sourceURL) }
-            )
-          }
-        }
-        return session
-      },
+      prepare: prepare,
       putBack: waiter.putBack,
       settle: { seconds in
         guard seconds > 0 else { return }
@@ -150,6 +150,42 @@ enum PutBackRaceAcceptance {
       }
     )
     return try run(context: context, operations: operations)
+  }
+
+  private static func makeProductionPrepare(
+    context: TestSafetyContext,
+    suffix: String,
+    kind: PutBackRaceFixtureKind,
+    fault: ProductionFinalizerFault
+  ) -> (TestSafetyContext) throws -> PutBackRaceTrashSession {
+    let productionClient = WhitelistedMacOSTrashClient(
+      context: context,
+      fault: fault
+    )
+    let controlPrepare = makePrepare(
+      context: context,
+      suffix: "\(suffix)-finder-control",
+      kind: PutBackRaceProductionProtocol.controlKind,
+      trashBackend: PutBackRaceProductionProtocol.controlBackend
+    )
+    return { receivedContext in
+      let control = try controlPrepare(receivedContext)
+      let targetSourceURL = try makeFixture(
+        context: receivedContext,
+        suffix: suffix,
+        kind: kind
+      )
+      return PutBackRaceProductionProtocol.makeSession(
+        control: control,
+        targetSourceURL: targetSourceURL,
+        targetTrash: { sourceURL in
+          if let expectedWarning = fault.expectedWarning {
+            return try productionClient.trashItem(sourceURL, expecting: expectedWarning)
+          }
+          return try productionClient.trashItem(sourceURL)
+        }
+      )
+    }
   }
 
   /// Runs the manual scenario repeatedly inside one Run Directory so the maintainer can perform a

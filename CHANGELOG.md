@@ -57,8 +57,8 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
-- Add a maintainer-only production-finalizer acceptance whose first symbolic-link Trash is the
-  fault-free production setup and whose post-Put-Back second Trash runs an independent normal or
+- Add a maintainer-only production-finalizer acceptance that uses a separate Finder ordinary-file
+  control for the maintainer's real Put Back, then runs the symbolic-link target through a normal or
   fault-injected `MacOSTrashClient`; every internal Foundation call is independently reauthorized by
   the Test Safety Context whitelist.
 - Add test-only single-cycle Finalizer fault modes that verify backup recovery after a definitely

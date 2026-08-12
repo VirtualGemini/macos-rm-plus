@@ -955,12 +955,12 @@ failure returns `finalizer_cleanup_failed` without claiming Put Back was lost. W
 and helper return identities are rejected without touching unrelated entries. The same
 matrix covers resolving and broken symbolic links.
 
-`put-back-symlink-production-manual` is the real-menu gate for this implementation. Its
-first Foundation Trash call supplies the control item for the maintainer's real Finder Put
-Back. Only after that restore is observed and revalidated does its second Trash call run the
-production algorithm. Every production preflight, target, and activation call is separately
-authorized by the Test Safety Context; internal helpers must be direct Run Directory children
-with exact `.rmp-finalizer-<canonical-lowercase-uuid>` names. Pure tests pass; the repeated
+`put-back-symlink-production-manual` is the real-menu gate for this implementation. A separate
+ordinary-file Finder Trash supplies the control item for the maintainer's real Finder Put Back.
+Only after that exact restore is observed and revalidated does the runner Trash the symbolic-link
+target through the production algorithm. Every production preflight, target, and activation call is
+separately authorized by the Test Safety Context; internal helpers must be direct Run Directory
+children with exact `.rmp-finalizer-<canonical-lowercase-uuid>` names. Pure tests pass; the repeated
 resolving-link and broken-link Finder menu rounds remain pending maintainer execution.
 
 2026-08-11 — The first production-algorithm real-menu acceptance passed with run
@@ -1039,10 +1039,24 @@ before asking the maintainer. The agent interrupted the runner before cycle 2's 
 This proves that sequencing an external test Finalizer is not an adequate control setup for repeated
 production acceptance; the ordering-only regression test was removed.
 
-The production acceptance now uses two independent whitelisted production clients in every cycle.
-The first is always fault-free and performs its own production preflight, target Trash, activation,
-restore, and cleanup before the maintainer's Put Back. The second runs the normal or fault-injected
-scenario under test after that restore. A deterministic regression test verifies that the raw
-Foundation control closure is bypassed and the event order is
-`production first -> Finder Put Back -> production second`. The pure suite passes 209 tests; a fresh
-real five-cycle rerun is required before this runner change is accepted.
+The then-current production acceptance proposal used two independent whitelisted production clients
+in every cycle. The first was fault-free and performed its own production preflight, target Trash,
+activation, restore, and cleanup before the maintainer's Put Back; the second ran the scenario under
+test. That proposal was superseded by the 2026-08-12 protocol below after run `5a1e216d-a681-4296-91a5-bf621b2a22bf`
+showed that even its first production symbolic-link control could lack Put Back.
+
+2026-08-12 — The two-production-client proposal was falsified by fresh run
+`5a1e216d-a681-4296-91a5-bf621b2a22bf`, `CYCLES=2`, fixture `symbolic-link`. The first cycle's
+fault-free production symbolic-link control did not offer Put Back, so no second production Trash
+occurred and the runner was stopped. Together with run `0363f907-eead-40e3-87cc-6ffe100d4466`, this
+shows that neither an external Finalizer nor a complete production Finalizer lifecycle makes a
+Foundation symbolic-link operation suitable as the human control. Both batches are invalid as
+production reliability evidence.
+
+The production acceptance protocol now separates the prerequisite from the behavior under test.
+Each cycle first trashes a uniquely named ordinary-file control through the whitelisted Finder
+backend. After the maintainer uses Finder Put Back and the runner verifies that exact restored
+identity, a separate symbolic-link fixture enters the production `MacOSTrashClient` once. A
+deterministic regression requires `Finder file control -> Finder Put Back -> production symbolic
+link`, and also requires the target URL to differ from the control URL. The targeted pure suite
+passes five tests. A fresh real run is required before this protocol is accepted.

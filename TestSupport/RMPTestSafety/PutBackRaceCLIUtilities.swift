@@ -16,6 +16,7 @@ func writeSingleRunSummary(
     scenario=\(restore.scenarioName)
     fixture=\(kind.rawValue)
     trash-backend=\(restore.trashBackend.rawValue)
+    \(productionControlSummary(restore: restore))
     status=complete
     first-trash=\(report.firstTrashURL.path)
     restored=\(report.restoredURL.path)
@@ -45,6 +46,7 @@ func writeDifferentialSummary(
     "scenario=\(restore.scenarioName)-differential",
     "fixture=\(kind.rawValue)",
     "trash-backend=\(restore.trashBackend.rawValue)",
+    productionControlSummary(restore: restore),
     "completed-cycles=\(reports.count)/\(cycles)",
     "foundation-finalizer=\(restore.finalizerDescription())",
     "run-directory=\(context.runDirectoryURL.path)",
@@ -170,4 +172,9 @@ private func productionFaultSummary(
   guard restore.usesProductionFinalizer else { return "" }
   let warning = fault.expectedWarning?.rawValue ?? "none"
   return "injected-finalizer-fault=\(fault.rawValue)\ntrash-warning=\(warning)"
+}
+
+private func productionControlSummary(restore: PutBackRaceRestore) -> String {
+  guard restore.usesProductionFinalizer else { return "" }
+  return "control-fixture=file\ncontrol-trash-backend=finder"
 }

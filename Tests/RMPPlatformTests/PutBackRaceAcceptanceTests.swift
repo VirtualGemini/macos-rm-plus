@@ -378,26 +378,26 @@ struct PutBackRaceAcceptanceSequenceTests {
     #expect(report.secondTrashURL == secondTrashURL)
   }
 
-  @Test("uses the production Finalizer lifecycle for both Trash calls")
-  func usesProductionFinalizerForBothTrashCalls() throws {
+  @Test("uses a Finder file as the control before the production symbolic-link Trash")
+  func usesFinderFileControlBeforeProductionSymbolicLinkTrash() throws {
     let fixture = try SafetyHomeFixture()
     defer { fixture.remove() }
     let context = try fixture.establishContext()
-    let sourceURL = context.runDirectoryURL.appendingPathComponent("production-both-calls")
-    let firstTrashURL = URL(fileURLWithPath: "/Trash/production-first")
-    let secondTrashURL = URL(fileURLWithPath: "/Trash/production-second")
+    let controlURL = context.runDirectoryURL.appendingPathComponent("finder-file-control")
+    let targetURL = context.runDirectoryURL.appendingPathComponent("production-symbolic-link")
+    let firstTrashURL = URL(fileURLWithPath: "/Trash/finder-file-control")
+    let secondTrashURL = URL(fileURLWithPath: "/Trash/production-symbolic-link")
     var events: [String] = []
-    var session = PutBackRaceTrashSession(sourceURL: sourceURL) {
-      events.append("raw-foundation-control")
+    let control = PutBackRaceTrashSession(sourceURL: controlURL) {
+      events.append("finder-file-control")
       return TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil)
     }
-    session.useProductionTrash(
-      first: {
-        events.append("production-first")
-        return TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil)
-      },
-      second: {
-        events.append("production-second")
+    let session = PutBackRaceProductionProtocol.makeSession(
+      control: control,
+      targetSourceURL: targetURL,
+      targetTrash: { receivedTargetURL in
+        #expect(receivedTargetURL == targetURL)
+        events.append("production-symbolic-link")
         return TrashVerificationEvidence(returnedURL: secondTrashURL, resourceIdentifier: nil)
       }
     )
@@ -405,13 +405,17 @@ struct PutBackRaceAcceptanceSequenceTests {
       prepare: { _ in session },
       putBack: { _, _ in
         events.append("put-back")
-        return PutBackVerificationEvidence(returnedURL: sourceURL, resourceIdentifier: nil)
+        return PutBackVerificationEvidence(returnedURL: controlURL, resourceIdentifier: nil)
       }
     )
 
-    _ = try PutBackRaceAcceptance.run(context: context, operations: operations)
+    let report = try PutBackRaceAcceptance.run(context: context, operations: operations)
 
-    #expect(events == ["production-first", "put-back", "production-second"])
+    #expect(PutBackRaceProductionProtocol.controlKind == .file)
+    #expect(PutBackRaceProductionProtocol.controlBackend == .finder)
+    #expect(events == ["finder-file-control", "put-back", "production-symbolic-link"])
+    #expect(report.sourceURL == controlURL)
+    #expect(report.secondTrashURL == secondTrashURL)
   }
 }
 

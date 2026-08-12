@@ -337,15 +337,15 @@ item inside Trash and stops closed if the source is occupied or any identity cha
 fixes the settle bucket at zero and reports `foundation-finalizer=test-only-cleaned`; it is an automated
 test-only feasibility check, not production wiring.
 
-`put-back-symlink-production-manual` routes both user-visible Trash calls through separate
-whitelisted production `MacOSTrashClient` instances. The first instance is always fault-free, so its
-own preflight and Finalizer make the item available for the maintainer's real Finder Put Back. After
-that restore is observed and revalidated, the second instance runs the normal or explicitly injected
-production scenario under test. A separate test-only Finalizer after a raw Foundation control was
-rejected because real multi-cycle evidence showed that it did not make cycle 2's control item
-recoverable. Every production preflight, target, and activation Foundation call is independently
-authorized immediately before execution. User fixtures retain the run UUID prefix; internal helpers
-must be direct Run Directory children named exactly
+`put-back-symlink-production-manual` uses an ordinary-file Finder Trash call only as the human
+control that must offer the maintainer's real Finder Put Back. The symbolic-link target is a separate
+Test Fixture that remains in the Run Directory until that exact control restore is observed and
+revalidated; it is then moved by the normal or explicitly injected production `MacOSTrashClient`
+scenario under test. A raw Foundation control plus a separate test Finalizer, and a fault-free
+production symbolic-link control, were both rejected by real evidence because neither made the next
+human control reliable. Every production preflight, target, and activation Foundation call is
+independently authorized immediately before execution. User fixtures retain the run UUID prefix;
+internal helpers must be direct Run Directory children named exactly
 `.rmp-finalizer-<canonical-lowercase-uuid>` and must remain symbolic links with their planned
 identity. Any production warning fails the acceptance while retaining the exact target evidence.
 The scenario fixes the settle bucket at zero, performs no post-Trash wait, and reports

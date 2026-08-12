@@ -57,14 +57,14 @@ or the process will never fail. The ordering makes every predictable setup failu
 target moves, prepares a retry before the irreversible point, and never sacrifices exact outcome
 reporting after the target has moved.
 
-The production manual acceptance uses `put-back-symlink-production-manual`. Its first Trash call is
-an independent fault-free production `MacOSTrashClient` operation used for the maintainer's real
-Finder Put Back. Only after that restore is observed and revalidated does a second production client
-run the normal or injected scenario under test. Every internal
-preflight, target, and finalizer Foundation call passes through the Test Safety Context whitelist.
-The test executable can inject a single first-activation failure either before the Foundation call
-or after the real whitelisted call has moved the Finalizer. These modes verify backup recovery and
-the moved-before-error stop rule without exposing fault controls in production `rmp`.
+The production manual acceptance uses `put-back-symlink-production-manual`. Its first Trash call
+moves a separate ordinary-file control through Finder, which establishes a reliable item for the
+maintainer's real Finder Put Back. Only after that exact restore is observed and revalidated does a
+production client Trash the symbolic-link target under the normal or injected scenario. Every
+internal preflight, target, and finalizer Foundation call passes through the Test Safety Context
+whitelist. The test executable can inject a single first-activation failure either before the
+Foundation call or after the real whitelisted call has moved the Finalizer. These modes verify backup
+recovery and the moved-before-error stop rule without exposing fault controls in production `rmp`.
 
 ## Rejected alternatives
 

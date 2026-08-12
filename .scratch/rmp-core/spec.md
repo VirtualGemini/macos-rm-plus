@@ -712,14 +712,15 @@ adapter；生产 Foundation 能力只属于 `MacOSTrashClient`，Finder 失败�
 
 Foundation Finalizer 验收必须固定 `settle-seconds=0`，并在命令完成后立即作菜单判定。
 
-生产候选必须另提供 `put-back-symlink-production-manual`：第一次和第二次用户可见 Trash 都必须使用相互
-独立、经过白名单的生产 `MacOSTrashClient`；第一次固定无故障，使其通过自身生产 Finalizer 获得 Put Back。
-维护者执行真实 Finder Put Back 并由 runner 重验后，第二次 Trash 必须通过生产 `MacOSTrashClient` 的
-预检、目标移动、激活与清理协议。生产算法内部每一次 Foundation 调用都必须重新经过 Test Safety Context；
+生产候选必须另提供 `put-back-symlink-production-manual`：第一次用户可见 Trash 仅使用经过白名单的 Finder
+删除一个独立普通文件，作为必须稳定提供真实 Finder Put Back 的人工控制项。符号链接目标是另一个 Test
+Fixture，在控制项恢复并由 runner 重验之前必须留在 Run Directory；之后它的唯一 Trash 必须通过生产
+`MacOSTrashClient` 的预检、目标移动、激活与清理协议。Finder 普通文件只建立联调前置条件，不计为符号链接
+生产结果。生产算法内部每一次 Foundation 调用都必须重新经过 Test Safety Context；
 内部 Finalizer 仅允许当前 Run Directory 直属、严格 `.rmp-finalizer-<canonical-lowercase-uuid>` 命名且
 `lstat` 为符号链接的条目。该入口固定零延迟，完成后立即检查菜单。
-不得再用 raw Foundation control 加外置 test Finalizer 的组合；真实多 cycle 证据已经证明该组合不能保证
-第 2 个 control 获得 Put Back。
+不得再用 raw Foundation control 加外置 test Finalizer，也不得用另一次生产符号链接 Trash 充当控制项；
+真实证据已经证明这两种组合都不能保证下一次人工控制获得 Put Back。
 
 该生产候选验收还必须提供仅编译进 `rmp-test` 的单轮故障注入：`not-moved-before-error` 在第一次激活
 Finalizer 已授权但尚未调用 Foundation 时抛错，验证备用 Finalizer 接管；`moved-before-error` 先通过真实

@@ -39,6 +39,7 @@ private let helpText = """
 
   put-back-symlink-production-probe options:
     --fixture <kind>      symbolic-link | broken-symbolic-link
+    --finalizer-name <n>  hidden | visible, default hidden
 
   """
 
@@ -367,9 +368,15 @@ private func executeProductionProbe(
     )
     let report = try PutBackRaceAcceptance.runProductionProbe(
       context: context,
-      kind: options.kind
+      kind: options.kind,
+      finalizerName: options.finalizerName
     )
-    writeProductionProbeSummary(report, kind: options.kind, context: context)
+    writeProductionProbeSummary(
+      report,
+      kind: options.kind,
+      finalizerName: options.finalizerName,
+      context: context
+    )
     return 0
   }
   if let diagnostic = result.diagnostic {

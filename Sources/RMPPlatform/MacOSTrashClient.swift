@@ -7,10 +7,12 @@ import RMPCore
 public struct MacOSTrashClient: TrashClient {
   typealias RestoreItem = @Sendable (_ trashURL: URL, _ sourceURL: URL) throws -> Void
   typealias SystemTrash = @Sendable (URL) throws -> URL
+  typealias FinalizerName = @Sendable () -> String
 
   private var finderTrash: SystemTrash
   private var foundationTrash: SystemTrash
   private var restoreItem: RestoreItem
+  private var finalizerName: FinalizerName
 
   public init() {
     let finderClient = FinderTrashClient()
@@ -20,17 +22,20 @@ public struct MacOSTrashClient: TrashClient {
     }
     foundationTrash = liveFoundationTrash
     restoreItem = liveRestoreItem
+    finalizerName = liveFinalizerName
   }
 
   fileprivate init(
     finderTrash: @escaping SystemTrash,
     foundationTrash: @escaping SystemTrash,
-    restoreItem: @escaping RestoreItem
+    restoreItem: @escaping RestoreItem,
+    finalizerName: @escaping FinalizerName
   ) {
     self.init()
     self.finderTrash = finderTrash
     self.foundationTrash = foundationTrash
     self.restoreItem = restoreItem
+    self.finalizerName = finalizerName
   }
 
   public func trashItem(atPath path: String) throws -> TrashMoveReceipt {
@@ -121,7 +126,16 @@ public struct MacOSTrashClient: TrashClient {
 
   private func prepareFinalizer(beside sourceURL: URL) throws -> PreparedFinalizer {
     let parentURL = sourceURL.deletingLastPathComponent()
-    let name = ".rmp-finalizer-\(UUID().uuidString.lowercased())"
+    let name = finalizerName()
+    guard
+      !name.isEmpty,
+      name != ".",
+      name != "..",
+      !name.contains("/"),
+      !name.contains("\0")
+    else {
+      throw FinalizerFailure.createFailed
+    }
     let descriptor = open(parentURL.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
     guard descriptor >= 0 else { throw FinalizerFailure.parentUnavailable }
     defer { close(descriptor) }
@@ -208,12 +222,14 @@ public struct MacOSTrashClient: TrashClient {
 package func makeInjectedMacOSTrashClient(
   finderTrash: @escaping @Sendable (URL) throws -> URL,
   foundationTrash: @escaping @Sendable (URL) throws -> URL,
-  restoreItem: @escaping @Sendable (URL, URL) throws -> Void = liveRestoreItem
+  restoreItem: @escaping @Sendable (URL, URL) throws -> Void = liveRestoreItem,
+  finalizerName: @escaping @Sendable () -> String = liveFinalizerName
 ) -> any TrashClient {
   MacOSTrashClient(
     finderTrash: finderTrash,
     foundationTrash: foundationTrash,
-    restoreItem: restoreItem
+    restoreItem: restoreItem,
+    finalizerName: finalizerName
   )
 }
 
@@ -250,4 +266,8 @@ private func liveFoundationTrash(_ sourceURL: URL) throws -> URL {
 
 private func liveRestoreItem(_ trashURL: URL, _ sourceURL: URL) throws {
   try FileManager.default.moveItem(at: trashURL, to: sourceURL)
+}
+
+private func liveFinalizerName() -> String {
+  ".rmp-finalizer-\(UUID().uuidString.lowercased())"
 }

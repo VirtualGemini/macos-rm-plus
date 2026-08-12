@@ -42,6 +42,7 @@ struct TestExecutableIdentityTests {
 
           put-back-symlink-production-probe options:
             --fixture <kind>      symbolic-link | broken-symbolic-link
+            --finalizer-name <n>  hidden | visible, default hidden
 
           """
       ),
@@ -83,6 +84,7 @@ struct TestExecutableIdentityTests {
 
           put-back-symlink-production-probe options:
             --fixture <kind>      symbolic-link | broken-symbolic-link
+            --finalizer-name <n>  hidden | visible, default hidden
 
           """
       ),

@@ -24,6 +24,22 @@ enum ProductionFinalizerFault: String, CaseIterable, Sendable {
   }
 }
 
+enum ProductionFinalizerName: String, CaseIterable, Sendable {
+  case hidden
+  case visible
+
+  func prefix(runID: UUID) -> String {
+    switch self {
+    case .hidden: ".rmp-finalizer-"
+    case .visible: "rmp-test-\(runID.uuidString.lowercased())-visible-finalizer-"
+    }
+  }
+
+  func makeName(runID: UUID) -> String {
+    "\(prefix(runID: runID))\(UUID().uuidString.lowercased())"
+  }
+}
+
 enum PutBackRaceRestore {
   case finderScript
   case manualFinderMenu
@@ -106,6 +122,7 @@ struct RaceOptions {
 
 struct ProductionProbeOptions {
   let kind: PutBackRaceFixtureKind
+  let finalizerName: ProductionFinalizerName
   let driverArguments: [String]
 }
 
@@ -117,8 +134,40 @@ func extractProductionProbeOptions(_ arguments: [String]) throws -> ProductionPr
       message: "put-back-symlink-production-probe accepts only --fixture."
     )
   }
-  let (kind, driverArguments) = try extractFixtureKind(arguments, defaultKind: .symbolicLink)
-  return ProductionProbeOptions(kind: kind, driverArguments: driverArguments)
+  let (finalizerName, afterName) = try extractProductionFinalizerName(arguments)
+  let (kind, driverArguments) = try extractFixtureKind(afterName, defaultKind: .symbolicLink)
+  return ProductionProbeOptions(
+    kind: kind,
+    finalizerName: finalizerName,
+    driverArguments: driverArguments
+  )
+}
+
+func extractProductionFinalizerName(
+  _ arguments: [String]
+) throws -> (ProductionFinalizerName, [String]) {
+  var name = ProductionFinalizerName.hidden
+  var remaining: [String] = []
+  var index = arguments.startIndex
+  while index < arguments.endIndex {
+    guard arguments[index] == "--finalizer-name" else {
+      remaining.append(arguments[index])
+      index = arguments.index(after: index)
+      continue
+    }
+    let valueIndex = arguments.index(after: index)
+    guard valueIndex < arguments.endIndex,
+      let parsed = ProductionFinalizerName(rawValue: arguments[valueIndex])
+    else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "--finalizer-name requires one of: hidden, visible."
+      )
+    }
+    name = parsed
+    index = arguments.index(after: valueIndex)
+  }
+  return (name, remaining)
 }
 
 func extractProductionFinalizerFault(

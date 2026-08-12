@@ -64,6 +64,7 @@ func writeDifferentialSummary(
 func writeProductionProbeSummary(
   _ report: ProductionTrashProbeReport,
   kind: PutBackRaceFixtureKind,
+  finalizerName: ProductionFinalizerName,
   context: TestSafetyContext
 ) {
   let output = """
@@ -71,6 +72,7 @@ func writeProductionProbeSummary(
     run=\(context.runID.uuidString.lowercased())
     scenario=put-back-symlink-production-probe
     fixture=\(kind.rawValue)
+    finalizer-name=\(finalizerName.rawValue)
     control=none
     status=complete
     source=\(report.sourceURL.path)

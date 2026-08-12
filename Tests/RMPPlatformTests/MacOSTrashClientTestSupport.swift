@@ -6,6 +6,7 @@ import Foundation
 final class FoundationTrashSimulator: @unchecked Sendable {
   let trashDirectoryURL: URL
   private(set) var recoverablePaths: Set<String> = []
+  private(set) var receivedNames: [String] = []
   private var previousTrashURL: URL?
 
   init(trashDirectoryURL: URL) {
@@ -13,6 +14,7 @@ final class FoundationTrashSimulator: @unchecked Sendable {
   }
 
   func trash(_ sourceURL: URL) throws -> URL {
+    receivedNames.append(sourceURL.lastPathComponent)
     let returnedURL = trashDirectoryURL.appendingPathComponent(sourceURL.lastPathComponent)
     try FileManager.default.moveItem(at: sourceURL, to: returnedURL)
     if let previousTrashURL {

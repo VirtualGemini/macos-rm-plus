@@ -1075,3 +1075,24 @@ Finalizer lifecycle, and the maintainer will inspect the target immediately. Thi
 variable: if the target gains Put Back, the preceding Finder control perturbed the relevant
 Foundation state; if it does not, a successful production Finalizer lifecycle is not sufficient in
 a clean standalone invocation on the reporting host.
+
+2026-08-12 — The control-free standalone production probe completed with run
+`c858d5b7-5fbf-48f8-ad85-b8f97f8ed75f`, fixture `symbolic-link`, and `control=none`. It performed one
+production target operation in a fresh Run Directory and reported
+`foundation-finalizer=production-cleaned` with `trash-warning=none`. The maintainer inspected the
+exact target immediately and found no Put Back. This excludes the Finder control, manual restore,
+settle delay, cycle boundary, and repeated target naming as necessary causes. A successful hidden
+production Finalizer lifecycle is therefore not sufficient in this minimal run.
+
+The next ranked single-variable probe keeps the production preflight, target, activation, restore,
+cleanup, and whitelist checks unchanged while replacing only the hidden `.rmp-finalizer-<uuid>`
+helper basename with a visible run-prefixed UUID basename. The earlier successful test-only
+Finalizer used a visible run-prefixed name; if the visible production helper succeeds, hidden-name
+handling is causal. If it fails, the next variables are preflight presence and immediate helper
+restore/cleanup. Earlier production menu successes conflict with the hidden-name hypothesis, so it
+remains a falsifiable probe rather than a conclusion.
+
+The visible-name experiment is implemented as `--finalizer-name visible` on the standalone probe.
+It remains test-target-only, keeps the production default hidden basename unchanged, and preserves
+the same run-prefix, UUID, identity, restore, and cleanup checks. Its result will decide whether the
+hidden helper basename is causal before any production-default change is considered.

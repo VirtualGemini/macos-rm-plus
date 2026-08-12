@@ -128,19 +128,21 @@ final class WhitelistedTrashClient: @unchecked Sendable {
     )
   }
 
-  func authorizeProductionFinalizerForPlanning(targetURL: URL) throws -> AuthorizedTrashTarget {
+  func authorizeProductionFinalizerForPlanning(
+    targetURL: URL,
+    expectedPrefix: String = ".rmp-finalizer-"
+  ) throws -> AuthorizedTrashTarget {
     try context.revalidate()
     let target = targetURL.standardizedFileURL
     let name = target.lastPathComponent
-    let prefix = ".rmp-finalizer-"
-    let identifierText = String(name.dropFirst(prefix.count))
-    guard name.hasPrefix(prefix),
+    let identifierText = String(name.dropFirst(expectedPrefix.count))
+    guard name.hasPrefix(expectedPrefix),
       let identifier = UUID(uuidString: identifierText),
       identifierText == identifier.uuidString.lowercased()
     else {
       throw diagnostic(
         .trashFixtureName,
-        "A production finalizer basename must contain one canonical UUID."
+        "A production finalizer basename must use the expected prefix and one canonical UUID."
       )
     }
     let namePolicy = TrashTargetNamePolicy.productionFinalizer(name: name)

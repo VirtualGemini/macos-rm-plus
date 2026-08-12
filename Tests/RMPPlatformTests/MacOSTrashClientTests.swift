@@ -54,6 +54,32 @@ struct MacOSTrashClientTests {
     #expect(try fixture.trashEntryNames() == ["shortcut"])
   }
 
+  @Test("visible finalizer names preserve the production ordering and cleanup lifecycle")
+  func visibleFinalizerNamesPreserveProductionLifecycle() throws {
+    let fixture = try RecoverableTrashFixture()
+    defer { fixture.remove() }
+    let simulator = FoundationTrashSimulator(trashDirectoryURL: fixture.trashDirectoryURL)
+    let client = makeInjectedMacOSTrashClient(
+      finderTrash: { _ in
+        Issue.record("Finder must not receive a symbolic link")
+        throw InjectedTrashFailure()
+      },
+      foundationTrash: simulator.trash,
+      finalizerName: { "rmp-test-visible-finalizer-\(UUID().uuidString.lowercased())" }
+    )
+
+    let receipt = try client.trashItem(atPath: fixture.linkURL.path)
+
+    #expect(receipt.destinationPath == fixture.trashedLinkURL.path)
+    #expect(simulator.receivedNames.count == 3)
+    #expect(simulator.receivedNames[0].hasPrefix("rmp-test-visible-finalizer-"))
+    #expect(simulator.receivedNames[1] == fixture.linkURL.lastPathComponent)
+    #expect(simulator.receivedNames[2].hasPrefix("rmp-test-visible-finalizer-"))
+    #expect(simulator.receivedNames.allSatisfy { !$0.hasPrefix(".") })
+    #expect(try fixture.sourceEntryNames() == ["target.txt"])
+    #expect(try fixture.trashEntryNames() == ["shortcut"])
+  }
+
   @Test("a broken symbolic link uses the same recoverable finalizer protocol")
   func brokenSymbolicLinkRemainsRecoverable() throws {
     let fixture = try RecoverableTrashFixture(linkDestinationExists: false)

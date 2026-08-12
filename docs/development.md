@@ -365,8 +365,10 @@ production warning still fails acceptance.
 symbolic-link path. It creates one resolving or broken symbolic-link Test Fixture and invokes one
 whitelisted production `MacOSTrashClient` operation. It creates no control item, performs no Put
 Back, has no settle interval or cycle mode, and prints `control=none` plus the exact target to inspect
-immediately. This probe distinguishes production Finalizer behavior from state introduced by a
-preceding manual-control Trash sequence; it is diagnostic evidence, not a replacement acceptance.
+immediately. `FINALIZER_NAME=hidden` preserves the production basename; `FINALIZER_NAME=visible`
+uses a run-prefixed visible helper for the single-variable name experiment. This probe distinguishes
+production Finalizer behavior from state introduced by a preceding manual-control Trash sequence; it
+is diagnostic evidence, not a replacement acceptance.
 
 `FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
 (default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.
@@ -423,6 +425,7 @@ make test-put-back-symlink-finalizer-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLIN
 make test-put-back-symlink-production-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLINK_FIXTURE=]
                                                 [FINALIZER_FAULT=]
 make test-put-back-symlink-production-probe TEST_RUN_ID=<uuid> [SYMLINK_FIXTURE=]
+                                                [FINALIZER_NAME=hidden|visible]
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

@@ -110,9 +110,13 @@ enum PutBackRaceAcceptance {
 
   static func runProductionProbe(
     context: TestSafetyContext,
-    kind: PutBackRaceFixtureKind
+    kind: PutBackRaceFixtureKind,
+    finalizerName: ProductionFinalizerName = .hidden
   ) throws -> ProductionTrashProbeReport {
-    let client = WhitelistedMacOSTrashClient(context: context)
+    let client = WhitelistedMacOSTrashClient(
+      context: context,
+      finalizerName: finalizerName
+    )
     return try runProductionProbe(
       context: context,
       operations: ProductionTrashProbeOperations(

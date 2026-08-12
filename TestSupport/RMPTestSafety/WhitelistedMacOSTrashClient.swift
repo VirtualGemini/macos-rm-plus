@@ -18,7 +18,8 @@ final class WhitelistedMacOSTrashClient {
 
   convenience init(
     context: TestSafetyContext,
-    fault: ProductionFinalizerFault = .none
+    fault: ProductionFinalizerFault = .none,
+    finalizerName: ProductionFinalizerName = .hidden
   ) {
     self.init(
       context: context,
@@ -27,7 +28,8 @@ final class WhitelistedMacOSTrashClient {
         backend: .foundationSymlink
       ),
       resourceIdentifier: testSafetyResourceIdentifier,
-      fault: fault
+      fault: fault,
+      finalizerName: finalizerName
     )
   }
 
@@ -38,12 +40,18 @@ final class WhitelistedMacOSTrashClient {
     restoreItem: @escaping @Sendable (URL, URL) throws -> Void = { trashURL, sourceURL in
       try FileManager.default.moveItem(at: trashURL, to: sourceURL)
     },
-    fault: ProductionFinalizerFault = .none
+    fault: ProductionFinalizerFault = .none,
+    finalizerName: ProductionFinalizerName = .hidden
   ) {
     self.context = context
     self.foundationTrashClient = foundationTrashClient
     self.resourceIdentifier = resourceIdentifier
-    let faultInjector = ProductionFinalizerFaultInjector(fault: fault)
+    let runID = context.runID
+    let finalizerPrefix = finalizerName.prefix(runID: runID)
+    let faultInjector = ProductionFinalizerFaultInjector(
+      fault: fault,
+      finalizerPrefix: finalizerPrefix
+    )
     trashClient = makeInjectedMacOSTrashClient(
       finderTrash: { _ in
         throw TestSafetyDiagnostic(
@@ -52,17 +60,21 @@ final class WhitelistedMacOSTrashClient {
         )
       },
       foundationTrash: { sourceURL in
-        let authorizedTarget =
-          sourceURL.lastPathComponent.hasPrefix(".rmp-finalizer-")
-          ? try foundationTrashClient.authorizeProductionFinalizerForPlanning(
-            targetURL: sourceURL
+        let authorizedTarget: AuthorizedTrashTarget
+        if sourceURL.lastPathComponent.hasPrefix(finalizerPrefix) {
+          authorizedTarget = try foundationTrashClient.authorizeProductionFinalizerForPlanning(
+            targetURL: sourceURL,
+            expectedPrefix: finalizerPrefix
           )
-          : try foundationTrashClient.authorizeForPlanning(targetURL: sourceURL)
+        } else {
+          authorizedTarget = try foundationTrashClient.authorizeForPlanning(targetURL: sourceURL)
+        }
         return try faultInjector.trash(sourceURL) {
           try foundationTrashClient.trashItem(authorizedTarget).returnedURL
         }
       },
-      restoreItem: restoreItem
+      restoreItem: restoreItem,
+      finalizerName: { finalizerName.makeName(runID: runID) }
     )
   }
 
@@ -152,18 +164,20 @@ private struct VerifiedProductionTrashResult {
 
 private final class ProductionFinalizerFaultInjector: @unchecked Sendable {
   private let fault: ProductionFinalizerFault
+  private let finalizerPrefix: String
   private let lock = NSLock()
   private var targetMoved = false
   private var injected = false
 
-  init(fault: ProductionFinalizerFault) {
+  init(fault: ProductionFinalizerFault, finalizerPrefix: String) {
     self.fault = fault
+    self.finalizerPrefix = finalizerPrefix
   }
 
   func trash(_ sourceURL: URL, operation: () throws -> URL) throws -> URL {
     lock.lock()
     defer { lock.unlock() }
-    let isFinalizer = sourceURL.lastPathComponent.hasPrefix(".rmp-finalizer-")
+    let isFinalizer = sourceURL.lastPathComponent.hasPrefix(finalizerPrefix)
     if isFinalizer, targetMoved, !injected, fault == .firstActivationNotMoved {
       injected = true
       throw InjectedProductionFinalizerFailure()

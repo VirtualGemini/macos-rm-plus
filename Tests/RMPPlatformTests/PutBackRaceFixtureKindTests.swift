@@ -158,10 +158,12 @@ struct PutBackRaceFixtureKindTests {
   @Test("the standalone production probe accepts only its symbolic-link fixture option")
   func extractsStandaloneProductionProbeOptions() throws {
     let options = try extractProductionProbeOptions([
-      "--fixture", "broken-symbolic-link", "--test-run-id", "run-id",
+      "--fixture", "broken-symbolic-link", "--finalizer-name", "visible",
+      "--test-run-id", "run-id",
     ])
 
     #expect(options.kind == .brokenSymbolicLink)
+    #expect(options.finalizerName == .visible)
     #expect(options.driverArguments == ["--test-run-id", "run-id"])
     for unsupported in ["--cycles", "--settle-seconds", "--finalizer-fault"] {
       #expect(

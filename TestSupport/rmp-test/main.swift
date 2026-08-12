@@ -40,6 +40,7 @@ private let helpText = """
   put-back-symlink-production-probe options:
     --fixture <kind>      symbolic-link | broken-symbolic-link
     --finalizer-name <n>  hidden | visible, default hidden
+    --preflight <mode>    enabled | disabled, default enabled
 
   """
 
@@ -369,12 +370,14 @@ private func executeProductionProbe(
     let report = try PutBackRaceAcceptance.runProductionProbe(
       context: context,
       kind: options.kind,
-      finalizerName: options.finalizerName
+      finalizerName: options.finalizerName,
+      preflight: options.preflight
     )
     writeProductionProbeSummary(
       report,
       kind: options.kind,
       finalizerName: options.finalizerName,
+      preflight: options.preflight,
       context: context
     )
     return 0

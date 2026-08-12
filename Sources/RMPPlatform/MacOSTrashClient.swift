@@ -13,6 +13,7 @@ public struct MacOSTrashClient: TrashClient {
   private var foundationTrash: SystemTrash
   private var restoreItem: RestoreItem
   private var finalizerName: FinalizerName
+  private var performsFinalizerPreflight: Bool
 
   public init() {
     let finderClient = FinderTrashClient()
@@ -23,19 +24,22 @@ public struct MacOSTrashClient: TrashClient {
     foundationTrash = liveFoundationTrash
     restoreItem = liveRestoreItem
     finalizerName = liveFinalizerName
+    performsFinalizerPreflight = true
   }
 
   fileprivate init(
     finderTrash: @escaping SystemTrash,
     foundationTrash: @escaping SystemTrash,
     restoreItem: @escaping RestoreItem,
-    finalizerName: @escaping FinalizerName
+    finalizerName: @escaping FinalizerName,
+    performsFinalizerPreflight: Bool
   ) {
     self.init()
     self.finderTrash = finderTrash
     self.foundationTrash = foundationTrash
     self.restoreItem = restoreItem
     self.finalizerName = finalizerName
+    self.performsFinalizerPreflight = performsFinalizerPreflight
   }
 
   public func trashItem(atPath path: String) throws -> TrashMoveReceipt {
@@ -57,7 +61,9 @@ public struct MacOSTrashClient: TrashClient {
     _ sourceURL: URL,
     identity: PlatformFileIdentity
   ) throws -> TrashMoveReceipt {
-    try runFinalizerPreflight(beside: sourceURL)
+    if performsFinalizerPreflight {
+      try runFinalizerPreflight(beside: sourceURL)
+    }
     let finalizers = try prepareFinalizers(beside: sourceURL, count: 2)
     let targetTrashURL: URL
     do {
@@ -223,13 +229,15 @@ package func makeInjectedMacOSTrashClient(
   finderTrash: @escaping @Sendable (URL) throws -> URL,
   foundationTrash: @escaping @Sendable (URL) throws -> URL,
   restoreItem: @escaping @Sendable (URL, URL) throws -> Void = liveRestoreItem,
-  finalizerName: @escaping @Sendable () -> String = liveFinalizerName
+  finalizerName: @escaping @Sendable () -> String = liveFinalizerName,
+  performsFinalizerPreflight: Bool = true
 ) -> any TrashClient {
   MacOSTrashClient(
     finderTrash: finderTrash,
     foundationTrash: foundationTrash,
     restoreItem: restoreItem,
-    finalizerName: finalizerName
+    finalizerName: finalizerName,
+    performsFinalizerPreflight: performsFinalizerPreflight
   )
 }
 

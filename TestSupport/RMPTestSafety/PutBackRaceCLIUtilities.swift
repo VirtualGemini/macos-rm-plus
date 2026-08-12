@@ -65,6 +65,7 @@ func writeProductionProbeSummary(
   _ report: ProductionTrashProbeReport,
   kind: PutBackRaceFixtureKind,
   finalizerName: ProductionFinalizerName,
+  preflight: ProductionFinalizerPreflight,
   context: TestSafetyContext
 ) {
   let output = """
@@ -73,6 +74,7 @@ func writeProductionProbeSummary(
     scenario=put-back-symlink-production-probe
     fixture=\(kind.rawValue)
     finalizer-name=\(finalizerName.rawValue)
+    preflight=\(preflight.rawValue)
     control=none
     status=complete
     source=\(report.sourceURL.path)

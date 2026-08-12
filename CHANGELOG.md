@@ -66,7 +66,7 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   first Finalizer moved before the injected error.
 - Add a maintainer-only standalone production probe that trashes one symbolic-link target without a
   control item or manual Put Back, isolating production Finalizer behavior from prior Trash state;
-  its explicit visible-name mode tests whether hidden helper basenames are causal.
+  its explicit visible-name and preflight modes test those production sequence variables separately.
 
 - Add deterministic `smart`, `never`, `once`, and `each` confirmation with top-level-only summaries,
   `-f`/`-i`/`-I` precedence, non-interactive and non-TTY fail-closed behavior, stable declined,

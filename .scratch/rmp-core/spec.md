@@ -734,7 +734,8 @@ Finalizer 已授权但尚未调用 Foundation 时抛错，验证备用 Finalizer
 项、不得等待或执行 Put Back、不得提供 cycle、settle 或故障注入。输出必须包含 `control=none` 和精确目标名，
 由维护者在命令完成后立即判定菜单。`FINALIZER_NAME=hidden` 使用生产隐藏名称；显式
 `FINALIZER_NAME=visible` 只把 helper basename 改为当前 run UUID 前缀的可见名称，其他白名单、身份、恢复和
-清理步骤不变。它只用于区分前置控制序列与生产算法自身，不替代正式验收。
+清理步骤不变。`PREFLIGHT=enabled` 保持生产预检，`PREFLIGHT=disabled` 只跳过目标前的预检调用，目标、激活
+helper、精确恢复、清理和白名单不变。它只用于区分前置控制序列与生产算法自身，不替代正式验收。
 
 #### 17.1.3 断言与不可省略的安全检查
 

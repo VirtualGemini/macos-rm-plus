@@ -40,6 +40,13 @@ enum ProductionFinalizerName: String, CaseIterable, Sendable {
   }
 }
 
+enum ProductionFinalizerPreflight: String, CaseIterable, Sendable {
+  case enabled
+  case disabled
+
+  var isEnabled: Bool { self == .enabled }
+}
+
 enum PutBackRaceRestore {
   case finderScript
   case manualFinderMenu
@@ -123,6 +130,7 @@ struct RaceOptions {
 struct ProductionProbeOptions {
   let kind: PutBackRaceFixtureKind
   let finalizerName: ProductionFinalizerName
+  let preflight: ProductionFinalizerPreflight
   let driverArguments: [String]
 }
 
@@ -135,12 +143,41 @@ func extractProductionProbeOptions(_ arguments: [String]) throws -> ProductionPr
     )
   }
   let (finalizerName, afterName) = try extractProductionFinalizerName(arguments)
-  let (kind, driverArguments) = try extractFixtureKind(afterName, defaultKind: .symbolicLink)
+  let (preflight, afterPreflight) = try extractProductionFinalizerPreflight(afterName)
+  let (kind, driverArguments) = try extractFixtureKind(afterPreflight, defaultKind: .symbolicLink)
   return ProductionProbeOptions(
     kind: kind,
     finalizerName: finalizerName,
+    preflight: preflight,
     driverArguments: driverArguments
   )
+}
+
+func extractProductionFinalizerPreflight(
+  _ arguments: [String]
+) throws -> (ProductionFinalizerPreflight, [String]) {
+  var preflight = ProductionFinalizerPreflight.enabled
+  var remaining: [String] = []
+  var index = arguments.startIndex
+  while index < arguments.endIndex {
+    guard arguments[index] == "--preflight" else {
+      remaining.append(arguments[index])
+      index = arguments.index(after: index)
+      continue
+    }
+    let valueIndex = arguments.index(after: index)
+    guard valueIndex < arguments.endIndex,
+      let parsed = ProductionFinalizerPreflight(rawValue: arguments[valueIndex])
+    else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "--preflight requires one of: enabled, disabled."
+      )
+    }
+    preflight = parsed
+    index = arguments.index(after: valueIndex)
+  }
+  return (preflight, remaining)
 }
 
 func extractProductionFinalizerName(

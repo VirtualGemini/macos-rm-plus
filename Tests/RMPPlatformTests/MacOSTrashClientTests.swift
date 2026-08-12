@@ -80,6 +80,31 @@ struct MacOSTrashClientTests {
     #expect(try fixture.trashEntryNames() == ["shortcut"])
   }
 
+  @Test("disabling preflight keeps target activation restore and cleanup unchanged")
+  func disabledPreflightKeepsActivationLifecycle() throws {
+    let fixture = try RecoverableTrashFixture()
+    defer { fixture.remove() }
+    let simulator = FoundationTrashSimulator(trashDirectoryURL: fixture.trashDirectoryURL)
+    let client = makeInjectedMacOSTrashClient(
+      finderTrash: { _ in
+        Issue.record("Finder must not receive a symbolic link")
+        throw InjectedTrashFailure()
+      },
+      foundationTrash: simulator.trash,
+      performsFinalizerPreflight: false
+    )
+
+    let receipt = try client.trashItem(atPath: fixture.linkURL.path)
+
+    #expect(receipt.destinationPath == fixture.trashedLinkURL.path)
+    #expect(simulator.receivedNames.count == 2)
+    #expect(simulator.receivedNames[0] == fixture.linkURL.lastPathComponent)
+    #expect(simulator.receivedNames[1].hasPrefix(".rmp-finalizer-"))
+    #expect(simulator.recoverablePaths.contains(receipt.destinationPath))
+    #expect(try fixture.sourceEntryNames() == ["target.txt"])
+    #expect(try fixture.trashEntryNames() == ["shortcut"])
+  }
+
   @Test("a broken symbolic link uses the same recoverable finalizer protocol")
   func brokenSymbolicLinkRemainsRecoverable() throws {
     let fixture = try RecoverableTrashFixture(linkDestinationExists: false)

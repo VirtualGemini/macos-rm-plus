@@ -159,11 +159,12 @@ struct PutBackRaceFixtureKindTests {
   func extractsStandaloneProductionProbeOptions() throws {
     let options = try extractProductionProbeOptions([
       "--fixture", "broken-symbolic-link", "--finalizer-name", "visible",
-      "--test-run-id", "run-id",
+      "--preflight", "disabled", "--test-run-id", "run-id",
     ])
 
     #expect(options.kind == .brokenSymbolicLink)
     #expect(options.finalizerName == .visible)
+    #expect(options.preflight == .disabled)
     #expect(options.driverArguments == ["--test-run-id", "run-id"])
     for unsupported in ["--cycles", "--settle-seconds", "--finalizer-fault"] {
       #expect(

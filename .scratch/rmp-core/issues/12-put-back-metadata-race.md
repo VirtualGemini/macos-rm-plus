@@ -1096,3 +1096,17 @@ The visible-name experiment is implemented as `--finalizer-name visible` on the 
 It remains test-target-only, keeps the production default hidden basename unchanged, and preserves
 the same run-prefix, UUID, identity, restore, and cleanup checks. Its result will decide whether the
 hidden helper basename is causal before any production-default change is considered.
+
+2026-08-13 — The visible-name standalone probe completed with run
+`bf677d28-c80b-4795-b414-fafd89c8f26a`, fixture `symbolic-link`, `control=none`, and
+`finalizer-name=visible`. It retained the production preflight, target, activation, exact restore,
+and cleanup sequence and reported `foundation-finalizer=production-cleaned` with
+`trash-warning=none`. The maintainer inspected the exact target immediately and found no Put Back.
+This falsifies hidden helper naming as the cause; changing `.rmp-finalizer-<uuid>` to a visible
+run-prefixed name is not a fix.
+
+The next single-variable probe returns to the production hidden helper name and disables only the
+target-before-move Finalizer preflight. Target Trash, prepared activation helpers, successful
+activation, exact restore, cleanup, and every whitelist/identity check remain unchanged. If this
+probe succeeds, the preflight's successful Foundation Trash plus restore is causal; if it fails,
+the next variable is retaining the activation helper in Trash instead of immediately restoring it.

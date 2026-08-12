@@ -89,6 +89,7 @@ FIXTURE ?= file
 SYMLINK_FIXTURE ?= symbolic-link
 FINALIZER_FAULT ?= none
 FINALIZER_NAME ?= hidden
+PREFLIGHT ?= enabled
 
 test-put-back-race-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
@@ -114,6 +115,7 @@ test-put-back-symlink-production-manual:
 test-put-back-symlink-production-probe:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-production-probe \
 		--fixture "$(SYMLINK_FIXTURE)" --finalizer-name "$(FINALIZER_NAME)" \
+		--preflight "$(PREFLIGHT)" \
 		--test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:

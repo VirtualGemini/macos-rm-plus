@@ -19,7 +19,8 @@ final class WhitelistedMacOSTrashClient {
   convenience init(
     context: TestSafetyContext,
     fault: ProductionFinalizerFault = .none,
-    finalizerName: ProductionFinalizerName = .hidden
+    finalizerName: ProductionFinalizerName = .hidden,
+    preflight: ProductionFinalizerPreflight = .enabled
   ) {
     self.init(
       context: context,
@@ -29,7 +30,8 @@ final class WhitelistedMacOSTrashClient {
       ),
       resourceIdentifier: testSafetyResourceIdentifier,
       fault: fault,
-      finalizerName: finalizerName
+      finalizerName: finalizerName,
+      preflight: preflight
     )
   }
 
@@ -41,7 +43,8 @@ final class WhitelistedMacOSTrashClient {
       try FileManager.default.moveItem(at: trashURL, to: sourceURL)
     },
     fault: ProductionFinalizerFault = .none,
-    finalizerName: ProductionFinalizerName = .hidden
+    finalizerName: ProductionFinalizerName = .hidden,
+    preflight: ProductionFinalizerPreflight = .enabled
   ) {
     self.context = context
     self.foundationTrashClient = foundationTrashClient
@@ -74,7 +77,8 @@ final class WhitelistedMacOSTrashClient {
         }
       },
       restoreItem: restoreItem,
-      finalizerName: { finalizerName.makeName(runID: runID) }
+      finalizerName: { finalizerName.makeName(runID: runID) },
+      performsFinalizerPreflight: preflight.isEnabled
     )
   }
 

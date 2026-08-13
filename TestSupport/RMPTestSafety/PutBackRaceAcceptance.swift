@@ -65,6 +65,17 @@ struct ProductionTrashProbeReport: Equatable, Sendable {
   let trashURL: URL
 }
 
+struct DuplicateTrashNameOperations {
+  let create: (TestSafetyContext) throws -> URL
+  let trash: (URL) throws -> TrashVerificationEvidence
+}
+
+struct DuplicateTrashNameReport: Equatable, Sendable {
+  let sourceURL: URL
+  let firstTrashURL: URL
+  let secondTrashURL: URL
+}
+
 /// Issue 12's platform acceptance set. The metadata race is a property of the Trash entry, so the
 /// shape of the deleted item is an independent dimension that the file-only differential leaves
 /// untested.
@@ -137,6 +148,63 @@ enum PutBackRaceAcceptance {
         },
         trash: client.trashItem
       )
+    )
+  }
+
+  static func runDuplicateTrashName(
+    context: TestSafetyContext
+  ) throws -> DuplicateTrashNameReport {
+    let trashClient = WhitelistedTrashClient(context: context, backend: .finder)
+    let suffix = "duplicate-trash-name"
+    var generation = 0
+    return try runDuplicateTrashName(
+      context: context,
+      operations: DuplicateTrashNameOperations(
+        create: { receivedContext in
+          guard receivedContext === context else {
+            throw TestSafetyDiagnostic(
+              code: .unexpectedError,
+              message: "The duplicate-name acceptance context changed unexpectedly."
+            )
+          }
+          generation += 1
+          return try receivedContext.createFixtureFile(
+            suffix: suffix,
+            contents: Data("duplicate Trash name generation \(generation)\n".utf8)
+          )
+        },
+        trash: { sourceURL in
+          let authorizedTarget = try trashClient.authorizeForPlanning(targetURL: sourceURL)
+          return try trashClient.trashItem(authorizedTarget)
+        }
+      )
+    )
+  }
+
+  static func runDuplicateTrashName(
+    context: TestSafetyContext,
+    operations: DuplicateTrashNameOperations
+  ) throws -> DuplicateTrashNameReport {
+    let firstSourceURL = try operations.create(context)
+    let firstTrash = try operations.trash(firstSourceURL)
+    let secondSourceURL = try operations.create(context)
+    guard secondSourceURL == firstSourceURL else {
+      throw TestSafetyDiagnostic(
+        code: .unexpectedError,
+        message: "The duplicate-name Test Fixture did not reuse the same source path."
+      )
+    }
+    let secondTrash = try operations.trash(secondSourceURL)
+    guard secondTrash.returnedURL != firstTrash.returnedURL else {
+      throw TestSafetyDiagnostic(
+        code: .trashEvidenceMismatch,
+        message: "The duplicate Trash names did not produce distinct system-returned URLs."
+      )
+    }
+    return DuplicateTrashNameReport(
+      sourceURL: firstSourceURL,
+      firstTrashURL: firstTrash.returnedURL,
+      secondTrashURL: secondTrash.returnedURL
     )
   }
 

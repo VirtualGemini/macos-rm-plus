@@ -447,6 +447,7 @@ struct PutBackRaceAcceptanceSequenceTests {
     #expect(events == ["prepare-target", "production-trash"])
     #expect(report == ProductionTrashProbeReport(sourceURL: sourceURL, trashURL: trashURL))
   }
+
 }
 
 private func makeTrashEvidence(

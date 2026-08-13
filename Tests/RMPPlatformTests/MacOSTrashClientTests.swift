@@ -107,6 +107,31 @@ struct MacOSTrashClientTests {
     #expect(try fixture.trashEntryNames() == ["shortcut"])
   }
 
+  @Test("the diagnostic preflight completes before the target and activation lifecycle")
+  func enabledPreflightCompletesBeforeTargetLifecycle() throws {
+    let fixture = try RecoverableTrashFixture()
+    defer { fixture.remove() }
+    let simulator = FoundationTrashSimulator(trashDirectoryURL: fixture.trashDirectoryURL)
+    let client = makeInjectedMacOSTrashClient(
+      finderTrash: { _ in
+        Issue.record("Finder must not receive a symbolic link")
+        throw InjectedTrashFailure()
+      },
+      foundationTrash: simulator.trash,
+      performsFinalizerPreflight: true
+    )
+
+    let receipt = try client.trashItem(atPath: fixture.linkURL.path)
+
+    #expect(receipt.destinationPath == fixture.trashedLinkURL.path)
+    #expect(simulator.receivedNames.count == 3)
+    #expect(simulator.receivedNames[0].hasPrefix(".rmp-finalizer-"))
+    #expect(simulator.receivedNames[1] == fixture.linkURL.lastPathComponent)
+    #expect(simulator.receivedNames[2].hasPrefix(".rmp-finalizer-"))
+    #expect(try fixture.sourceEntryNames() == ["target.txt"])
+    #expect(try fixture.trashEntryNames() == ["shortcut"])
+  }
+
   @Test("a broken symbolic link uses the same recoverable finalizer protocol")
   func brokenSymbolicLinkRemainsRecoverable() throws {
     let fixture = try RecoverableTrashFixture(linkDestinationExists: false)
@@ -178,6 +203,34 @@ struct MacOSTrashClientTests {
     #expect(macOSEntryExists(at: fixture.linkURL))
     #expect(macOSEntryExists(at: fixture.targetURL))
     #expect(try fixture.sourceEntryNames() == ["shortcut", "target.txt"])
+    #expect(try fixture.trashEntryNames().isEmpty)
+  }
+
+  @Test("a target failure reports a prepared Finalizer that could not be cleaned up")
+  func targetFailureReportsFinalizerCleanupFailure() throws {
+    let fixture = try RecoverableTrashFixture()
+    defer { fixture.remove() }
+    let simulator = ReplacedFinalizerFailureSimulator()
+    let client = makeInjectedMacOSTrashClient(
+      finderTrash: { _ in throw InjectedTrashFailure() },
+      foundationTrash: simulator.trash
+    )
+
+    do {
+      _ = try client.trashItem(atPath: fixture.linkURL.path)
+      Issue.record("Expected the target Trash call to fail")
+    } catch let error as TrashCapabilityError {
+      #expect(error.code == .finalizerCleanupFailed)
+    } catch {
+      Issue.record("Expected a stable TrashCapabilityError")
+    }
+
+    #expect(macOSEntryExists(at: fixture.linkURL))
+    #expect(macOSEntryExists(at: fixture.targetURL))
+    #expect(
+      try fixture.sourceEntryNames()
+        == [simulator.replacedFinalizerName, "shortcut", "target.txt"].compactMap { $0 }.sorted()
+    )
     #expect(try fixture.trashEntryNames().isEmpty)
   }
 }
@@ -284,7 +337,7 @@ extension MacOSTrashClientTests {
       _ = try client.trashItem(atPath: fixture.linkURL.path)
       Issue.record("Expected the preflight restore to fail")
     } catch let error as TrashCapabilityError {
-      #expect(error.code == .systemTrashFailed)
+      #expect(error.code == .finalizerCleanupFailed)
     } catch {
       Issue.record("Expected a stable TrashCapabilityError")
     }
@@ -316,7 +369,7 @@ extension MacOSTrashClientTests {
       _ = try client.trashItem(atPath: fixture.linkURL.path)
       Issue.record("Expected the preflight Trash identity check to fail")
     } catch let error as TrashCapabilityError {
-      #expect(error.code == .systemTrashFailed)
+      #expect(error.code == .finalizerCleanupFailed)
     } catch {
       Issue.record("Expected a stable TrashCapabilityError")
     }

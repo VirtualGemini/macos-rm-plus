@@ -89,6 +89,25 @@ func writeProductionProbeSummary(
   FileHandle.standardOutput.write(Data(output.utf8))
 }
 
+func writeDuplicateTrashNameSummary(
+  _ report: DuplicateTrashNameReport,
+  context: TestSafetyContext
+) {
+  let output = """
+    rmp-test build=RMP_TESTING
+    run=\(context.runID.uuidString.lowercased())
+    scenario=duplicate-trash-name
+    status=complete
+    source=\(report.sourceURL.path)
+    first-trash=\(report.firstTrashURL.path)
+    second-trash=\(report.secondTrashURL.path)
+    renamed=\(report.firstTrashURL != report.secondTrashURL)
+    run-directory=\(context.runDirectoryURL.path)
+
+    """
+  FileHandle.standardOutput.write(Data(output.utf8))
+}
+
 func validateFixtureKind(
   _ kind: PutBackRaceFixtureKind,
   backend: TestSystemTrashBackend,

@@ -55,8 +55,10 @@ checks showed that it consumes the metadata transition needed by the following u
 prepared activation fails, or an activated finalizer cannot be cleaned up, rmp preserves the target
 destination and emits a stable warning with exit code 1. A failed finalizer call is retried only when
 the exact helper is still verified at its source; if it moved before throwing, rmp stops with
-`finalizer_state_uncertain` instead of shifting the metadata again. The evidence and release
-acceptance remain tracked in
+`finalizer_state_uncertain` instead of shifting the metadata again. If the target has not moved but
+a prepared helper can no longer be safely cleaned up, rmp reports `finalizer_cleanup_failed` as a
+failed Trash Result and classifies the source from its verified post-call identity. The evidence and
+release acceptance remain tracked in
 [issue 12](.scratch/rmp-core/issues/12-put-back-metadata-race.md).
 
 ## Project status

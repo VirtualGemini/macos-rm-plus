@@ -7,34 +7,30 @@ integration boundary. Recoverability of `rmp` deletions is degraded relative
 to Finder-native deletion; reclassified from environment noise by the
 maintainer on 2026-07-18.
 
-## Current state (2026-08-11)
+## Current state (2026-08-13)
 
-The defect is reproduced, diagnosed, and fixed on
-`fix/12-put-back-metadata-race`. `FinderTrashClient` delegates the delete to
-Finder over a fixed Apple Event handler, making Finder the single `.DS_Store`
-writer. The ticket's 30-cycle actual-menu differential passed **30/30** against
-roughly 10% retention for the previous Foundation client in the same flow.
+The defect is reproduced, diagnosed, and fixed on the issue 12 branch. `FinderTrashClient`
+delegates ordinary files and directories to Finder over a fixed Apple Event handler, making Finder
+the single `.DS_Store` writer. The ticket's 30-cycle actual-menu differential passed **30/30**
+against roughly 10% retention for the previous Foundation client in the same flow.
 
-Confirmed working: ordinary files (30 cycles across all three delay buckets),
-directories, and names containing quotes or newlines. Finder will not delete
-symbolic links over Apple Events. The production candidate now routes final symbolic
-links through Foundation and an owned Finalizer protocol: one complete preflight,
-two prepared activation helpers, identity verification before and after every restore,
-and no permanent deletion inside Trash. Pure failure tests cover preflight, target,
-activation, cleanup, wrong-returned-identity, broken-link, and moved-before-throw cases.
+Finder refuses symbolic links over Apple Events, so production routes resolving and broken symbolic
+links through Foundation with two pre-created, identity-verified Finalizers. The target is the first
+Foundation Trash call; the former target-before-move preflight is disabled by default because an
+otherwise equivalent preflight-enabled probe failed while two resolving-link probes and one
+broken-link probe without it offered Put Back. Production-default resolving-link run
+`a23a6d5a-21e2-415b-b512-681630c573b9` confirmed that result without a diagnostic override.
 
-The first integrated real-menu smoke passed for both a resolving symbolic link and a broken
-symbolic link. Both injected Finalizer failure modes also passed real-menu acceptance: backup
-takeover after a definitely-not-moved failure, and target Put Back retention after a Finalizer moved
-before throwing. The pure suite has 209 tests, including deterministic cleanup-failure coverage and
-proof that both acceptance Trash calls use independent production lifecycles.
+The pure suite has 219 tests in 20 suites. Review remediation adds explicit
+`finalizer_cleanup_failed` reporting when a target has not moved but a prepared helper cannot be
+safely cleaned up, and adds a whitelisted `duplicate-trash-name` acceptance that records two exact
+system receipts without searching Trash. Real run `0be21573-4de3-4465-9c86-74717a1255ca`
+confirmed Finder renamed the second same-source item and returned distinct URLs. Production line
+coverage is 96.77%.
 
 Outstanding before release:
 
-- **Maintainer + agent.** Run repeated normal production-Finalizer reliability rounds for resolving
-  and broken symbolic links.
-- **Agent-runnable.** Complete the duplicate-Trash-name fixture and remaining release
-  gates.
+- **Agent-runnable.** Complete the remaining release gates.
 - **Maintainer only.** The Feedback Assistant report to Apple about the
   `.DS_Store` coherence race, and the release decision itself.
 
@@ -611,8 +607,8 @@ protocol in ADR-0002.
   script currently forbids it everywhere and must be narrowed rather than
   relaxed, and the new client must itself refuse any target that is not a
   symbolic link.
-- Run a complete same-volume Finalizer preflight before moving the user target, and
-  prepare two UUID helpers before the irreversible point.
+- Prepare two UUID helpers before the irreversible point and make the user target the first
+  Foundation Trash call. Do not run the rejected target-before-move preflight in production.
 - Retry a failed activation only when the exact helper remains at its source and can
   be verified and removed. If it moved before throwing, stop rather than shifting
   metadata again and report `finalizer_state_uncertain`.
@@ -660,9 +656,10 @@ protocol in ADR-0002.
 - [x] Implement dispatch-by-type and the production Foundation Finalizer protocol,
       including static capability boundaries, ADR-0002, honest moved warnings, pure
       failure-state tests, and a whitelisted production acceptance entry.
-- [ ] Test duplicate Trash names, the one shape in acceptance criterion 5 with
-      no fixture kind yet. It needs a same-basename decoy already in the Trash,
-      which the current single-Run-Directory scenario cannot produce.
+- [x] Test duplicate Trash names. Recorded 2026-08-13: run
+      `0be21573-4de3-4465-9c86-74717a1255ca` exclusively created and trashed two generations at the
+      exact same source path. Finder returned distinct original-name and time-suffixed URLs without
+      any Trash enumeration or cleanup.
 - [ ] Decide whether the quoted-name and newline-name rows need the same
       10-cycle depth as ordinary files, or whether one cycle each is enough
       given that they probe argument passing rather than the metadata race.
@@ -1147,3 +1144,24 @@ reported the production defaults `finalizer-name=hidden`, `preflight=disabled`,
 confirmed Put Back was offered for the exact target. Together with the two resolving-link diagnosis
 runs, the broken-link run, 213 passing tests in 19 suites, and all repository gates, this accepts the
 no-preflight Finalizer sequence for production on the reporting host.
+
+2026-08-13 — Review remediation added the missing duplicate-Trash-name platform acceptance. Real
+run `0be21573-4de3-4465-9c86-74717a1255ca` used the same exact source path for two exclusively
+created ordinary-file generations and sent both through the whitelisted Finder backend. Finder
+returned
+`rmp-test-0be21573-4de3-4465-9c86-74717a1255ca-duplicate-trash-name` for the first item and
+`rmp-test-0be21573-4de3-4465-9c86-74717a1255ca-duplicate-trash-name 15.21.04` for the second.
+The command reported `renamed=true` and did not restore, enumerate, search, or automatically clean
+Trash. The same remediation replaces silently discarded pre-target Finalizer cleanup errors with
+stable `finalizer_cleanup_failed` reporting. The complete pure suite passes 219 tests in 20 suites
+with 96.77% production line coverage.
+
+2026-08-13 — A second independent broken-symbolic-link production run completed with
+`aac33a66-1491-4bef-a890-00df89fa1946`, `finalizer-name=hidden`, `preflight=disabled`, and
+`control=none`. The production lifecycle reported `foundation-finalizer=production-cleaned` and
+`trash-warning=none`; the maintainer inspected the exact target immediately after command completion
+and confirmed Finder offered Put Back. Together with broken-link run
+`a6a43b18-bba2-4d8b-b681-0c12d83569ca`, this supplies two independently named broken-link successes.
+Resolving links have two independently named no-preflight diagnosis successes plus production-default
+acceptance `a23a6d5a-21e2-415b-b512-681630c573b9`, so the requested repeated normal reliability rounds
+are complete on the reporting host.

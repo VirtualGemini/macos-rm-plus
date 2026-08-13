@@ -12,6 +12,7 @@ struct TestExecutableIdentityTests {
         argument: "--help",
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
+                 rmp-test duplicate-trash-name --test-run-id <uuid>
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
@@ -55,6 +56,7 @@ struct TestExecutableIdentityTests {
         argument: "--help -a",
         standardOutput: """
           Usage: rmp-test put-back-race --test-run-id <uuid>
+                 rmp-test duplicate-trash-name --test-run-id <uuid>
                  rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
                  rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>

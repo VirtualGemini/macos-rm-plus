@@ -355,7 +355,10 @@ FR-SAFE-015：必须正确处理空格、Unicode、换行、前导连字符和�
 FR-SAFE-016：移动用户符号链接之前，必须在同一父目录和同一卷预创建至少两个 exclusive UUID
 Finalizer，并验证其符号链接类型及 device/inode。生产路径不得在用户目标之前执行 Foundation Trash
 预检；真实 Finder 证据已证明该预检会占用后续目标所需的元数据转换。Finalizer 创建或身份验证失败必须
-发生在用户目标移动之前并阻止该移动。
+发生在用户目标移动之前并阻止该移动。用户目标尚无移动回执时，任何已经创建的 Finalizer 都必须逐一
+执行身份验证清理；只要一项不能安全移除，就必须用稳定错误码 `finalizer_cleanup_failed` 报告，不得吞掉
+清理错误或只返回最初的系统错误。用户目标的 `not_moved` 或 `state_uncertain` 状态仍由调用后的源身份检查
+决定。
 
 FR-SAFE-017：用户符号链接进入废纸篓后，必须串行尝试已经预创建的 Finalizer，直到一次 Foundation
 Trash 成功。成功返回的 Finalizer URL 必须在恢复前验证符号链接类型和原 device/inode，恢复后再次
@@ -367,7 +370,8 @@ FR-SAFE-018：所有 Finalizer 激活尝试失败时，结果仍必须保留用�
 `moved`，并附加 `symlink_put_back_not_guaranteed`。激活已经成功但恢复或清理失败时必须附加
 `finalizer_cleanup_failed`，不得误报 Put Back 未激活。调用抛错且 Finalizer 源已消失或改变时必须附加
 `finalizer_state_uncertain`，说明 Put Back 与内部残留状态均无法确认。三种警告均写入 stderr 并使操作
-退出码为 1，同时保留已知的精确用户目标 URL。
+退出码为 1，同时保留已知的精确用户目标 URL。该处的 `finalizer_cleanup_failed` 是带目标移动回执的
+Trash Warning；FR-SAFE-016 所述目标移动前清理失败则是没有移动回执的 Trash failure，两者不得混淆。
 
 ## 11. 执行模型
 
@@ -739,6 +743,13 @@ Finalizer 已授权但尚未调用 Foundation 时抛错，验证备用 Finalizer
 `PREFLIGHT=enabled` 只用于插入已证伪的目标前预检作诊断对照，目标、激活 helper、精确恢复、清理和白名单
 保持不变。它只用于区分前置调用与生产算法自身，不替代正式验收。
 
+FR-TEST-033：平台验收必须提供 `duplicate-trash-name` 场景，覆盖废纸篓已经存在同名条目时 Finder 对
+第二个条目的系统重命名。该场景必须在同一 Run Directory 中对同一个精确源路径执行以下顺序：exclusive
+create 第一代普通文件、通过 `WhitelistedTrashClient` 的 Finder backend 获取第一份精确回执、在原路径
+exclusive create 第二代普通文件、再次通过同一安全边界获取第二份精确回执。两个回执 URL 必须不同，
+且输出必须同时记录 `source`、`first-trash` 与 `second-trash`。该场景不得恢复、按名称枚举或自动清理
+废纸篓项目；普通 `make test`、`make check` 和 CI 只能测试注入序列，不得执行真实 Finder Trash。
+
 #### 17.1.3 断言与不可省略的安全检查
 
 测试代码应尽量使用断言尽早暴露违反安全边界的状态，包括：
@@ -822,6 +833,7 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 使用 `rmp-test put-back-race` 的单进程 Swift 场景验证“第一次 Trash → 精确恢复 → 立即第二次 Trash”，并只对输出的第二次精确 URL进行最终 Finder 菜单检查。
 - 使用 `rmp-test put-back-race-manual` 以维护者真实的“放回原处”命令完成同一条顺序契约；该变体无需完全磁盘访问权限，是菜单级差分的权威入口。
 - 使用 `rmp-test put-back-symlink-production-manual` 验证第二次符号链接 Trash 的生产 Finalizer 全流程；每个 Foundation 调用都必须重新通过白名单，任何生产警告都使验收失败并保留证据。
+- 使用 `rmp-test duplicate-trash-name` 验证同一个精确源路径的两代普通文件获得不同的系统返回废纸篓 URL；不得通过枚举废纸篓推断 Finder 的重命名结果。
 - 外接卷、iCloud/File Provider 和网络卷作为兼容性矩阵记录结果，不将所有场景设为发布阻塞项。
 
 ## 18. 可观测性与隐私

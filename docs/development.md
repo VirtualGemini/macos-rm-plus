@@ -181,9 +181,9 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `96.28%`, ratcheted upward with platform Trash adapter
-  coverage while retaining deterministic confirmation
-  policy and review remediation without changing the coverage metric definition.
+- The v1 production coverage baseline is `96.77%`, ratcheted upward with platform Trash adapter,
+  deterministic confirmation, Finalizer failure classification, and review-remediation coverage
+  without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.
@@ -310,6 +310,13 @@ full declared timeout: the remaining window is rounded up, because the clock has
 fraction by the time it is measured and rounding down would skip straight to the next multiple of
 five.
 
+`duplicate-trash-name` covers the separate case where Finder must rename the second Trash item
+because an entry with the same basename already exists. It exclusively creates and trashes one
+ordinary file, exclusively creates a second generation at the exact same source path, and trashes
+that generation through the same whitelisted Finder boundary. The acceptance succeeds only when
+the two system-returned URLs are distinct and prints both exact receipts. It never restores,
+enumerates, searches, or automatically cleans the Trash; the retained items are disposable evidence.
+
 `SETTLE_SECONDS` (0-60, default 0) declares the ticket's re-trash delay bucket between the observed
 restore and the second Trash call. It is an explicit experiment parameter, not an implicit wait: the
 default performs no sleep, and the value that actually applied is echoed as `settle-seconds=` beside
@@ -350,6 +357,13 @@ internal helpers must be direct Run Directory children named exactly
 identity. Any production warning fails the acceptance while retaining the exact target evidence.
 The scenario fixes the settle bucket at zero, performs no post-Trash wait, and reports
 `foundation-finalizer=production-cleaned` on normal completion.
+
+Before a target receipt exists, a failure in preparation, diagnostic preflight, or the target Trash
+call triggers identity-verified cleanup of every prepared Finalizer. If any helper cannot be safely
+removed, `MacOSTrashClient` reports `finalizer_cleanup_failed` instead of discarding the cleanup
+error. The normal source-identity check independently classifies the user target as `not_moved` or
+`state_uncertain`. After a target receipt exists, cleanup degradation remains a moved Trash Warning
+that preserves the exact destination.
 
 `FINALIZER_FAULT` is a test-target-only fault mode for this production-algorithm acceptance. Its
 default is `none`. `not-moved-before-error` injects a failure after the first activation helper is
@@ -430,6 +444,7 @@ make test-put-back-symlink-production-manual TEST_RUN_ID=<uuid> [CYCLES=] [SYMLI
 make test-put-back-symlink-production-probe TEST_RUN_ID=<uuid> [SYMLINK_FIXTURE=]
                                                 [FINALIZER_NAME=hidden|visible]
                                                 [PREFLIGHT=enabled|disabled]
+make test-duplicate-trash-name TEST_RUN_ID=<uuid> Run the duplicate Trash basename acceptance
 make coverage-report    Publish the latest unit-test coverage summary
 make test-policy        Test repository policy scripts through their public interfaces
 make test-integration   Run the guarded integration entrypoint

@@ -59,6 +59,12 @@ Back could not be guaranteed, a failed Finalizer call left its source state unce
 already-activated Trash Finalizer could not be cleaned up.
 _Avoid_: Trash failure, state-uncertain error
 
+**Trash Finalizer Cleanup Failure**:
+A stable failed Trash Result used when the user item has no moved receipt and one or more prepared
+Trash Finalizers could not be identity-verified and removed. Its `not_moved` or `state_uncertain`
+status describes the user item, while the diagnostic describes the internal cleanup failure.
+_Avoid_: Trash Warning, ignored cleanup error
+
 ## Testing Language
 
 **Test Safety Context**:

@@ -50,6 +50,9 @@ Normal completion is silent and leaves no helper behind. `symlink_put_back_not_g
 `finalizer_cleanup_failed` reports a moved result with its exact destination on stderr and exits 1.
 If a failed finalizer call no longer has its exact source identity, rmp stops without using the
 backup and reports `finalizer_state_uncertain`, preserving the best available Put Back state.
+If the user link has not moved but a prepared finalizer cannot be identity-verified and removed, the
+operation instead fails with `finalizer_cleanup_failed`; its `not_moved` or `state_uncertain`
+classification comes from the normal post-call source-identity check.
 
 Native options set confirmation (`-f`, `-i`, `-I`, `--confirm`), missing-path
 (`--ignore-missing`), output (`-v`, `--quiet`, `--json`), preview (`--dry-run`), automation

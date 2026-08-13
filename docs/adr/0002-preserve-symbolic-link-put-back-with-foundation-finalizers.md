@@ -51,6 +51,13 @@ cleanup fails, the receipt
 uses `finalizer_cleanup_failed`; Put Back remains classified as activated. All three warnings keep
 the item status `moved`, write a stable diagnostic to stderr, and produce exit code 1.
 
+Preparation, the optional diagnostic preflight, and the target Trash call can also fail before a
+moved target receipt exists. Cleanup of every already prepared Finalizer is then mandatory and
+identity-checked. If any such cleanup cannot be completed, the original failure is replaced by the
+stable `finalizer_cleanup_failed` capability error so the residue is never silently hidden. The
+ordinary post-call identity check still determines whether the user target is `not_moved` or
+`state_uncertain`.
+
 ## Consequences
 
 The normal symbolic-link path is user-transparent and leaves only the requested item in Trash. It

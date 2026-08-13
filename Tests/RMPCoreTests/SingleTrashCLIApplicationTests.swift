@@ -195,6 +195,30 @@ func movedSymbolicLinkReportsFinalizerCleanupWarning() {
   #expect(result.standardError.contains("Put Back was activated"))
 }
 
+@Test("A pre-move finalizer cleanup failure reports its stable error code")
+func preMoveFinalizerCleanupFailureReportsStableError() {
+  let probes = ApplicationProbes()
+  probes.trashResult = .failure(.init(code: .finalizerCleanupFailed))
+  let identity = FileSystemIdentity(device: 1, inode: 18)
+  let application = CLIApplication(
+    makeFileSystem: {
+      ApplicationFileSystem(
+        entries: ["shortcut": .entry(.init(kind: .symbolicLink, identity: identity))]
+      )
+    },
+    makeTrashClient: { ApplicationTrashClient(probes: probes) },
+    effectiveUserID: { 501 }
+  )
+
+  let result = application.run(arguments: ["shortcut"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardOutput.isEmpty)
+  #expect(result.standardError.contains("finalizer_cleanup_failed"))
+  #expect(result.standardError.contains("(not_moved)"))
+  #expect(result.standardError.contains("could not be cleaned up"))
+}
+
 @Test("A moved symbolic link reports an uncertain finalizer without losing its destination")
 func movedSymbolicLinkReportsUncertainFinalizerWarning() {
   let probes = ApplicationProbes()

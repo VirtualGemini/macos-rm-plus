@@ -9,6 +9,7 @@ import Foundation
 
 private let helpText = """
   Usage: rmp-test put-back-race --test-run-id <uuid>
+         rmp-test duplicate-trash-name --test-run-id <uuid>
          rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
@@ -56,6 +57,12 @@ private enum RMPTestEntrypoint {
     }
     if arguments.first == "put-back-race" {
       executePutBackRace(arguments: Array(arguments.dropFirst()), restore: .finderScript)
+    }
+    if arguments.first == "duplicate-trash-name" {
+      executeDuplicateTrashName(
+        arguments: Array(arguments.dropFirst()),
+        runtime: currentRuntime
+      )
     }
     if arguments.first == "put-back-race-manual" {
       executePutBackRace(arguments: Array(arguments.dropFirst()), restore: .manualFinderMenu)
@@ -380,6 +387,31 @@ private func executeProductionProbe(
       preflight: options.preflight,
       context: context
     )
+    return 0
+  }
+  if let diagnostic = result.diagnostic {
+    FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+  }
+  exit(result.exitCode)
+}
+
+private func executeDuplicateTrashName(
+  arguments: [String],
+  runtime: @escaping () throws -> TestSafetyRuntime
+) -> Never {
+  let result = TestSafetyDriver.runWithInjectedRuntime(
+    arguments: arguments,
+    cleanupPolicy: .preserveRunDirectory,
+    runtime: runtime
+  ) { context, paths in
+    guard paths.isEmpty else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "duplicate-trash-name creates its own Test Fixtures."
+      )
+    }
+    let report = try PutBackRaceAcceptance.runDuplicateTrashName(context: context)
+    writeDuplicateTrashNameSummary(report, context: context)
     return 0
   }
   if let diagnostic = result.diagnostic {

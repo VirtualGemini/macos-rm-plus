@@ -65,6 +65,22 @@ final class TargetTrashFailureSimulator: @unchecked Sendable {
   }
 }
 
+final class ReplacedFinalizerFailureSimulator: @unchecked Sendable {
+  private(set) var replacedFinalizerName: String?
+
+  func trash(_ sourceURL: URL) throws -> URL {
+    let parentURL = sourceURL.deletingLastPathComponent()
+    let finalizerName = try FileManager.default.contentsOfDirectory(atPath: parentURL.path)
+      .first { $0.hasPrefix(".rmp-finalizer-") }
+    guard let finalizerName else { throw InjectedTrashFailure() }
+    let finalizerURL = parentURL.appendingPathComponent(finalizerName)
+    try FileManager.default.removeItem(at: finalizerURL)
+    try Data("replacement\n".utf8).write(to: finalizerURL)
+    replacedFinalizerName = finalizerName
+    throw InjectedTrashFailure()
+  }
+}
+
 final class ActivationRetrySimulator: @unchecked Sendable {
   private let trashDirectoryURL: URL
   private(set) var recoverablePaths: Set<String> = []

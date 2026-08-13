@@ -70,8 +70,8 @@ public struct MacOSTrashClient: TrashClient {
       try verifySymbolicLink(identity: identity, at: sourceURL)
       targetTrashURL = try foundationTrash(sourceURL)
     } catch {
-      for finalizer in finalizers {
-        try? removeVerifiedFinalizer(finalizer)
+      guard removeFinalizers(finalizers) == .complete else {
+        throw TrashCapabilityError(code: .finalizerCleanupFailed)
       }
       throw error
     }
@@ -91,9 +91,7 @@ public struct MacOSTrashClient: TrashClient {
           try removeVerifiedFinalizer(finalizer)
           continue
         } catch {
-          for unusedFinalizer in finalizers.dropFirst(index + 1) {
-            try? removeVerifiedFinalizer(unusedFinalizer)
-          }
+          _ = removeFinalizers(Array(finalizers.dropFirst(index + 1)))
           return [TrashMoveWarning(code: .finalizerStateUncertain)]
         }
       }
@@ -107,10 +105,7 @@ public struct MacOSTrashClient: TrashClient {
         }
         return []
       } catch {
-        try? removeVerifiedFinalizer(finalizer)
-        for unusedFinalizer in finalizers.dropFirst(index + 1) {
-          try? removeVerifiedFinalizer(unusedFinalizer)
-        }
+        _ = removeFinalizers(Array(finalizers.dropFirst(index)))
         return [TrashMoveWarning(code: .finalizerCleanupFailed)]
       }
     }
@@ -125,7 +120,9 @@ public struct MacOSTrashClient: TrashClient {
       try restoreItem(trashURL, finalizer.sourceURL)
       try removeVerifiedFinalizer(finalizer)
     } catch {
-      try? removeVerifiedFinalizer(finalizer)
+      guard removeFinalizers([finalizer]) == .complete else {
+        throw TrashCapabilityError(code: .finalizerCleanupFailed)
+      }
       throw error
     }
   }
@@ -172,11 +169,23 @@ public struct MacOSTrashClient: TrashClient {
       }
       return finalizers
     } catch {
-      for finalizer in finalizers {
-        try? removeVerifiedFinalizer(finalizer)
+      guard removeFinalizers(finalizers) == .complete else {
+        throw TrashCapabilityError(code: .finalizerCleanupFailed)
       }
       throw error
     }
+  }
+
+  private func removeFinalizers(_ finalizers: [PreparedFinalizer]) -> FinalizerCleanupOutcome {
+    var outcome = FinalizerCleanupOutcome.complete
+    for finalizer in finalizers {
+      do {
+        try removeVerifiedFinalizer(finalizer)
+      } catch {
+        outcome = .incomplete
+      }
+    }
+    return outcome
   }
 
   private func removeVerifiedFinalizer(_ finalizer: PreparedFinalizer) throws {
@@ -245,6 +254,11 @@ private struct PreparedFinalizer {
   let sourceURL: URL
   let name: String
   let identity: PlatformFileIdentity
+}
+
+private enum FinalizerCleanupOutcome {
+  case complete
+  case incomplete
 }
 
 private struct PlatformFileIdentity: Equatable {

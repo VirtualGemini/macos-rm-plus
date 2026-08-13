@@ -33,6 +33,7 @@ public enum TrashErrorCode: String, Equatable, Sendable {
   case finderAutomationDenied = "finder_automation_denied"
   case finderAutomationTimedOut = "finder_automation_timed_out"
   case finderUnavailable = "finder_unavailable"
+  case finalizerCleanupFailed = "finalizer_cleanup_failed"
   case inaccessibleInput = "inaccessible_input"
   case missingInput = "missing_input"
   case noInputs = "no_inputs"
@@ -166,6 +167,9 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
       return "Finder did not complete the Trash request before the timeout. \(sourceState)"
     case .finderUnavailable:
       return "Finder is unavailable for the Trash request. \(sourceState)"
+    case .finalizerCleanupFailed:
+      return
+        "An internal symbolic-link finalizer could not be cleaned up. \(sourceState)"
     default:
       return "The system Trash operation failed; \(sourceState.lowercased())"
     }

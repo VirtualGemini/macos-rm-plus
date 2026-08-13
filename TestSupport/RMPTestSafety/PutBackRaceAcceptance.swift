@@ -112,7 +112,7 @@ enum PutBackRaceAcceptance {
     context: TestSafetyContext,
     kind: PutBackRaceFixtureKind,
     finalizerName: ProductionFinalizerName = .hidden,
-    preflight: ProductionFinalizerPreflight = .enabled
+    preflight: ProductionFinalizerPreflight = .disabled
   ) throws -> ProductionTrashProbeReport {
     let client = WhitelistedMacOSTrashClient(
       context: context,

@@ -20,7 +20,7 @@ final class WhitelistedMacOSTrashClient {
     context: TestSafetyContext,
     fault: ProductionFinalizerFault = .none,
     finalizerName: ProductionFinalizerName = .hidden,
-    preflight: ProductionFinalizerPreflight = .enabled
+    preflight: ProductionFinalizerPreflight = .disabled
   ) {
     self.init(
       context: context,
@@ -44,7 +44,7 @@ final class WhitelistedMacOSTrashClient {
     },
     fault: ProductionFinalizerFault = .none,
     finalizerName: ProductionFinalizerName = .hidden,
-    preflight: ProductionFinalizerPreflight = .enabled
+    preflight: ProductionFinalizerPreflight = .disabled
   ) {
     self.context = context
     self.foundationTrashClient = foundationTrashClient

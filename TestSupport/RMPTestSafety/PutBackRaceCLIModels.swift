@@ -156,7 +156,7 @@ func extractProductionProbeOptions(_ arguments: [String]) throws -> ProductionPr
 func extractProductionFinalizerPreflight(
   _ arguments: [String]
 ) throws -> (ProductionFinalizerPreflight, [String]) {
-  var preflight = ProductionFinalizerPreflight.enabled
+  var preflight = ProductionFinalizerPreflight.disabled
   var remaining: [String] = []
   var index = arguments.startIndex
   while index < arguments.endIndex {

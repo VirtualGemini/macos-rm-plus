@@ -4,6 +4,8 @@ Status: Accepted
 
 Date: 2026-08-10
 
+Revised: 2026-08-13
+
 ## Context
 
 Finder deletion preserves Put Back reliably for ordinary files and directories, but Finder's Apple
@@ -23,11 +25,13 @@ and removing that link, did preserve Put Back for the preceding user item.
 - ordinary files and directories use `FinderTrashClient`;
 - symbolic links and broken symbolic links use Foundation Trash with an owned finalizer lifecycle.
 
-Before moving a user symbolic link, the client runs a complete finalizer preflight beside the source
-in the same directory and volume: exclusive UUID link creation, Foundation Trash, returned-identity
-verification, exact restore, restored-identity verification, and descriptor-relative unlink. The
-target is not moved unless this preflight succeeds. Two additional UUID finalizer links are then
-prepared before the target moves.
+Before moving a user symbolic link, the client prepares two exclusive UUID finalizer links beside the
+source in the same directory and volume and records their device/inode identities. It does not Trash
+a preflight finalizer: resolving-link runs `0516390e-686b-4d0d-ba62-cc5b40d22064` and
+`0a34c398-056b-4a45-9892-0f3d7fed7614`, plus broken-link run
+`a6a43b18-bba2-4d8b-b681-0c12d83569ca`, all offered Put Back when only the preflight was disabled.
+The otherwise equivalent standalone run with preflight enabled did not. The production Foundation
+sequence must therefore begin with the user target, followed by an activation finalizer.
 
 After Foundation returns the target's Trash URL, the prepared finalizers are tried serially. The
 first successful Foundation finalizer call establishes the Put Back guarantee for the target. The
@@ -50,18 +54,17 @@ the item status `moved`, write a stable diagnostic to stderr, and produce exit c
 ## Consequences
 
 The normal symbolic-link path is user-transparent and leaves only the requested item in Trash. It
-costs one preflight round trip plus one target and one finalizer Trash call. Hidden finalizer links
-exist briefly beside the source. A crash, volume removal, or concurrent replacement can still leave
-an owned hidden link in the source directory or Trash; no finite sequence can guarantee that macOS
-or the process will never fail. The ordering makes every predictable setup failure occur before the
-target moves, prepares a retry before the irreversible point, and never sacrifices exact outcome
-reporting after the target has moved.
+costs one target and one finalizer Trash call. Hidden finalizer links exist briefly beside the source.
+A crash, volume removal, or concurrent replacement can still leave an owned hidden link in the
+source directory or Trash; no finite sequence can guarantee that macOS or the process will never
+fail. Both activation candidates are created and identity-checked before the irreversible point,
+while any failure after the target moves preserves exact outcome reporting.
 
 The production manual acceptance uses `put-back-symlink-production-manual`. Its first Trash call
 moves a separate ordinary-file control through Finder, which establishes a reliable item for the
 maintainer's real Finder Put Back. Only after that exact restore is observed and revalidated does a
 production client Trash the symbolic-link target under the normal or injected scenario. Every
-internal preflight, target, and finalizer Foundation call passes through the Test Safety Context
+internal target and finalizer Foundation call passes through the Test Safety Context
 whitelist. The test executable can inject a single first-activation failure either before the
 Foundation call or after the real whitelisted call has moved the Finalizer. These modes verify backup
 recovery and the moved-before-error stop rule without exposing fault controls in production `rmp`.
@@ -73,6 +76,9 @@ recovery and the moved-before-error stop rule without exposing fault controls in
 - Finder deletion for symbolic links was rejected because Finder refuses the operation.
 - A failed Foundation call, a new `FileManager`, and autorelease-pool drainage were rejected because
   none activated Put Back.
+- A target-before-move Foundation finalizer preflight was rejected because isolated runs with that
+  single extra operation lacked Put Back, while two resolving-link runs and one broken-link run with
+  the preflight disabled all offered it immediately.
 - Direct permanent deletion of the finalizer inside Trash was rejected because it expands the
   destructive capability and is unnecessary.
 - Silently ignoring activation failure was rejected because it would claim recoverability that was

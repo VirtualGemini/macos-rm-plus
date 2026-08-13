@@ -24,7 +24,7 @@ public struct MacOSTrashClient: TrashClient {
     foundationTrash = liveFoundationTrash
     restoreItem = liveRestoreItem
     finalizerName = liveFinalizerName
-    performsFinalizerPreflight = true
+    performsFinalizerPreflight = false
   }
 
   fileprivate init(
@@ -230,7 +230,7 @@ package func makeInjectedMacOSTrashClient(
   foundationTrash: @escaping @Sendable (URL) throws -> URL,
   restoreItem: @escaping @Sendable (URL, URL) throws -> Void = liveRestoreItem,
   finalizerName: @escaping @Sendable () -> String = liveFinalizerName,
-  performsFinalizerPreflight: Bool = true
+  performsFinalizerPreflight: Bool = false
 ) -> any TrashClient {
   MacOSTrashClient(
     finderTrash: finderTrash,

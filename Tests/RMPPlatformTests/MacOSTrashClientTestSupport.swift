@@ -58,19 +58,10 @@ final class PreflightFailureSimulator: @unchecked Sendable {
 }
 
 final class TargetTrashFailureSimulator: @unchecked Sendable {
-  private let trashDirectoryURL: URL
-  private var callCount = 0
+  init(trashDirectoryURL _: URL) {}
 
-  init(trashDirectoryURL: URL) {
-    self.trashDirectoryURL = trashDirectoryURL
-  }
-
-  func trash(_ sourceURL: URL) throws -> URL {
-    callCount += 1
-    guard callCount == 1 else { throw InjectedTrashFailure() }
-    let returnedURL = trashDirectoryURL.appendingPathComponent(sourceURL.lastPathComponent)
-    try FileManager.default.moveItem(at: sourceURL, to: returnedURL)
-    return returnedURL
+  func trash(_: URL) throws -> URL {
+    throw InjectedTrashFailure()
   }
 }
 
@@ -86,7 +77,7 @@ final class ActivationRetrySimulator: @unchecked Sendable {
 
   func trash(_ sourceURL: URL) throws -> URL {
     callCount += 1
-    if callCount == 3 {
+    if callCount == 2 {
       throw InjectedTrashFailure()
     }
     let returnedURL = trashDirectoryURL.appendingPathComponent(sourceURL.lastPathComponent)
@@ -117,7 +108,7 @@ final class MovedActivationFailureSimulator: @unchecked Sendable {
       recoverablePaths.insert(previousTrashURL.path)
     }
     previousTrashURL = returnedURL
-    if callCount == 3 { throw InjectedTrashFailure() }
+    if callCount == 2 { throw InjectedTrashFailure() }
     return returnedURL
   }
 }
@@ -134,7 +125,7 @@ final class ExhaustedActivationSimulator: @unchecked Sendable {
 
   func trash(_ sourceURL: URL) throws -> URL {
     callCount += 1
-    guard callCount < 3 else { throw InjectedTrashFailure() }
+    guard callCount < 2 else { throw InjectedTrashFailure() }
     let returnedURL = trashDirectoryURL.appendingPathComponent(sourceURL.lastPathComponent)
     try FileManager.default.moveItem(at: sourceURL, to: returnedURL)
     if let previousTrashURL {
@@ -163,7 +154,7 @@ final class CleanupFailureSimulator: @unchecked Sendable {
       recoverablePaths.insert(previousTrashURL.path)
     }
     previousTrashURL = returnedURL
-    if callCount >= 3 {
+    if callCount >= 2 {
       try FileManager.default.createSymbolicLink(
         at: sourceURL,
         withDestinationURL: URL(fileURLWithPath: "occupied-finalizer-path")
@@ -209,7 +200,7 @@ final class WrongTargetReceiptSimulator: @unchecked Sendable {
       recoverablePaths.insert(previousTrashURL.path)
     }
     previousTrashURL = actualURL
-    return callCount == 2 ? wrongReturnedURL : actualURL
+    return callCount == 1 ? wrongReturnedURL : actualURL
   }
 }
 

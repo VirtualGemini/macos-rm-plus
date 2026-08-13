@@ -47,9 +47,11 @@ If permission is required, denied, reset, or used from another terminal host, `r
 an actionable stable error instead of silently using a less reliable Trash API.
 
 Finder owns the private metadata behind “Put Back.” Ordinary entries therefore use Finder directly.
-Finder refuses symbolic links, so rmp preflights and prepares owned hidden symbolic-link finalizers,
-moves the user link through Foundation, then performs one successful Foundation finalizer call and
-cleans up the exact identity outside Trash. Normal success leaves no finalizer residue. If every
+Finder refuses symbolic links, so rmp prepares two owned hidden symbolic-link finalizers, moves the
+user link through Foundation as the first Foundation Trash call, then performs one successful
+Foundation finalizer call and cleans up the exact identity outside Trash. Normal success leaves no
+finalizer residue. A target-before-move Trash preflight is deliberately omitted because real Finder
+checks showed that it consumes the metadata transition needed by the following user link. If every
 prepared activation fails, or an activated finalizer cannot be cleaned up, rmp preserves the target
 destination and emits a stable warning with exit code 1. A failed finalizer call is retried only when
 the exact helper is still verified at its source; if it moved before throwing, rmp stops with

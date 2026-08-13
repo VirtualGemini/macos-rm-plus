@@ -40,7 +40,7 @@ private let helpText = """
   put-back-symlink-production-probe options:
     --fixture <kind>      symbolic-link | broken-symbolic-link
     --finalizer-name <n>  hidden | visible, default hidden
-    --preflight <mode>    enabled | disabled, default enabled
+    --preflight <mode>    enabled | disabled, default disabled
 
   """
 

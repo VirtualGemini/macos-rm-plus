@@ -89,7 +89,7 @@ FIXTURE ?= file
 SYMLINK_FIXTURE ?= symbolic-link
 FINALIZER_FAULT ?= none
 FINALIZER_NAME ?= hidden
-PREFLIGHT ?= enabled
+PREFLIGHT ?= disabled
 
 test-put-back-race-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \

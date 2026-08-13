@@ -31,7 +31,7 @@ struct MacOSTrashClientTests {
     #expect(finder.receivedPaths == [fixture.targetURL.path])
   }
 
-  @Test("a symbolic-link Trash result remains recoverable without finalizer residue")
+  @Test("the production default trashes the symbolic link before its activation finalizer")
   func symbolicLinkRemainsRecoverable() throws {
     let fixture = try RecoverableTrashFixture()
     defer { fixture.remove() }
@@ -47,6 +47,9 @@ struct MacOSTrashClientTests {
     let receipt = try client.trashItem(atPath: fixture.linkURL.path)
 
     #expect(receipt.destinationPath == fixture.trashedLinkURL.path)
+    #expect(simulator.receivedNames.count == 2)
+    #expect(simulator.receivedNames[0] == fixture.linkURL.lastPathComponent)
+    #expect(simulator.receivedNames[1].hasPrefix(".rmp-finalizer-"))
     #expect(simulator.recoverablePaths.contains(receipt.destinationPath))
     #expect(macOSEntryExists(at: fixture.targetURL))
     #expect(!macOSEntryExists(at: fixture.linkURL))
@@ -71,10 +74,9 @@ struct MacOSTrashClientTests {
     let receipt = try client.trashItem(atPath: fixture.linkURL.path)
 
     #expect(receipt.destinationPath == fixture.trashedLinkURL.path)
-    #expect(simulator.receivedNames.count == 3)
-    #expect(simulator.receivedNames[0].hasPrefix("rmp-test-visible-finalizer-"))
-    #expect(simulator.receivedNames[1] == fixture.linkURL.lastPathComponent)
-    #expect(simulator.receivedNames[2].hasPrefix("rmp-test-visible-finalizer-"))
+    #expect(simulator.receivedNames.count == 2)
+    #expect(simulator.receivedNames[0] == fixture.linkURL.lastPathComponent)
+    #expect(simulator.receivedNames[1].hasPrefix("rmp-test-visible-finalizer-"))
     #expect(simulator.receivedNames.allSatisfy { !$0.hasPrefix(".") })
     #expect(try fixture.sourceEntryNames() == ["target.txt"])
     #expect(try fixture.trashEntryNames() == ["shortcut"])
@@ -135,7 +137,8 @@ struct MacOSTrashClientTests {
     let simulator = PreflightFailureSimulator(trashDirectoryURL: fixture.trashDirectoryURL)
     let client = makeInjectedMacOSTrashClient(
       finderTrash: { _ in throw InjectedTrashFailure() },
-      foundationTrash: simulator.trash
+      foundationTrash: simulator.trash,
+      performsFinalizerPreflight: true
     )
 
     do {
@@ -217,7 +220,7 @@ extension MacOSTrashClientTests {
     #expect(receipt.destinationPath == fixture.trashedLinkURL.path)
     #expect(receipt.warnings.map(\.code) == [.finalizerStateUncertain])
     #expect(simulator.recoverablePaths.contains(receipt.destinationPath))
-    #expect(simulator.callCount == 3)
+    #expect(simulator.callCount == 2)
     #expect(try fixture.sourceEntryNames() == ["target.txt"])
     #expect(try fixture.trashEntryNames().contains("shortcut"))
     #expect(
@@ -273,7 +276,8 @@ extension MacOSTrashClientTests {
     let client = makeInjectedMacOSTrashClient(
       finderTrash: { _ in throw InjectedTrashFailure() },
       foundationTrash: simulator.trash,
-      restoreItem: { _, _ in throw InjectedTrashFailure() }
+      restoreItem: { _, _ in throw InjectedTrashFailure() },
+      performsFinalizerPreflight: true
     )
 
     do {
@@ -304,7 +308,8 @@ extension MacOSTrashClientTests {
     )
     let client = makeInjectedMacOSTrashClient(
       finderTrash: { _ in throw InjectedTrashFailure() },
-      foundationTrash: simulator.trash
+      foundationTrash: simulator.trash,
+      performsFinalizerPreflight: true
     )
 
     do {

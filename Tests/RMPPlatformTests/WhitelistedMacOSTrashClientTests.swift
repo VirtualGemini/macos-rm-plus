@@ -162,7 +162,7 @@ private final class ActivationFailureSwitch: @unchecked Sendable {
 
   func trash(_ sourceURL: URL) throws -> URL {
     callCount += 1
-    if failActivationCalls, callCount >= 3 {
+    if failActivationCalls, callCount >= 2 {
       throw InjectedTrashFailure()
     }
     return try simulator.trash(sourceURL)

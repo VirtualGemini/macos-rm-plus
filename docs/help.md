@@ -42,8 +42,10 @@ can be revoked, reset, or requested separately by another terminal application. 
 denied, unavailable-Finder, and timeout outcomes fail closed with stable error codes.
 
 Finder owns the private metadata used by “Put Back.” Finder handles ordinary entries directly but
-refuses symbolic links. For links, rmp completes a same-directory finalizer preflight before moving
-the target, prepares a backup, then uses a successful Foundation finalizer call to activate Put Back.
+refuses symbolic links. For links, rmp prepares two same-directory finalizers before moving the
+target, makes the target the first Foundation Trash call, then uses a successful Foundation
+finalizer call to activate Put Back. It does not run a target-before-move Trash preflight because
+that call was shown to consume the metadata transition needed by the target.
 Normal completion is silent and leaves no helper behind. `symlink_put_back_not_guaranteed` or
 `finalizer_cleanup_failed` reports a moved result with its exact destination on stderr and exits 1.
 If a failed finalizer call no longer has its exact source identity, rmp stops without using the

@@ -352,9 +352,10 @@ FR-SAFE-014：路径规范化必须保留“移动符号链接本身”的语义
 
 FR-SAFE-015：必须正确处理空格、Unicode、换行、前导连字符和长路径。
 
-FR-SAFE-016：移动用户符号链接之前，必须在同一父目录和同一卷完成一次 Trash Finalizer 全流程
-预检，并预创建至少两个 exclusive UUID Finalizer。创建、Trash、返回身份验证、精确恢复、恢复后
-身份验证或 descriptor-relative unlink 任一步失败，都必须发生在用户目标移动之前并阻止该移动。
+FR-SAFE-016：移动用户符号链接之前，必须在同一父目录和同一卷预创建至少两个 exclusive UUID
+Finalizer，并验证其符号链接类型及 device/inode。生产路径不得在用户目标之前执行 Foundation Trash
+预检；真实 Finder 证据已证明该预检会占用后续目标所需的元数据转换。Finalizer 创建或身份验证失败必须
+发生在用户目标移动之前并阻止该移动。
 
 FR-SAFE-017：用户符号链接进入废纸篓后，必须串行尝试已经预创建的 Finalizer，直到一次 Foundation
 Trash 成功。成功返回的 Finalizer URL 必须在恢复前验证符号链接类型和原 device/inode，恢复后再次
@@ -715,7 +716,7 @@ Foundation Finalizer 验收必须固定 `settle-seconds=0`，并在命令完成�
 生产候选必须另提供 `put-back-symlink-production-manual`：第一次用户可见 Trash 仅使用经过白名单的 Finder
 删除一个独立普通文件，作为必须稳定提供真实 Finder Put Back 的人工控制项。符号链接目标是另一个 Test
 Fixture，在控制项恢复并由 runner 重验之前必须留在 Run Directory；之后它的唯一 Trash 必须通过生产
-`MacOSTrashClient` 的预检、目标移动、激活与清理协议。Finder 普通文件只建立联调前置条件，不计为符号链接
+`MacOSTrashClient` 的目标移动、激活与清理协议。Finder 普通文件只建立联调前置条件，不计为符号链接
 生产结果。生产算法内部每一次 Foundation 调用都必须重新经过 Test Safety Context；
 内部 Finalizer 仅允许当前 Run Directory 直属、严格 `.rmp-finalizer-<canonical-lowercase-uuid>` 命名且
 `lstat` 为符号链接的条目。该入口固定零延迟，完成后立即检查菜单。
@@ -730,12 +731,13 @@ Finalizer 已授权但尚未调用 Foundation 时抛错，验证备用 Finalizer
 
 为隔离人工控制序列对 Foundation 状态的影响，`rmp-test` 还必须提供
 `put-back-symlink-production-probe`。该诊断入口在全新 Run Directory 中只创建一个符号链接目标，只调用
-一次生产 `MacOSTrashClient`（其内部仍执行完整 preflight、目标移动、Finalizer 激活与清理），不得创建控制
+一次生产 `MacOSTrashClient`（其内部执行目标移动、Finalizer 激活与清理），不得创建控制
 项、不得等待或执行 Put Back、不得提供 cycle、settle 或故障注入。输出必须包含 `control=none` 和精确目标名，
 由维护者在命令完成后立即判定菜单。`FINALIZER_NAME=hidden` 使用生产隐藏名称；显式
 `FINALIZER_NAME=visible` 只把 helper basename 改为当前 run UUID 前缀的可见名称，其他白名单、身份、恢复和
-清理步骤不变。`PREFLIGHT=enabled` 保持生产预检，`PREFLIGHT=disabled` 只跳过目标前的预检调用，目标、激活
-helper、精确恢复、清理和白名单不变。它只用于区分前置控制序列与生产算法自身，不替代正式验收。
+清理步骤不变。`PREFLIGHT=disabled` 是生产默认，使目标成为第一次 Foundation Trash；显式
+`PREFLIGHT=enabled` 只用于插入已证伪的目标前预检作诊断对照，目标、激活 helper、精确恢复、清理和白名单
+保持不变。它只用于区分前置调用与生产算法自身，不替代正式验收。
 
 #### 17.1.3 断言与不可省略的安全检查
 

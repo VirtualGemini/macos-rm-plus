@@ -343,8 +343,8 @@ Test Fixture that remains in the Run Directory until that exact control restore 
 revalidated; it is then moved by the normal or explicitly injected production `MacOSTrashClient`
 scenario under test. A raw Foundation control plus a separate test Finalizer, and a fault-free
 production symbolic-link control, were both rejected by real evidence because neither made the next
-human control reliable. Every production preflight, target, and activation Foundation call is
-independently authorized immediately before execution. User fixtures retain the run UUID prefix;
+human control reliable. Every production target and activation Foundation call is independently
+authorized immediately before execution. User fixtures retain the run UUID prefix;
 internal helpers must be direct Run Directory children named exactly
 `.rmp-finalizer-<canonical-lowercase-uuid>` and must remain symbolic links with their planned
 identity. Any production warning fails the acceptance while retaining the exact target evidence.
@@ -366,11 +366,12 @@ symbolic-link path. It creates one resolving or broken symbolic-link Test Fixtur
 whitelisted production `MacOSTrashClient` operation. It creates no control item, performs no Put
 Back, has no settle interval or cycle mode, and prints `control=none` plus the exact target to inspect
 immediately. `FINALIZER_NAME=hidden` preserves the production basename; `FINALIZER_NAME=visible`
-uses a run-prefixed visible helper for the single-variable name experiment. `PREFLIGHT=enabled`
-preserves the production preflight; `PREFLIGHT=disabled` skips only that call while keeping target
-activation, restore, cleanup, and whitelist checks unchanged. This probe distinguishes production
-Finalizer behavior from state introduced by a preceding manual-control Trash sequence; it is
-diagnostic evidence, not a replacement acceptance.
+uses a run-prefixed visible helper for the single-variable name experiment. `PREFLIGHT=disabled` is
+the production default and keeps the target as the first Foundation Trash call. The explicit
+`PREFLIGHT=enabled` diagnostic mode inserts the rejected target-before-move preflight while keeping
+target activation, restore, cleanup, and whitelist checks unchanged. This probe established that
+the preflight, rather than helper naming or elapsed time, consumed the metadata transition needed by
+the target; it remains diagnostic evidence, not a replacement acceptance.
 
 `FIXTURE` selects the deleted item's shape from issue 12's platform acceptance set: `file`
 (default), `directory`, `symbolic-link`, `broken-symbolic-link`, `quoted-name`, or `newline-name`.

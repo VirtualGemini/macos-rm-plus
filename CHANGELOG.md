@@ -10,10 +10,11 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 - Route approved Trash Inputs through Finder's Apple Event `delete` command, pass path text as a
   structured argument, and preserve the returned Finder item URL for ordinary files and directories.
-- Route final symbolic links through Foundation without following their targets. Before moving the
-  target, complete an identity-verified same-directory finalizer preflight and prepare a backup;
-  after the target moves, use a successful finalizer call to activate Put Back and remove only the
-  exact restored helper outside Trash.
+- Route final symbolic links through Foundation without following their targets. Prepare two
+  identity-verified same-directory finalizers before moving the target, make the target the first
+  Foundation Trash call, then use a successful finalizer call to activate Put Back and remove only
+  the exact restored helper outside Trash. Omit the former target-before-move Trash preflight because
+  repeated real Finder checks showed that it consumed the target's metadata transition.
 - Preserve the exact moved destination when all finalizer activations fail, an activation may have
   moved before throwing, or post-activation cleanup fails, reporting
   `symlink_put_back_not_guaranteed`, `finalizer_state_uncertain`, or

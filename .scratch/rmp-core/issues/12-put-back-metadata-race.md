@@ -1138,3 +1138,12 @@ confirmed Put Back was offered for the broken symbolic-link target. The accepted
 is therefore to remove the target-before-move Foundation preflight for both resolving and broken
 symbolic links while retaining target identity verification, two prepared activation Finalizers,
 the backup-on-definitely-not-moved behavior, exact restore, cleanup, and existing warnings.
+
+Production commit `9b5294d` makes the no-preflight sequence the default. Final acceptance run
+`a23a6d5a-21e2-415b-b512-681630c573b9` invoked the standalone resolving-link probe without either
+`--preflight` or `--finalizer-name`, so no diagnostic override selected the result. The command
+reported the production defaults `finalizer-name=hidden`, `preflight=disabled`,
+`foundation-finalizer=production-cleaned`, and `trash-warning=none`. The maintainer immediately
+confirmed Put Back was offered for the exact target. Together with the two resolving-link diagnosis
+runs, the broken-link run, 213 passing tests in 19 suites, and all repository gates, this accepts the
+no-preflight Finalizer sequence for production on the reporting host.

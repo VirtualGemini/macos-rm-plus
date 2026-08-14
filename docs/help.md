@@ -32,7 +32,14 @@ through a structured Apple Event. Symbolic links use Foundation directly, never 
 fallback, and an owned finalizer preserves Put Back without following the link target. Each success
 reports the system-returned exact URL. Failure never triggers permanent deletion,
 `NSWorkspace.recycle`, direct Trash-directory access, or overwrite.
-Quiet mode suppresses successful results but never an error. Non-dry-run JSON output fails closed
+By default, an item failure does not prevent later inputs from being processed; `--stop-on-error`
+records all later inputs as skipped. Missing inputs fail unless `--ignore-missing` is active, in
+which case their error output and exit-status effect are suppressed.
+
+One standard-mode success writes exactly one escaped line containing the user-provided source and
+the exact Trash receipt destination. A standard-mode batch writes one aggregate summary instead of
+per-item success lines. `--verbose` writes every top-level moved or skipped result in input order.
+Quiet mode suppresses normal results but never a warning or error. Non-dry-run JSON output fails closed
 until the versioned schema is implemented; it never emits human output on stdout while claiming to
 be JSON.
 
@@ -62,8 +69,10 @@ characters within combined short options. `--json` conflicts with `--quiet`; `--
 change JSON output policy.
 
 Compatibility Options `-r`, `-R`, `-d`, and `-x` are accepted with no effect. `-P` is accepted with
-a stderr warning that secure overwrite is not performed. `-W` is unsupported. `--strict-options`
-rejects every no-effect Compatibility Option, including `-P`.
+a stderr warning that secure overwrite is not performed. That warning is independent of TTY state,
+`--non-interactive`, `--quiet`, and redirection, and does not change an otherwise successful exit
+code. `-W` is unsupported. `--strict-options` rejects every no-effect Compatibility Option,
+including `-P`, before filesystem inspection, confirmation, or Trash capability construction.
 
 `rmp --help` prints concise native help, while `rmp --help -a` groups compatibility behavior into
 accepted-with-no-effect, accepted-with-warning, and unsupported sections. `-zh` selects Chinese for
@@ -71,9 +80,8 @@ either help surface. `rmp --version` prints `rmp 0.1.0`. These information comma
 Input, do not construct the platform filesystem adapter, and do not inspect filesystem or Trash
 capabilities.
 
-Missing paths return exit code 1; absent Trash Inputs, usage errors, and unsupported options return
-exit code 2; and
-Protected Paths return exit code 3 without presenting a plan. Protected Paths include filesystem
+Required missing paths and operational failures return exit code 1. Usage errors and unsupported
+options return exit code 2. Protected Paths return exit code 3 without presenting a plan. Protected Paths include filesystem
 root, the current working directory, the user's home directory, their identity-equivalent path
 expressions, and explicit parent-directory expressions such as `..`. Effective root execution also
 returns exit code 3 before planning or Trash capability construction. `-f`, `--confirm=never`, and

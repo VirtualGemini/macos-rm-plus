@@ -89,6 +89,23 @@ func unsupportedEntryIsRejectedBeforeTrashCapability() {
   #expect(result.error?.code == .unsupportedInputKind)
 }
 
+@Test("An unknown planning placeholder is rejected before the Trash capability")
+func unknownEntryIsRejectedBeforeTrashCapability() {
+  let client = TrashClientSpy(
+    result: .success(.init(destinationPath: "/unused"))
+  )
+  let executor = SingleTrashExecutor(
+    fileSystem: ExecutionFileSystem(entries: [:]),
+    makeTrashClient: { client }
+  )
+
+  let result = executor.execute(TrashInput(path: "missing", kind: .unknown))
+
+  #expect(client.receivedPaths.isEmpty)
+  #expect(result.status == .rejected)
+  #expect(result.error?.code == .unsupportedInputKind)
+}
+
 @Test("An unexpected Trash capability error maps to the stable system failure code")
 func unexpectedTrashCapabilityErrorIsStable() {
   let identity = FileSystemIdentity(device: 1, inode: 14)

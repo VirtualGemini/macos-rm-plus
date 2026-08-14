@@ -61,6 +61,17 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
+- Add ordered serial batch Trash Operations with default continuation, stop-on-error skipped
+  results, missing-path and ignore-missing outcomes, aggregate exit codes, one-line single-success
+  output, batch summaries, ordered verbose results, and quiet output that preserves diagnostics.
+- Add a maintainer-only `rmp-test ordered-batch` acceptance inside the Test Safety Context. It covers
+  a file, empty and deep directories, a quoted/newline name, a missing path, a real permission
+  failure, and partial success through pre-authorized whitelist targets without entering default
+  tests or CI.
+- Make the accepted `-P` secure-overwrite warning unconditional across TTY, non-interactive, quiet,
+  and redirected output while keeping successful exit status unchanged; strict mode rejects it in
+  either argument order before any capability boundary.
+
 - Add a maintainer-only production-finalizer acceptance that uses a separate Finder ordinary-file
   control for the maintainer's real Put Back, then runs the symbolic-link target through a normal or
   fault-injected `MacOSTrashClient`; every internal Foundation call is independently reauthorized by

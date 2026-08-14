@@ -16,6 +16,7 @@ public enum TrashInputKind: String, Equatable, Sendable {
   case symbolicLink = "symbolic-link"
   case brokenSymbolicLink = "broken-symbolic-link"
   case other
+  case unknown
 }
 
 public struct FileSystemEntry: Equatable, Sendable {
@@ -105,7 +106,7 @@ struct TrashOperationRequest: Equatable, Sendable {
 }
 
 struct TrashPlan: Equatable, Sendable {
-  let inputs: [TrashInput]
+  let entries: [TrashPlanEntry]
   let confirmation: ConfirmationMode
   let ignoreMissing: Bool
   let output: OutputMode
@@ -113,6 +114,13 @@ struct TrashPlan: Equatable, Sendable {
   let nonInteractive: Bool
   let stopOnError: Bool
   let strictOptions: Bool
+
+  var inputs: [TrashInput] {
+    entries.compactMap { entry in
+      guard case let .input(input) = entry else { return nil }
+      return input
+    }
+  }
 
   init(
     inputs: [TrashInput],
@@ -124,7 +132,29 @@ struct TrashPlan: Equatable, Sendable {
     stopOnError: Bool = false,
     strictOptions: Bool = false
   ) {
-    self.inputs = inputs
+    self.init(
+      entries: inputs.map(TrashPlanEntry.input),
+      confirmation: confirmation,
+      ignoreMissing: ignoreMissing,
+      output: output,
+      dryRun: dryRun,
+      nonInteractive: nonInteractive,
+      stopOnError: stopOnError,
+      strictOptions: strictOptions
+    )
+  }
+
+  init(
+    entries: [TrashPlanEntry],
+    confirmation: ConfirmationMode = .smart,
+    ignoreMissing: Bool = false,
+    output: OutputMode = .standard,
+    dryRun: Bool = true,
+    nonInteractive: Bool = false,
+    stopOnError: Bool = false,
+    strictOptions: Bool = false
+  ) {
+    self.entries = entries
     self.confirmation = confirmation
     self.ignoreMissing = ignoreMissing
     self.output = output
@@ -132,6 +162,26 @@ struct TrashPlan: Equatable, Sendable {
     self.nonInteractive = nonInteractive
     self.stopOnError = stopOnError
     self.strictOptions = strictOptions
+  }
+}
+
+enum TrashPlanEntry: Equatable, Sendable {
+  case input(TrashInput)
+  case missing(path: String, ignored: Bool)
+  case inaccessible(path: String)
+
+  var path: String {
+    switch self {
+    case let .input(input): input.path
+    case let .missing(path, _), let .inaccessible(path): path
+    }
+  }
+
+  var kind: TrashInputKind {
+    switch self {
+    case let .input(input): input.kind
+    case .missing, .inaccessible: .unknown
+    }
   }
 }
 
@@ -165,8 +215,8 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
     }
 
     let protectedIdentities = try protectedIdentities(sourcePath: request.paths[0])
-    var inputs: [TrashInput] = []
-    inputs.reserveCapacity(request.paths.count)
+    var entries: [TrashPlanEntry] = []
+    entries.reserveCapacity(request.paths.count)
 
     for path in request.paths {
       if isParentDirectoryExpression(path) {
@@ -177,18 +227,25 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
         if let protectedPath = protectedIdentities[entry.identity] {
           throw .protectedPath(path: path, protectedPath: protectedPath)
         }
-        inputs.append(
-          TrashInput(path: path, kind: entry.kind, plannedIdentity: entry.identity)
+        entries.append(
+          .input(TrashInput(path: path, kind: entry.kind, plannedIdentity: entry.identity))
         )
       case .missing:
-        if !request.ignoreMissing { throw .missingPath(path) }
+        if request.ignoreMissing {
+          entries.append(.missing(path: path, ignored: true))
+        } else if request.dryRun {
+          throw .missingPath(path)
+        } else {
+          entries.append(.missing(path: path, ignored: false))
+        }
       case .inaccessible:
-        throw .inaccessiblePath(path)
+        if request.dryRun { throw .inaccessiblePath(path) }
+        entries.append(.inaccessible(path: path))
       }
     }
 
     return TrashPlan(
-      inputs: inputs,
+      entries: entries,
       confirmation: request.confirmation,
       ignoreMissing: request.ignoreMissing,
       output: request.output,

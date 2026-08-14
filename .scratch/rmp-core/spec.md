@@ -163,15 +163,20 @@ rmp --json --non-interactive --confirm=never build
 
 ```json
 {
+  "schemaVersion": 1,
   "operation": "trash",
+  "dryRun": false,
   "success": true,
   "moved": 1,
   "failed": 0,
+  "skipped": 0,
   "items": [
     {
       "source": "/project/build",
       "destination": "/Users/example/.Trash/build",
-      "status": "moved"
+      "kind": "directory",
+      "status": "moved",
+      "error": null
     }
   ]
 }
@@ -468,7 +473,7 @@ Moved 3 items to Trash; 1 failed.
 
 所有执行失败诊断必须包含稳定的机器可读错误码和受影响的源路径。系统调用前拒绝的不支持输入使用
 `rejected` 状态；`not_moved` 与 `state_uncertain` 仅用于系统废纸篓调用失败后的最终状态分类。
-当前构建尚未实现非 dry-run JSON 时，必须以稳定的 `unsupported_output_mode` 码和源路径 fail-closed。
+JSON 将这些内部失败分类统一输出为 `failed`，同时保留稳定错误码和可读消息。
 已移动结果可以携带稳定 Trash Warning；warning 不得删除或隐藏精确 destination，也不得改写为
 `not_moved` 或 `state_uncertain`。有序批处理为每个顶层输入保留一个结果；默认失败后继续，
 `--stop-on-error` 将后续输入记录为 skipped，ignored missing 不输出错误且不影响退出码。系统 Trash
@@ -496,8 +501,8 @@ Moved 3 items to Trash; 1 failed.
 ```json
 {
   "source": "/absolute/input/path",
-  "destination": "/absolute/trash/path-or-null",
-  "kind": "file|directory|symlink|other|unknown",
+  "destination": null,
+  "kind": "file|directory|symbolic-link|broken-symbolic-link|other|unknown",
   "status": "planned|moved|failed|skipped",
   "error": {
     "code": "trash_unavailable",
@@ -506,7 +511,10 @@ Moved 3 items to Trash; 1 failed.
 }
 ```
 
-`error` 在无错误时为 `null`。机器消费者应依赖稳定的 `code`，不应解析 `message`。
+`destination` 仅在 `moved` 时包含系统 Trash API 返回的精确最终路径，否则为 `null`。`error` 在
+无错误时为 `null`。`source` 始终是绝对路径。机器消费者应依赖稳定的 `code`，不应解析 `message`。
+JSON 不暴露 Foundation `NSError` 的 domain 或数字 code；平台适配器必须先将这类错误映射为 rmp
+稳定错误码，避免消费者绑定到不稳定的平台实现细节。
 
 ## 14. 帮助信息
 
@@ -876,7 +884,8 @@ Context 内创建自己的文件、空目录、深层目录、特殊字符文件
 - v0.1.0 不收集遥测。
 - 默认不保存用户删除路径历史。
 - 错误日志不得上传或发送到外部服务。
-- JSON 输出可能包含绝对路径，由调用者负责保护输出内容。
+- JSON 输出可能包含敏感的绝对路径，由调用者负责保护输出内容；JSON 生成只处理当前调用的内存中
+  结果，不保存或上传路径历史。
 
 ## 19. 发布与分发
 
@@ -982,6 +991,5 @@ Context 内创建自己的文件、空目录、深层目录、特殊字符文件
 
 以下项目不阻塞 PRD，但必须在实现对应功能前确定：
 
-- JSON 中是否包含平台适配器的原始 `NSError` 域和错误码。
 - 最低 macOS 版本是否需要低于 macOS 13。
 - Homebrew 首版采用源码构建还是预编译 bottle。

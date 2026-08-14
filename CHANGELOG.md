@@ -61,6 +61,12 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Added
 
+- Add schema-version-1 JSON Trash Operation results for dry runs and real ordered batches, including
+  aggregate success and counts, absolute sources, exact moved destinations, stable structured errors,
+  skipped and partial-success outcomes, deterministic contract snapshots, and stderr-only warnings.
+  Platform error domains and numeric codes remain private, and rmp does not retain or upload the
+  potentially sensitive absolute paths it emits. Human and JSON output share one planning-error
+  classification, and JSON encoding failures never emit partial stdout.
 - Add ordered serial batch Trash Operations with default continuation, stop-on-error skipped
   results, missing-path and ignore-missing outcomes, aggregate exit codes, one-line single-success
   output, batch summaries, ordered verbose results, and quiet output that preserves diagnostics.

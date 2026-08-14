@@ -2,10 +2,15 @@
 
 struct TrashResultRenderer {
   private let pathRenderer = DryRunRenderer()
+  private let currentDirectoryPath: String?
   private let unclassifiedFailure = TrashFailure(
     code: .systemTrashFailed,
     explanation: "The Trash operation failed without a classified error."
   )
+
+  init(currentDirectoryPath: String? = nil) {
+    self.currentDirectoryPath = currentDirectoryPath
+  }
 
   func render(_ result: TrashResult, output: OutputMode) -> CommandResult {
     switch result.status {
@@ -51,6 +56,13 @@ struct TrashResultRenderer {
   }
 
   func render(_ results: [TrashResult], output: OutputMode) -> CommandResult {
+    if output == .json, let currentDirectoryPath {
+      return JSONTrashRenderer().render(
+        results: results,
+        dryRun: false,
+        currentDirectoryPath: currentDirectoryPath
+      )
+    }
     let itemResults = results.map { render($0, output: output) }
     let standardError = itemResults.map(\.standardError).joined()
     let exitCode: Int32 = results.contains(where: \.requiresFailureExit) ? 1 : 0

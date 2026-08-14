@@ -35,6 +35,7 @@ public enum TrashErrorCode: String, Equatable, Sendable {
   case finderUnavailable = "finder_unavailable"
   case finalizerCleanupFailed = "finalizer_cleanup_failed"
   case inaccessibleInput = "inaccessible_input"
+  case jsonEncodingFailed = "json_encoding_failed"
   case missingInput = "missing_input"
   case noInputs = "no_inputs"
   case protectedPath = "protected_path"
@@ -200,14 +201,12 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
     }
     return entry.identity == input.plannedIdentity && entry.kind == input.kind
   }
-
 }
-
 struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
   private let fileSystem: FileSystem
   private let makeTrashClient: () -> any TrashClient
   private let makeConfirmationPrompt: (() -> any ConfirmationPrompt)?
-  private let renderer = TrashResultRenderer()
+  private let renderer: TrashResultRenderer
 
   init(
     fileSystem: FileSystem,
@@ -217,6 +216,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
     self.fileSystem = fileSystem
     self.makeTrashClient = makeTrashClient
     self.makeConfirmationPrompt = makeConfirmationPrompt
+    renderer = TrashResultRenderer(currentDirectoryPath: fileSystem.currentDirectoryPath)
   }
 
   func run(request: TrashOperationRequest) -> CommandResult {
@@ -237,6 +237,13 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
       }
       return execute(plan)
     } catch {
+      if request.output == .json {
+        return JSONTrashRenderer().render(
+          error: error,
+          request: request,
+          currentDirectoryPath: fileSystem.currentDirectoryPath
+        )
+      }
       return PlanningErrorRenderer().render(error)
     }
   }
@@ -279,22 +286,24 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
   private func result(for entry: TrashPlanEntry) -> TrashResult {
     switch entry {
     case let .input(input):
-      execute(input)
+      return execute(input)
     case let .missing(path, ignored):
       if ignored {
-        skippedResult(for: entry, reason: .ignoredMissing)
+        return skippedResult(for: entry, reason: .ignoredMissing)
       } else {
-        rejectedResult(
+        let error = entry.planningError ?? .missingPath(path)
+        return rejectedResult(
           path: path,
-          code: .missingInput,
-          explanation: "The Trash Input does not exist."
+          code: error.code,
+          explanation: error.explanation
         )
       }
     case let .inaccessible(path):
-      rejectedResult(
+      let error = entry.planningError ?? .inaccessiblePath(path)
+      return rejectedResult(
         path: path,
-        code: .inaccessibleInput,
-        explanation: "The Trash Input cannot be inspected."
+        code: error.code,
+        explanation: error.explanation
       )
     }
   }
@@ -465,7 +474,6 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
   }
 
 }
-
 private enum ConfirmationDecision {
   case approved
   case rejected(

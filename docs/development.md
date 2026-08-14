@@ -96,10 +96,17 @@ safety-identity failures still reject the operation before any Trash capability 
 synchronous and serial, continues after item failures by default, and records all later entries as
 skipped after stop-on-error or interrupted per-input confirmation. Human output is rendered once
 from the complete ordered result set so standard, verbose, and quiet modes cannot change execution.
+JSON output is rendered from the same plan or result set as one deterministic schema-version-1
+document. It converts sources to absolute paths, retains exact moved destinations, and maps internal
+failure classifications to the stable external `failed` state without exposing Foundation error
+domains or numeric codes.
 
 Confirmation tests run through the public `CLIApplication` input/output seam with fake filesystem,
 prompt, and Trash capabilities. Platform prompt tests inject TTY, writer, and line-reader functions;
 the pure suite never reads its real stdin and never invokes the real Trash API.
+JSON contract tests use that same public seam and fixed document snapshots. They parse stdout as one
+complete document while independently asserting stderr diagnostics and exit codes; the renderer does
+not retain or upload the absolute paths it emits.
 
 ## 4. Canonical language
 
@@ -188,9 +195,9 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `97.20%`, ratcheted upward with platform Trash adapter,
-  deterministic confirmation, Finalizer failure classification, ordered batch result handling, and
-  review-remediation coverage without changing the coverage metric definition.
+- The v1 production coverage baseline is `97.31%`, ratcheted upward with platform Trash adapter,
+  deterministic confirmation, Finalizer failure classification, ordered batch and stable JSON
+  result handling, and review-remediation coverage without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.

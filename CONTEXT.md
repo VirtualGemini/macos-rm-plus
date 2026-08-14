@@ -52,6 +52,16 @@ Finder Automation consent, denial, timeout, and availability failures remain fai
 with stable codes; they never imply that another Trash API was attempted as a fallback.
 _Avoid_: Delete result, removal response
 
+**JSON Trash Operation Result**:
+The schema-version-1 machine representation of one Trash Operation. It contains aggregate success
+and counts plus one input-ordered item for every top-level Trash Input. JSON maps internal
+`rejected`, `not_moved`, and `state_uncertain` outcomes to the external `failed` state while retaining
+the stable rmp error code and human-readable message. Sources are absolute and moved destinations are
+the exact system-returned paths. Platform error domains and numeric codes are not part of this
+contract. Planning errors use the same typed classification in human and JSON rendering; an encoding
+failure leaves stdout empty instead of exposing a partial document.
+_Avoid_: JSON response, platform error result
+
 **Trash Finalizer**:
 An rmp-owned, UUID-named broken symbolic link used only after a user symbolic link enters Trash. A
 successful Foundation Trash call on the finalizer activates Put Back for the preceding user item;

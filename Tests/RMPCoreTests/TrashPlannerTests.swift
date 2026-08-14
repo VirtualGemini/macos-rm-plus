@@ -119,16 +119,31 @@ func symlinkEntryToProtectedDestinationIsAllowed() throws {
   #expect(plan.inputs == [expected])
 }
 
-@Test("A missing Trash Input fails planning by default")
-func missingTrashInputFailsPlanning() {
-  let fileSystem = FakeTrashPlanningFileSystem(entries: [:])
+@Test("Trash Plan retains missing and inaccessible entries independent of output")
+func trashPlanRetainsPlanningFailures() throws {
+  let fileSystem = FakeTrashPlanningFileSystem(
+    entries: [
+      "report.txt": .entry(.init(kind: .file, identity: .init(device: 1, inode: 10))),
+      "inaccessible": .inaccessible,
+    ]
+  )
 
-  do {
-    _ = try TrashPlanner(fileSystem: fileSystem).makePlan(paths: ["missing"])
-    Issue.record("Expected a missing Trash Input to fail planning")
-  } catch {
-    #expect(error == .missingPath("missing"))
-  }
+  let plan = try TrashPlanner(fileSystem: fileSystem).makePlan(
+    paths: ["report.txt", "missing", "inaccessible"]
+  )
+
+  #expect(
+    plan.entries == [
+      .input(
+        TrashInput(
+          path: "report.txt",
+          kind: .file,
+          plannedIdentity: .init(device: 1, inode: 10)
+        )),
+      .missing(path: "missing", ignored: false),
+      .inaccessible(path: "inaccessible"),
+    ]
+  )
 }
 
 struct FakeTrashPlanningFileSystem: TrashPlanningFileSystem {

@@ -24,8 +24,10 @@ Within `RMPCore`, command handling is layered through narrow module Interfaces:
 Platform adapters are supplied to `CLIApplication` through explicit `makeFileSystem`,
 `makeTrashClient`, and `makeConfirmationPrompt` factories. Information commands finish without
 invoking these factories. Dry-run commands invoke only the read-only filesystem factory. Actual
-commands reject root and unsupported output before filesystem construction, plan all inputs before
-prompting, and construct the Trash capability only for approved inputs.
+commands reject root before filesystem construction, plan all inputs before prompting, and construct
+the Trash capability only for approved inputs. Production supplies the current directory through a
+separate read-only closure so a root-rejected JSON operation can still report absolute sources
+without constructing the filesystem adapter.
 `RMPPlatform.StandardInputConfirmationPrompt` checks stdin TTY state, writes prompts to stderr, and
 maps terminal lines or interruption into raw confirmation responses; approval remains pure RMPCore
 policy. `RMPPlatform.MacOSTrashClient` owns production type dispatch and
@@ -37,6 +39,9 @@ a Trash Operation request or Trash Plan.
 Human output is rendered once from the complete ordered result set. Standard mode prints one exact
 escaped result for a single success or one aggregate summary for a batch; verbose prints every
 top-level result, and quiet suppresses normal output without suppressing diagnostics.
+JSON rendering consumes the same immutable plan or result set and writes one deterministic
+schema-version-1 document to stdout. It exposes stable RMPCore error codes rather than platform error
+domains or numeric codes; compatibility warnings and human diagnostics stay on stderr.
 
 `FinderTrashClient` invokes one fixed AppleScript handler with the approved source path supplied as a
 structured Apple Event argument. Finder executes `delete`, and the handler returns the deleted

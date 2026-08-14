@@ -10,7 +10,8 @@ let result = CLIApplication(
   makeFileSystem: { FoundationTrashPlanningFileSystem() },
   makeTrashClient: { MacOSTrashClient() },
   effectiveUserID: { UInt32(geteuid()) },
-  makeConfirmationPrompt: { StandardInputConfirmationPrompt() }
+  makeConfirmationPrompt: { StandardInputConfirmationPrompt() },
+  currentDirectoryPath: { FileManager.default.currentDirectoryPath }
 ).run(arguments: arguments)
 FileHandle.standardOutput.write(Data(result.standardOutput.utf8))
 FileHandle.standardError.write(Data(result.standardError.utf8))

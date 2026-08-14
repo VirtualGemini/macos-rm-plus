@@ -5,6 +5,7 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
   private let makeTrashClient: (() -> any TrashClient)?
   private let makeConfirmationPrompt: (() -> any ConfirmationPrompt)?
   private let effectiveUserID: () -> UInt32
+  private let makeCurrentDirectoryPath: () -> String
   private let renderer = DryRunRenderer()
 
   public init(makeFileSystem: @escaping () -> FileSystem) {
@@ -12,29 +13,34 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
     makeTrashClient = nil
     makeConfirmationPrompt = nil
     effectiveUserID = { 1 }
-  }
-
-  public init(
-    makeFileSystem: @escaping () -> FileSystem,
-    makeTrashClient: @escaping () -> any TrashClient,
-    effectiveUserID: @escaping () -> UInt32
-  ) {
-    self.makeFileSystem = makeFileSystem
-    self.makeTrashClient = makeTrashClient
-    makeConfirmationPrompt = nil
-    self.effectiveUserID = effectiveUserID
+    makeCurrentDirectoryPath = { "/" }
   }
 
   public init(
     makeFileSystem: @escaping () -> FileSystem,
     makeTrashClient: @escaping () -> any TrashClient,
     effectiveUserID: @escaping () -> UInt32,
-    makeConfirmationPrompt: @escaping () -> any ConfirmationPrompt
+    currentDirectoryPath: @escaping () -> String = { "/" }
+  ) {
+    self.makeFileSystem = makeFileSystem
+    self.makeTrashClient = makeTrashClient
+    makeConfirmationPrompt = nil
+    self.effectiveUserID = effectiveUserID
+    makeCurrentDirectoryPath = currentDirectoryPath
+  }
+
+  public init(
+    makeFileSystem: @escaping () -> FileSystem,
+    makeTrashClient: @escaping () -> any TrashClient,
+    effectiveUserID: @escaping () -> UInt32,
+    makeConfirmationPrompt: @escaping () -> any ConfirmationPrompt,
+    currentDirectoryPath: @escaping () -> String = { "/" }
   ) {
     self.makeFileSystem = makeFileSystem
     self.makeTrashClient = makeTrashClient
     self.makeConfirmationPrompt = makeConfirmationPrompt
     self.effectiveUserID = effectiveUserID
+    makeCurrentDirectoryPath = currentDirectoryPath
   }
 
   public func run(arguments: [String]) -> CommandResult {
@@ -72,6 +78,21 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
       let message =
         "rmp: \(TrashErrorCode.rootExecution.rawValue): refusing to move \(inputNoun) \(sources) "
         + "while running as root because Trash ownership and recovery would be unsafe\n"
+      if request.output == .json {
+        let result = JSONTrashRenderer().render(
+          paths: request.paths,
+          dryRun: false,
+          code: .rootExecution,
+          message: "Trash Operations cannot run as root.",
+          currentDirectoryPath: makeCurrentDirectoryPath(),
+          exitCode: 3
+        )
+        return .init(
+          standardOutput: result.standardOutput,
+          standardError: renderWarnings(warnings) + result.standardError + message,
+          exitCode: result.exitCode
+        )
+      }
       return .init(
         standardOutput: "",
         standardError: renderWarnings(warnings) + message,
@@ -84,17 +105,6 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
         standardOutput: result.standardOutput,
         standardError: renderWarnings(warnings) + result.standardError,
         exitCode: result.exitCode
-      )
-    }
-    guard request.output != .json else {
-      let sources = request.paths.map(renderer.renderPath).joined(separator: ", ")
-      return .init(
-        standardOutput: "",
-        standardError:
-          renderWarnings(warnings)
-          + "rmp: \(TrashErrorCode.unsupportedOutputMode.rawValue) for \(sources): "
-          + "JSON Trash Operation results are not available in this build\n",
-        exitCode: 2
       )
     }
     guard let makeTrashClient else {

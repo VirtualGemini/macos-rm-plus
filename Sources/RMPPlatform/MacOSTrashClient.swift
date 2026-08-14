@@ -7,11 +7,13 @@ import RMPCore
 public struct MacOSTrashClient: TrashClient {
   typealias RestoreItem = @Sendable (_ trashURL: URL, _ sourceURL: URL) throws -> Void
   typealias SystemTrash = @Sendable (URL) throws -> URL
+  typealias FinalizerCreated = @Sendable (URL) -> Void
   typealias FinalizerName = @Sendable () -> String
 
   private var finderTrash: SystemTrash
   private var foundationTrash: SystemTrash
   private var restoreItem: RestoreItem
+  private var finalizerCreated: FinalizerCreated
   private var finalizerName: FinalizerName
   private var performsFinalizerPreflight: Bool
 
@@ -23,6 +25,7 @@ public struct MacOSTrashClient: TrashClient {
     }
     foundationTrash = liveFoundationTrash
     restoreItem = liveRestoreItem
+    finalizerCreated = { _ in }
     finalizerName = liveFinalizerName
     performsFinalizerPreflight = false
   }
@@ -31,6 +34,7 @@ public struct MacOSTrashClient: TrashClient {
     finderTrash: @escaping SystemTrash,
     foundationTrash: @escaping SystemTrash,
     restoreItem: @escaping RestoreItem,
+    finalizerCreated: @escaping FinalizerCreated,
     finalizerName: @escaping FinalizerName,
     performsFinalizerPreflight: Bool
   ) {
@@ -38,6 +42,7 @@ public struct MacOSTrashClient: TrashClient {
     self.finderTrash = finderTrash
     self.foundationTrash = foundationTrash
     self.restoreItem = restoreItem
+    self.finalizerCreated = finalizerCreated
     self.finalizerName = finalizerName
     self.performsFinalizerPreflight = performsFinalizerPreflight
   }
@@ -145,14 +150,14 @@ public struct MacOSTrashClient: TrashClient {
     guard symlinkat("\(name)-absent", descriptor, name) == 0 else {
       throw FinalizerFailure.createFailed
     }
+    finalizerCreated(parentURL.appendingPathComponent(name))
 
     var status = stat()
     guard
       fstatat(descriptor, name, &status, AT_SYMLINK_NOFOLLOW) == 0,
       status.st_mode & S_IFMT == S_IFLNK
     else {
-      _ = unlinkat(descriptor, name, 0)
-      throw FinalizerFailure.identityMismatch
+      throw TrashCapabilityError(code: .finalizerCleanupFailed)
     }
     return PreparedFinalizer(
       sourceURL: parentURL.appendingPathComponent(name),
@@ -238,6 +243,7 @@ package func makeInjectedMacOSTrashClient(
   finderTrash: @escaping @Sendable (URL) throws -> URL,
   foundationTrash: @escaping @Sendable (URL) throws -> URL,
   restoreItem: @escaping @Sendable (URL, URL) throws -> Void = liveRestoreItem,
+  finalizerCreated: @escaping @Sendable (URL) -> Void = { _ in },
   finalizerName: @escaping @Sendable () -> String = liveFinalizerName,
   performsFinalizerPreflight: Bool = false
 ) -> any TrashClient {
@@ -245,6 +251,7 @@ package func makeInjectedMacOSTrashClient(
     finderTrash: finderTrash,
     foundationTrash: foundationTrash,
     restoreItem: restoreItem,
+    finalizerCreated: finalizerCreated,
     finalizerName: finalizerName,
     performsFinalizerPreflight: performsFinalizerPreflight
   )

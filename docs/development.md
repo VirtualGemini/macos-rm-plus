@@ -181,7 +181,7 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `96.77%`, ratcheted upward with platform Trash adapter,
+- The v1 production coverage baseline is `97.16%`, ratcheted upward with platform Trash adapter,
   deterministic confirmation, Finalizer failure classification, and review-remediation coverage
   without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
@@ -354,8 +354,10 @@ human control reliable. Every production target and activation Foundation call i
 authorized immediately before execution. User fixtures retain the run UUID prefix;
 internal helpers must be direct Run Directory children named exactly
 `.rmp-finalizer-<canonical-lowercase-uuid>` and must remain symbolic links with their planned
-identity. Any production warning fails the acceptance while retaining the exact target evidence.
-The scenario fixes the settle bucket at zero, performs no post-Trash wait, and reports
+identity. The wrapper revalidates the complete Test Safety Context immediately before the real
+Finalizer restore move; a changed directory identity or marker prevents that call. Any production
+warning fails the acceptance while retaining the exact target evidence. The scenario fixes the
+settle bucket at zero, performs no post-Trash wait, and reports
 `foundation-finalizer=production-cleaned` on normal completion.
 
 Before a target receipt exists, a failure in preparation, diagnostic preflight, or the target Trash

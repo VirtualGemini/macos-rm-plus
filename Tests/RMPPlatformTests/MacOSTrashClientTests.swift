@@ -233,6 +233,33 @@ struct MacOSTrashClientTests {
     )
     #expect(try fixture.trashEntryNames().isEmpty)
   }
+
+  @Test("an unverified prepared Finalizer is preserved instead of removed by name")
+  func unverifiedPreparedFinalizerIsPreserved() throws {
+    let fixture = try RecoverableTrashFixture()
+    defer { fixture.remove() }
+    let simulator = UnverifiedFinalizerSimulator()
+    let client = makeInjectedMacOSTrashClient(
+      finderTrash: { _ in throw InjectedTrashFailure() },
+      foundationTrash: { _ in
+        Issue.record("Foundation must not run after Finalizer identity verification fails")
+        throw InjectedTrashFailure()
+      },
+      finalizerCreated: simulator.replace
+    )
+
+    do {
+      _ = try client.trashItem(atPath: fixture.linkURL.path)
+      Issue.record("Expected Finalizer identity verification to fail")
+    } catch let error as TrashCapabilityError {
+      #expect(error.code == .finalizerCleanupFailed)
+    }
+
+    #expect(simulator.replacementName != nil)
+    #expect(try fixture.sourceEntryNames().contains(simulator.replacementName ?? ""))
+    #expect(macOSEntryExists(at: fixture.linkURL))
+    #expect(try fixture.trashEntryNames().isEmpty)
+  }
 }
 
 extension MacOSTrashClientTests {

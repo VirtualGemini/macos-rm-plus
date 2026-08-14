@@ -81,6 +81,20 @@ final class ReplacedFinalizerFailureSimulator: @unchecked Sendable {
   }
 }
 
+final class UnverifiedFinalizerSimulator: @unchecked Sendable {
+  private(set) var replacementName: String?
+
+  func replace(_ finalizerURL: URL) {
+    do {
+      try FileManager.default.removeItem(at: finalizerURL)
+      try Data("unverified replacement\n".utf8).write(to: finalizerURL)
+      replacementName = finalizerURL.lastPathComponent
+    } catch {
+      replacementName = nil
+    }
+  }
+}
+
 final class ActivationRetrySimulator: @unchecked Sendable {
   private let trashDirectoryURL: URL
   private(set) var recoverablePaths: Set<String> = []

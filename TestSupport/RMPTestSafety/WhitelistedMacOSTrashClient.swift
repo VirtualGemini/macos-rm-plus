@@ -55,6 +55,10 @@ final class WhitelistedMacOSTrashClient {
       fault: fault,
       finalizerPrefix: finalizerPrefix
     )
+    let finalizerRestorer = TestSafetyFinalizerRestorer(
+      context: context,
+      restoreItem: restoreItem
+    )
     trashClient = makeInjectedMacOSTrashClient(
       finderTrash: { _ in
         throw TestSafetyDiagnostic(
@@ -76,7 +80,7 @@ final class WhitelistedMacOSTrashClient {
           try foundationTrashClient.trashItem(authorizedTarget).returnedURL
         }
       },
-      restoreItem: restoreItem,
+      restoreItem: finalizerRestorer.restore,
       finalizerName: { finalizerName.makeName(runID: runID) },
       performsFinalizerPreflight: preflight.isEnabled
     )
@@ -164,6 +168,24 @@ final class WhitelistedMacOSTrashClient {
 private struct VerifiedProductionTrashResult {
   let evidence: TrashVerificationEvidence
   let warnings: [TrashMoveWarning]
+}
+
+private final class TestSafetyFinalizerRestorer: @unchecked Sendable {
+  private let context: TestSafetyContext
+  private let restoreItem: @Sendable (URL, URL) throws -> Void
+
+  init(
+    context: TestSafetyContext,
+    restoreItem: @escaping @Sendable (URL, URL) throws -> Void
+  ) {
+    self.context = context
+    self.restoreItem = restoreItem
+  }
+
+  func restore(_ trashURL: URL, _ sourceURL: URL) throws {
+    try context.revalidate()
+    try restoreItem(trashURL, sourceURL)
+  }
 }
 
 private final class ProductionFinalizerFaultInjector: @unchecked Sendable {

@@ -21,16 +21,15 @@ otherwise equivalent preflight-enabled probe failed while two resolving-link pro
 broken-link probe without it offered Put Back. Production-default resolving-link run
 `a23a6d5a-21e2-415b-b512-681630c573b9` confirmed that result without a diagnostic override.
 
-The pure suite has 219 tests in 20 suites. Review remediation adds explicit
+The pure suite has 221 tests in 20 suites. Review remediation adds explicit
 `finalizer_cleanup_failed` reporting when a target has not moved but a prepared helper cannot be
 safely cleaned up, and adds a whitelisted `duplicate-trash-name` acceptance that records two exact
 system receipts without searching Trash. Real run `0be21573-4de3-4465-9c86-74717a1255ca`
 confirmed Finder renamed the second same-source item and returned distinct URLs. Production line
-coverage is 96.77%.
+coverage is 97.16%.
 
 Outstanding before release:
 
-- **Agent-runnable.** Complete the remaining release gates.
 - **Maintainer only.** The Feedback Assistant report to Apple about the
   `.DS_Store` coherence race, and the release decision itself.
 
@@ -1165,3 +1164,19 @@ and confirmed Finder offered Put Back. Together with broken-link run
 Resolving links have two independently named no-preflight diagnosis successes plus production-default
 acceptance `a23a6d5a-21e2-415b-b512-681630c573b9`, so the requested repeated normal reliability rounds
 are complete on the reporting host.
+
+2026-08-13 — Final Standards review found that the post-`symlinkat` first-identity-failure branch
+still unlinked the helper basename without a verified device/inode and discarded the `unlinkat`
+result. A deterministic red test replaced the just-created helper before that identity read: the old
+code returned `trash_system_call_failed` and deleted the replacement. Production now preserves any
+entry that cannot pass its first identity check and reports `finalizer_cleanup_failed`; the same test
+passes with the replacement and user target intact. The final pure suite passes 220 tests in 20
+suites, Release builds, and production line coverage ratchets to 97.16%.
+
+2026-08-14 — Final Spec review found that the production acceptance wrapper revalidated the Test
+Safety Context before every real Foundation Trash call but not immediately before the real
+Finalizer restore move. A deterministic red test invalidated the run marker after activation Trash:
+the old wrapper still called restore once and incorrectly succeeded. The wrapper now uses a private
+restorer boundary that revalidates the complete context before delegating to `FileManager.moveItem`.
+The same test now fails closed with zero restore calls and retains the moved Finalizer as evidence.
+The complete pure suite passes 221 tests in 20 suites.

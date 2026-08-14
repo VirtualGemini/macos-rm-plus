@@ -77,6 +77,27 @@ struct WhitelistedMacOSTrashClientTests {
       try harness.trashEntryNames().count { $0.hasPrefix(".rmp-finalizer-") } == 1
     )
   }
+
+  @Test("revalidates the Test Safety Context before restoring a Finalizer")
+  func revalidatesBeforeFinalizerRestore() throws {
+    let harness = try ProductionFinalizerHarness()
+    defer { harness.remove() }
+    let invalidatingTrash = MarkerInvalidatingTrash(
+      simulator: harness.simulator,
+      markerURL: harness.context.runMarkerURL
+    )
+    let restore = FinalizerRestoreSpy()
+    let client = harness.makeClient(systemTrash: invalidatingTrash.trash, restoreItem: restore.call)
+
+    let diagnostic = captureDiagnostic { _ = try client.trashItem(harness.linkURL) }
+
+    #expect(diagnostic?.code == .finalizerCleanupFailed)
+    #expect(restore.callCount == 0)
+    #expect(!macOSEntryExists(at: harness.linkURL))
+    #expect(
+      try harness.trashEntryNames().count { $0.hasPrefix(".rmp-finalizer-") } == 1
+    )
+  }
 }
 // swiftlint:enable inclusive_language
 
@@ -110,7 +131,11 @@ private final class ProductionFinalizerHarness {
   }
 
   func makeClient(
-    fault: ProductionFinalizerFault = .none
+    fault: ProductionFinalizerFault = .none,
+    systemTrash: (@Sendable (URL) throws -> URL)? = nil,
+    restoreItem: @escaping @Sendable (URL, URL) throws -> Void = { sourceURL, destinationURL in
+      try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+    }
   ) -> WhitelistedMacOSTrashClient {
     let calls = ActivationFailureSwitch(
       simulator: simulator,
@@ -125,12 +150,13 @@ private final class ProductionFinalizerHarness {
         deviceMatchesRun: { $0 == $1 },
         resourceIdentifier: testSafetyResourceIdentifier
       ),
-      systemTrash: calls.trash
+      systemTrash: systemTrash ?? calls.trash
     )
     return WhitelistedMacOSTrashClient(
       context: context,
       foundationTrashClient: trashClient,
       resourceIdentifier: testSafetyResourceIdentifier,
+      restoreItem: restoreItem,
       fault: fault
     )
   }
@@ -147,6 +173,35 @@ private final class ProductionFinalizerHarness {
 
   func remove() {
     fixture.remove()
+  }
+}
+
+private final class MarkerInvalidatingTrash: @unchecked Sendable {
+  private let simulator: FoundationTrashSimulator
+  private let markerURL: URL
+  private var callCount = 0
+
+  init(simulator: FoundationTrashSimulator, markerURL: URL) {
+    self.simulator = simulator
+    self.markerURL = markerURL
+  }
+
+  func trash(_ sourceURL: URL) throws -> URL {
+    callCount += 1
+    let returnedURL = try simulator.trash(sourceURL)
+    if callCount == 2 {
+      try Data("invalid marker\n".utf8).write(to: markerURL)
+    }
+    return returnedURL
+  }
+}
+
+private final class FinalizerRestoreSpy: @unchecked Sendable {
+  private(set) var callCount = 0
+
+  func call(_ sourceURL: URL, _ destinationURL: URL) throws {
+    callCount += 1
+    try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
   }
 }
 

@@ -21,7 +21,8 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   `finalizer_cleanup_failed` with exit code 1. Retry only when the failed finalizer's original
   identity can still be verified and removed at its source.
 - Report `finalizer_cleanup_failed` instead of silently discarding a cleanup error when the user
-  target has not moved and a prepared Finalizer can no longer be safely removed.
+  target has not moved and a prepared Finalizer can no longer be safely removed. Preserve a newly
+  created helper whose first identity check fails rather than deleting an unverified basename.
 - Resolve the AppleScript file specification outside Finder's `tell` block so approved paths reach
   Finder correctly, and add a compile-time-isolated Swift acceptance that performs first Trash,
   exact Put Back, and immediate second Trash in one process for issue 12's manual Finder check.
@@ -46,7 +47,7 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   previously observed ten-second workaround as a proven threshold.
 - Document the rapid same-name restore/re-trash Put Back limitation and its wait, rename, and
   Finder-delete workarounds for existing Foundation-backed builds.
-- Ratchet the production line-coverage baseline from 95.70% to 96.77% with platform-adapter and
+- Ratchet the production line-coverage baseline from 95.70% to 97.16% with platform-adapter and
   Finalizer failure-classification tests, without changing the coverage metric.
 - Reserve `not_moved` and `state_uncertain` for post-system-call outcome classification, report
   pre-capability unsupported inputs as `rejected`, and include stable codes plus affected source
@@ -63,7 +64,8 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Add a maintainer-only production-finalizer acceptance that uses a separate Finder ordinary-file
   control for the maintainer's real Put Back, then runs the symbolic-link target through a normal or
   fault-injected `MacOSTrashClient`; every internal Foundation call is independently reauthorized by
-  the Test Safety Context whitelist.
+  the Test Safety Context whitelist, and the exact Finalizer restore revalidates that context before
+  its real move.
 - Add test-only single-cycle Finalizer fault modes that verify backup recovery after a definitely
   not-moved failure and preserve `finalizer_state_uncertain` without invoking the backup when the
   first Finalizer moved before the injected error.

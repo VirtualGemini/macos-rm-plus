@@ -358,7 +358,8 @@ Finalizer，并验证其符号链接类型及 device/inode。生产路径不得�
 发生在用户目标移动之前并阻止该移动。用户目标尚无移动回执时，任何已经创建的 Finalizer 都必须逐一
 执行身份验证清理；只要一项不能安全移除，就必须用稳定错误码 `finalizer_cleanup_failed` 报告，不得吞掉
 清理错误或只返回最初的系统错误。用户目标的 `not_moved` 或 `state_uncertain` 状态仍由调用后的源身份检查
-决定。
+决定。新建 Finalizer 的首次身份读取失败或类型不符时，不能排除同名并发替换，因此不得直接按名称
+`unlink`；必须保留该条目作为现场并报告同一个稳定清理错误。
 
 FR-SAFE-017：用户符号链接进入废纸篓后，必须串行尝试已经预创建的 Finalizer，直到一次 Foundation
 Trash 成功。成功返回的 Finalizer URL 必须在恢复前验证符号链接类型和原 device/inode，恢复后再次

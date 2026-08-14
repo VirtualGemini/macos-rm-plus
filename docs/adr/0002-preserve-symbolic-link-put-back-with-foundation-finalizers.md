@@ -56,7 +56,9 @@ moved target receipt exists. Cleanup of every already prepared Finalizer is then
 identity-checked. If any such cleanup cannot be completed, the original failure is replaced by the
 stable `finalizer_cleanup_failed` capability error so the residue is never silently hidden. The
 ordinary post-call identity check still determines whether the user target is `not_moved` or
-`state_uncertain`.
+`state_uncertain`. If a newly created Finalizer cannot pass its first identity check, the client
+does not unlink that basename because concurrent replacement cannot be excluded; it preserves the
+entry as evidence and reports the same stable cleanup failure.
 
 ## Consequences
 
@@ -72,7 +74,8 @@ moves a separate ordinary-file control through Finder, which establishes a relia
 maintainer's real Finder Put Back. Only after that exact restore is observed and revalidated does a
 production client Trash the symbolic-link target under the normal or injected scenario. Every
 internal target and finalizer Foundation call passes through the Test Safety Context
-whitelist. The test executable can inject a single first-activation failure either before the
+whitelist, and its restore wrapper revalidates that context immediately before the real move. The
+test executable can inject a single first-activation failure either before the
 Foundation call or after the real whitelisted call has moved the Finalizer. These modes verify backup
 recovery and the moved-before-error stop rule without exposing fault controls in production `rmp`.
 

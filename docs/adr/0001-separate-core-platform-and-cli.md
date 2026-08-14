@@ -59,6 +59,6 @@ that reads the home Trash.
 
 Issue 12 demonstrated that Finder can overwrite Put Back metadata written by both Foundation and
 Workspace callers during a rapid same-name re-trash. The maintainer accepted the first-use macOS
-Automation authorization cost so Finder can be the writer for the second Trash Operation. The
-candidate still requires the ticket's maintainer-run Automation and Put Back differentials before
-release.
+Automation authorization cost so Finder can be the writer for ordinary Trash Operations. The
+ticket's maintainer-run Automation and Put Back differentials are complete on the reporting host;
+the recorded evidence and remaining release decision live in issue 12.

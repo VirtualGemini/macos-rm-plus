@@ -11,9 +11,10 @@ Within `RMPCore`, command handling is layered through narrow module Interfaces:
   Operation requests.
 - `DryRunApplication` is an internal use-case module. It accepts an already parsed native request and
   returns a command result; it does not parse command-line arguments.
-- `TrashOperationApplication` is the internal non-dry-run use-case module for the current confirmation
-  slice. It plans every top-level input before prompting, applies batch or per-input confirmation,
-  and delegates only approved inputs to `SingleTrashExecutor` in input order.
+- `TrashOperationApplication` is the internal non-dry-run use-case module. It retains one ordered
+  plan entry per supplied path, plans every top-level input before prompting, applies batch or
+  per-input confirmation, delegates only approved inputs to `SingleTrashExecutor` serially, and
+  records later entries as skipped when stop-on-error or interrupted confirmation ends processing.
 - `SingleTrashExecutor` records the exact system-returned destination or classifies a failure as
   `not_moved` versus `state_uncertain` by re-inspecting the original entry through the filesystem
   seam. Its only mutation-capable dependency is the narrow `TrashClient` Interface.
@@ -32,6 +33,10 @@ policy. `RMPPlatform.MacOSTrashClient` owns production type dispatch and
 compile-time-isolated test executable reaches it only through `WhitelistedTrashClient`.
 Compatibility diagnostics remain beside the parsed command in the CLI envelope rather than entering
 a Trash Operation request or Trash Plan.
+
+Human output is rendered once from the complete ordered result set. Standard mode prints one exact
+escaped result for a single success or one aggregate summary for a batch; verbose prints every
+top-level result, and quiet suppresses normal output without suppressing diagnostics.
 
 `FinderTrashClient` invokes one fixed AppleScript handler with the approved source path supplied as a
 structured Apple Event argument. Finder executes `delete`, and the handler returns the deleted

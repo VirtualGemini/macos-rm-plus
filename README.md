@@ -26,11 +26,24 @@ concise native help, `rmp --help -a` for the compatibility matrix, and add `-zh`
 Help and version commands complete without constructing the platform filesystem adapter or inspecting
 Trash Inputs.
 
+Trash Inputs are processed serially in command-line order. By default, a missing or failed input is
+reported and later inputs continue; `--stop-on-error` records every later input as skipped instead.
+`--ignore-missing` keeps an absent input in the ordered result set but suppresses its diagnostic and
+does not make the operation fail. A single standard-mode success prints its escaped source and exact
+system-returned Trash destination on one line. A batch prints one aggregate summary, `--verbose`
+prints every top-level result, and `--quiet` suppresses normal output without hiding warnings or
+errors.
+
 Smart confirmation moves one ordinary file or link without prompting and asks once for multiple
 top-level inputs or any directory. `never` never prompts, `once` asks once, and `each` asks before
 each input. Prompts are written to stderr; only `y` or `yes`, ignoring case and surrounding
 whitespace, approves a move. A declined, invalid, interrupted, non-interactive, or non-TTY
 confirmation exits with code 1 and never authorizes the affected Trash call.
+
+The `-P` Compatibility Option always warns on stderr that secure overwrite is not performed,
+including with non-TTY input, `--non-interactive`, `--quiet`, or redirected output. The warning alone
+does not change a successful exit code. With `--strict-options`, `-P` is a usage error and parsing
+stops before filesystem inspection, confirmation, or Trash capability construction.
 
 All inputs are planned before confirmation, so root execution and Protected Paths still fail with
 exit code 3 before any prompt or Trash capability. Approved ordinary files and directories are

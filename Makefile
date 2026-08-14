@@ -13,6 +13,7 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
 	build build-release test test-unit test-integration test-put-back-race \
+	test-ordered-batch \
 	test-put-back-race-manual test-put-back-symlink-delay-manual \
 	test-put-back-symlink-finalizer-manual test-put-back-symlink-production-manual \
 	test-put-back-symlink-production-probe \
@@ -121,6 +122,10 @@ test-put-back-symlink-production-probe:
 
 test-duplicate-trash-name:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test duplicate-trash-name \
+		--test-run-id "$(TEST_RUN_ID)"
+
+test-ordered-batch:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test ordered-batch \
 		--test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:

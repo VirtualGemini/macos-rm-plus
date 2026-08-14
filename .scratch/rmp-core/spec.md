@@ -221,6 +221,12 @@ v0.1.0 的版本输出固定为 `rmp 0.1.0`。帮助与版本命令在进入路�
 | `-P` | 接受并向 stderr 警告 | 报错 | 不执行安全覆写；不得静默制造擦除预期 |
 | `-W` | 报错 | 报错 | 表示不同操作意图，不能作为无操作参数处理 |
 
+默认模式只要接受了 `-P`，就必须将警告写入 stderr；该行为不依赖 stdin、stdout 或 stderr 是否为
+TTY。`--non-interactive`、`--quiet`、输出重定向和 `--json` 均不得抑制该警告，且 JSON 模式的
+stdout 仍只能包含 JSON 文档。警告本身不改变退出码；退出码由命令的其余结果决定。严格模式下
+`-P` 是用法错误，返回退出码 2，不再同时输出“已接受但无效果”的警告，也不得进入路径检查或
+Trash 能力调用。
+
 兼容参数不在主帮助的选项列表中。用户可以运行：
 
 ```shell
@@ -429,17 +435,25 @@ FR-EXEC-007：启用 ignore-missing 后，不存在路径不输出错误，也�
 - 正常人类输出写入 stdout。
 - 警告和错误写入 stderr。
 - `--json` 模式下，stdout 只包含一个完整 JSON 文档。
-- `--quiet` 不抑制 stderr 错误。
+- `--quiet` 不抑制 stderr 警告或错误。
 
 ### 12.2 默认输出
 
-成功且未启用 verbose 时，输出最终摘要：
+未启用 `--verbose`、`--quiet` 或 `--json` 时，单个项目成功必须输出一行结果，格式为：
+
+```text
+Moved "<source>" to Trash at "<destination>".
+```
+
+`<source>` 使用用户提供的源路径，`<destination>` 使用系统废纸篓 API 返回的精确最终目标路径；
+两者都使用单行转义，不能因换行或其他控制字符破坏记录边界。该行与 verbose 模式的成功项目格式
+一致。`--quiet` 抑制该正常输出，`--json` 只按第 13 节输出 JSON，二者都不能丢失 stderr 诊断。
+
+默认模式处理两个或更多顶层项目时，不逐项输出成功记录，而是输出一行最终摘要，例如：
 
 ```text
 Moved 3 items to Trash; 1 failed.
 ```
-
-单个成功操作可以保持安静；是否显示摘要由实现阶段的可用性测试最终确定，但必须在同一版本内保持一致。
 
 ### 12.3 退出码
 
@@ -456,9 +470,9 @@ Moved 3 items to Trash; 1 failed.
 `rejected` 状态；`not_moved` 与 `state_uncertain` 仅用于系统废纸篓调用失败后的最终状态分类。
 当前构建尚未实现非 dry-run JSON 时，必须以稳定的 `unsupported_output_mode` 码和源路径 fail-closed。
 已移动结果可以携带稳定 Trash Warning；warning 不得删除或隐藏精确 destination，也不得改写为
-`not_moved` 或 `state_uncertain`。当前确认切片可以将已批准的多个顶层输入按输入顺序交给系统 Trash
-能力；完整的 missing、
-partial-success 和 skipped 批量结果模型仍由有序批处理切片实现。
+`not_moved` 或 `state_uncertain`。有序批处理为每个顶层输入保留一个结果；默认失败后继续，
+`--stop-on-error` 将后续输入记录为 skipped，ignored missing 不输出错误且不影响退出码。系统 Trash
+能力调用始终按命令行顺序串行进行。
 
 ## 13. JSON 输出契约
 
@@ -773,17 +787,31 @@ guard isInsideAuthorizedTestRoot(url) else {
 
 生产模式和测试模式必须在构建配置或依赖注入边界上明确区分。生产版本不得包含通过环境变量启用、关闭或改变测试白名单的后门。
 
-### 17.2 参数解析测试
+### 17.2 参数解析与 CLI 输出测试
 
-必须覆盖：
+参数解析必须覆盖：
 
 - `-rf`、`-Rfv`、`-fi`、`-if`。
 - 重复和相互覆盖的确认选项。
 - `--` 和以连字符开头的路径。
 - 未知选项。
-- `-P` 警告与严格模式。
+- `-P` 警告与严格模式，包括选项出现顺序不影响严格拒绝。
 - `-W` 拒绝。
 - 原生长选项和兼容短选项混合顺序。
+
+CLI 输出契约必须通过纯测试覆盖：
+
+- 默认模式下，单个成功项目的 stdout 必须精确等于一行成功结果，并同时包含用户提供的源路径和
+  TrashClient 回执中的精确 destination；包含控制字符的路径仍只占一行。
+- 同一单项成功在 verbose 模式使用相同的逐项结果格式；quiet 模式 stdout 为空；JSON 模式不包含
+  人类可读成功行。
+- 默认批量模式只输出一行最终摘要，verbose 模式按输入顺序输出每个顶层结果，quiet 模式不输出
+  正常结果；三种模式都不得抑制 stderr 警告或错误。
+- 默认模式接受 `-P` 时，无论 stdin 是否为 TTY、是否启用 `--non-interactive` 或 `--quiet`，都在
+  stderr 输出安全覆写未执行的警告；JSON 模式同时证明 stdout 仍是单个完整 JSON 文档。
+- 仅有 `-P` 兼容警告时，成功操作的退出码仍为 0；操作本身失败时保留相应非零退出码。
+- `--strict-options -P` 与 `-P --strict-options` 都返回退出码 2，只输出严格模式用法错误，并证明
+  路径检查、确认和 TrashClient 调用次数均为零。
 
 ### 17.3 文件系统集成测试
 
@@ -805,6 +833,12 @@ guard isInsideAuthorizedTestRoot(url) else {
 - 中间目录被替换为指向白名单外的符号链接时操作被拒绝。
 - 外层容器、测试根目录或运行目录的 device/inode 在运行中变化时操作被拒绝。
 - 目标或中间目录跨卷、成为挂载点或进入 File Provider 特殊根时操作被拒绝。
+
+有序批处理的 maintainer-only 覆盖通过
+`make test-ordered-batch TEST_RUN_ID=<canonical-lowercase-uuid>` 运行。该命令只在完整 Test Safety
+Context 内创建自己的文件、空目录、深层目录、特殊字符文件、missing path 和权限失败 fixture；所有
+真实 Finder Trash 调用都先取得 whitelist 规划授权，并在系统调用前再次验证上下文。该命令不属于
+`make test`、`make check` 或 CI，且会保留 Run Directory 与精确 Trash 回执供人工检查。
 - 测试误调用生产 `rmp` 或缺少 `RMP_TESTING` 构建标识时，在路径解析前失败。
 - 缺少、格式错误或与 marker 不匹配的 `--test-run-id` 在路径解析前失败。
 - 所有真实 fixture 名称包含当前 run UUID 前缀。
@@ -948,9 +982,6 @@ guard isInsideAuthorizedTestRoot(url) else {
 
 以下项目不阻塞 PRD，但必须在实现对应功能前确定：
 
-- 单个成功操作输出一行结果，包含用户提供的源路径和系统废纸篓 API 返回的精确最终目标路径；
-  该决定在批量输出实现时继续保持一致。
-- `-P` 警告是否在非 TTY 环境默认显示。
 - JSON 中是否包含平台适配器的原始 `NSError` 域和错误码。
 - 最低 macOS 版本是否需要低于 macOS 13。
 - Homebrew 首版采用源码构建还是预编译 bottle。

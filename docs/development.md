@@ -90,6 +90,13 @@ global validation. Compatibility diagnostics stay in the CLI result envelope and
 native Trash Operation request passed to planning or execution modules. The module responsibilities
 and Interfaces are recorded in ADR-0001.
 
+Non-dry-run planning retains one ordered entry for every supplied top-level path. Missing and
+inaccessible entries become pre-capability Trash Results, while Protected Path and unavailable
+safety-identity failures still reject the operation before any Trash capability call. Execution is
+synchronous and serial, continues after item failures by default, and records all later entries as
+skipped after stop-on-error or interrupted per-input confirmation. Human output is rendered once
+from the complete ordered result set so standard, verbose, and quiet modes cannot change execution.
+
 Confirmation tests run through the public `CLIApplication` input/output seam with fake filesystem,
 prompt, and Trash capabilities. Platform prompt tests inject TTY, writer, and line-reader functions;
 the pure suite never reads its real stdin and never invokes the real Trash API.
@@ -181,9 +188,9 @@ the pure suite never reads its real stdin and never invokes the real Trash API.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `97.16%`, ratcheted upward with platform Trash adapter,
-  deterministic confirmation, Finalizer failure classification, and review-remediation coverage
-  without changing the coverage metric definition.
+- The v1 production coverage baseline is `97.20%`, ratcheted upward with platform Trash adapter,
+  deterministic confirmation, Finalizer failure classification, ordered batch result handling, and
+  review-remediation coverage without changing the coverage metric definition.
 - `.coverage-metric-version` identifies the measurement definition. Changing which binaries or
   source classes count requires incrementing it and establishes a new reviewed baseline; subsequent
   PRs are compared only within that metric version.
@@ -275,6 +282,15 @@ revalidates the complete Test Safety Context and target immediately before the s
 returns read-only verification evidence. Pure tests inject Trash spies and never invoke the real
 capability. The integration runner remains separately guarded and cannot be enabled through an
 environment switch in the production executable.
+
+`rmp-test ordered-batch` is the maintainer-only real-filesystem acceptance for ordered execution. It
+creates a file, empty directory, deep directory, quoted/newline filename, missing path, and nested
+permission-denied fixture inside one authorized Run Directory. Existing fixtures are converted to
+opaque whitelist authorizations before CLI execution; the adapter revalidates each target and the
+complete Test Safety Context immediately before its Finder call. The command requires partial
+success, exact ordered receipts, stable missing and permission diagnostics, and verified final
+source states. It restores the permission fixture directory to `0700`, preserves the Run Directory
+and Trash receipts for inspection, and is excluded from default tests and CI.
 
 The compile-time-isolated `rmp-test` target has a separate capability for reproducing issue 12's
 symbolic-link behavior. `FoundationSymlinkTrashClient` uses
@@ -407,7 +423,7 @@ cycle, and the command ends with a single summary listing every second-Trash tar
 30-cycle differential costs one command and one inspection pass rather than thirty. A cycle that
 fails still prints the evidence of the cycles already completed before it reports the failure.
 
-These real acceptances are maintainer-invoked only and are excluded from `make test`, `make check`,
+These Put Back acceptances are maintainer-invoked only and are excluded from `make test`, `make check`,
 and CI. They intentionally preserve the validated Run Directory after the second Trash call so
 Finder's final Put Back destination continues to exist during human inspection. Each command prints
 that Run Directory and the exact second Trash URL; retained acceptance evidence is not recursively
@@ -436,6 +452,7 @@ make build              Build every package target in Debug
 make build-release      Build every package target in Release
 make test               Run safe pure tests
 make test-unit          Run safe pure tests
+make test-ordered-batch TEST_RUN_ID=<uuid> Run the maintainer-only ordered batch acceptance
 make test-put-back-race TEST_RUN_ID=<uuid> Run the maintainer-only issue 12 Swift acceptance
 make test-put-back-race-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=] [FIXTURE=] Put Back
 make test-put-back-symlink-delay-manual TEST_RUN_ID=<uuid> [SETTLE_SECONDS=] [CYCLES=]

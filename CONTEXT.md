@@ -9,7 +9,9 @@ One complete rmp invocation and its aggregate outcome.
 _Avoid_: Delete operation, removal job
 
 **Trash Plan**:
-The immutable description of the top-level work rmp intends to perform before any item is moved.
+The immutable, input-ordered description of the top-level work rmp intends to perform before any
+item is moved. It retains ready inputs plus missing and inaccessible planning outcomes so execution
+can produce exactly one Trash Result for every supplied path.
 _Avoid_: Removal plan, delete plan
 
 **Trash Input**:
@@ -39,6 +41,9 @@ The planned, moved, failed, or skipped outcome for one Trash Input.
 Pre-capability validation failures use `rejected`; they do not claim that a post-call filesystem
 identity check occurred.
 Operation-scope rejections carry stable codes and identify every affected top-level source path.
+An ignored missing input is skipped without an error or nonzero exit-status effect. With
+stop-on-error, every input after the first failure is skipped without reaching confirmation or the
+Trash capability.
 Trash execution distinguishes `not_moved`, used only when the original directory entry's kind
 and filesystem identity can be confirmed unchanged after a system Trash failure, from
 `state_uncertain`, used whenever the final source state cannot be established reliably. A moved

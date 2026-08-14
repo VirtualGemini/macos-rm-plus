@@ -10,6 +10,7 @@ import Foundation
 private let helpText = """
   Usage: rmp-test put-back-race --test-run-id <uuid>
          rmp-test duplicate-trash-name --test-run-id <uuid>
+         rmp-test ordered-batch --test-run-id <uuid>
          rmp-test put-back-race-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-delay-manual [OPTIONS] --test-run-id <uuid>
          rmp-test put-back-symlink-finalizer-manual [OPTIONS] --test-run-id <uuid>
@@ -64,6 +65,7 @@ private enum RMPTestEntrypoint {
         runtime: currentRuntime
       )
     }
+    executeOrderedBatchIfRequested(arguments: arguments)
     if arguments.first == "put-back-race-manual" {
       executePutBackRace(arguments: Array(arguments.dropFirst()), restore: .manualFinderMenu)
     }
@@ -330,7 +332,7 @@ private enum RMPTestEntrypoint {
     }
   }
 
-  private static func currentRuntime() throws -> TestSafetyRuntime {
+  fileprivate static func currentRuntime() throws -> TestSafetyRuntime {
     let effectiveUserID = geteuid()
     return TestSafetyRuntime(
       effectiveUserID: effectiveUserID,
@@ -338,6 +340,35 @@ private enum RMPTestEntrypoint {
       executableName: try loadedExecutableName()
     )
   }
+
+}
+
+private func executeOrderedBatchIfRequested(arguments: [String]) {
+  guard arguments.first == "ordered-batch" else { return }
+  executeOrderedBatch(arguments: Array(arguments.dropFirst()))
+}
+
+private func executeOrderedBatch(arguments: [String]) -> Never {
+  let result = TestSafetyDriver.runWithInjectedRuntime(
+    arguments: arguments,
+    cleanupPolicy: .preserveRunDirectory
+  ) {
+    try RMPTestEntrypoint.currentRuntime()
+  } operation: { context, paths in
+    guard paths.isEmpty else {
+      throw TestSafetyDiagnostic(
+        code: .invalidCommandArguments,
+        message: "ordered-batch creates its own Test Fixtures and accepts no paths."
+      )
+    }
+    let report = try OrderedBatchAcceptance.run(context: context)
+    FileHandle.standardOutput.write(Data(report.renderSummary().utf8))
+    return 0
+  }
+  if let diagnostic = result.diagnostic {
+    FileHandle.standardError.write(Data("\(diagnostic)\n".utf8))
+  }
+  exit(result.exitCode)
 }
 
 private func executeProductionProbe(

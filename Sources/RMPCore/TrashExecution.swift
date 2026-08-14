@@ -71,6 +71,7 @@ public protocol ConfirmationPrompt: Sendable {
 enum TrashResultStatus: String, Equatable, Sendable {
   case moved
   case rejected
+  case skipped
   case notMoved = "not_moved"
   case stateUncertain = "state_uncertain"
 }
@@ -85,8 +86,23 @@ struct TrashResult: Equatable, Sendable {
   let destinationPath: String?
   let kind: TrashInputKind
   let status: TrashResultStatus
+  let skipReason: TrashSkipReason?
   let warnings: [TrashMoveWarning]
   let error: TrashFailure?
+
+  var requiresFailureExit: Bool {
+    switch status {
+    case .moved: !warnings.isEmpty
+    case .skipped: false
+    case .rejected, .notMoved, .stateUncertain: true
+    }
+  }
+}
+
+enum TrashSkipReason: Equatable, Sendable {
+  case confirmationInterrupted
+  case ignoredMissing
+  case stoppedAfterFailure
 }
 
 struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
@@ -102,12 +118,13 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
   }
 
   func execute(_ input: TrashInput) -> TrashResult {
-    guard input.kind != .other else {
+    guard input.kind != .other, input.kind != .unknown else {
       return TrashResult(
         sourcePath: input.path,
         destinationPath: nil,
         kind: input.kind,
         status: .rejected,
+        skipReason: nil,
         warnings: [],
         error: TrashFailure(
           code: .unsupportedInputKind,
@@ -122,6 +139,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
         destinationPath: receipt.destinationPath,
         kind: input.kind,
         status: .moved,
+        skipReason: nil,
         warnings: receipt.warnings,
         error: nil
       )
@@ -141,6 +159,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
       destinationPath: nil,
       kind: input.kind,
       status: status,
+      skipReason: nil,
       warnings: [],
       error: TrashFailure(
         code: code,
@@ -188,7 +207,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
   private let fileSystem: FileSystem
   private let makeTrashClient: () -> any TrashClient
   private let makeConfirmationPrompt: (() -> any ConfirmationPrompt)?
-  private let renderer = SingleTrashRenderer()
+  private let renderer = TrashResultRenderer()
 
   init(
     fileSystem: FileSystem,
@@ -204,7 +223,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
     do {
       let plan = try TrashPlanner(fileSystem: fileSystem).makePlan(request: request)
       guard let input = plan.inputs.first else {
-        return CommandResult(standardOutput: "", standardError: "", exitCode: 0)
+        return execute(plan)
       }
       if plan.confirmation == .each {
         return executeWithPerInputConfirmation(plan)
@@ -240,61 +259,177 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
   }
 
   private func execute(_ plan: TrashPlan) -> CommandResult {
-    var operationResult = emptyResult
-    for input in plan.inputs {
-      operationResult = merge(operationResult, execute(input, output: plan.output))
+    var results: [TrashResult] = []
+    results.reserveCapacity(plan.entries.count)
+    var shouldSkipRemainingInputs = false
+    for entry in plan.entries {
+      if shouldSkipRemainingInputs {
+        results.append(skippedResult(for: entry, reason: .stoppedAfterFailure))
+        continue
+      }
+      let result = result(for: entry)
+      results.append(result)
+      if plan.stopOnError && result.requiresFailureExit {
+        shouldSkipRemainingInputs = true
+      }
     }
-    return operationResult
+    return renderer.render(results, output: plan.output)
+  }
+
+  private func result(for entry: TrashPlanEntry) -> TrashResult {
+    switch entry {
+    case let .input(input):
+      execute(input)
+    case let .missing(path, ignored):
+      if ignored {
+        skippedResult(for: entry, reason: .ignoredMissing)
+      } else {
+        rejectedResult(
+          path: path,
+          code: .missingInput,
+          explanation: "The Trash Input does not exist."
+        )
+      }
+    case let .inaccessible(path):
+      rejectedResult(
+        path: path,
+        code: .inaccessibleInput,
+        explanation: "The Trash Input cannot be inspected."
+      )
+    }
+  }
+
+  private func rejectedResult(
+    path: String,
+    kind: TrashInputKind = .unknown,
+    code: TrashErrorCode,
+    explanation: String
+  ) -> TrashResult {
+    TrashResult(
+      sourcePath: path,
+      destinationPath: nil,
+      kind: kind,
+      status: .rejected,
+      skipReason: nil,
+      warnings: [],
+      error: TrashFailure(code: code, explanation: explanation)
+    )
+  }
+
+  private func skippedResult(for entry: TrashPlanEntry, reason: TrashSkipReason) -> TrashResult {
+    TrashResult(
+      sourcePath: entry.path,
+      destinationPath: nil,
+      kind: entry.kind,
+      status: .skipped,
+      skipReason: reason,
+      warnings: [],
+      error: nil
+    )
   }
 
   private func executeAfterBatchConfirmation(_ plan: TrashPlan) -> CommandResult {
     guard let prompt = interactivePrompt(for: plan) else {
-      return confirmationRequiredResult(inputs: plan.inputs)
+      return renderer.render(
+        resultsRejectingReadyInputs(
+          in: plan,
+          code: .confirmationRequired,
+          explanation: "Confirmation is required before the Trash Input can be moved."
+        ),
+        output: plan.output
+      )
     }
     switch decision(from: prompt.readResponse(prompt: batchPrompt(for: plan))) {
     case .approved:
       return execute(plan)
     case let .rejected(code, reason, _):
-      return confirmationFailure(
-        code: code,
-        inputs: plan.inputs,
-        explanation: "\(reason); no Trash Inputs were moved"
+      return renderer.render(
+        resultsRejectingReadyInputs(
+          in: plan,
+          code: code,
+          explanation: "\(reason); no Trash Inputs were moved"
+        ),
+        output: plan.output
       )
     }
   }
 
   private func executeWithPerInputConfirmation(_ plan: TrashPlan) -> CommandResult {
     guard let prompt = interactivePrompt(for: plan) else {
-      return confirmationRequiredResult(inputs: plan.inputs)
+      return renderer.render(
+        resultsRejectingReadyInputs(
+          in: plan,
+          code: .confirmationRequired,
+          explanation: "Confirmation is required before the Trash Input can be moved."
+        ),
+        output: plan.output
+      )
     }
-    var operationResult = emptyResult
-    for input in plan.inputs {
-      let itemResult: CommandResult
-      let inputWasInterrupted: Bool
-      switch decision(from: prompt.readResponse(prompt: itemPrompt(for: input))) {
-      case .approved:
-        itemResult = execute(input, output: plan.output)
-        inputWasInterrupted = false
-      case let .rejected(code, reason, stopsFurtherPrompts):
-        itemResult = confirmationFailure(
-          code: code,
-          inputs: [input],
-          explanation: "\(reason); the Trash Input was not moved"
-        )
-        inputWasInterrupted = stopsFurtherPrompts
+    var results: [TrashResult] = []
+    results.reserveCapacity(plan.entries.count)
+    var skipReason: TrashSkipReason?
+
+    for entry in plan.entries {
+      if let skipReason {
+        results.append(skippedResult(for: entry, reason: skipReason))
+        continue
       }
-      operationResult = merge(operationResult, itemResult)
-      if inputWasInterrupted || (plan.stopOnError && itemResult.exitCode != 0) { break }
+      let entryResult: TrashResult
+      let confirmationWasInterrupted: Bool
+      switch entry {
+      case let .input(input):
+        switch decision(from: prompt.readResponse(prompt: itemPrompt(for: input))) {
+        case .approved:
+          entryResult = execute(input)
+          confirmationWasInterrupted = false
+        case let .rejected(code, reason, stopsFurtherPrompts):
+          entryResult = rejectedResult(
+            path: input.path,
+            kind: input.kind,
+            code: code,
+            explanation: "\(reason); the Trash Input was not moved"
+          )
+          confirmationWasInterrupted = stopsFurtherPrompts
+        }
+      case .missing, .inaccessible:
+        entryResult = result(for: entry)
+        confirmationWasInterrupted = false
+      }
+      results.append(entryResult)
+      if confirmationWasInterrupted {
+        skipReason = .confirmationInterrupted
+      } else if plan.stopOnError && entryResult.requiresFailureExit {
+        skipReason = .stoppedAfterFailure
+      }
     }
-    return operationResult
+    return renderer.render(results, output: plan.output)
   }
 
-  private func execute(_ input: TrashInput, output: OutputMode) -> CommandResult {
-    let result = SingleTrashExecutor(
+  private func resultsRejectingReadyInputs(
+    in plan: TrashPlan,
+    code: TrashErrorCode,
+    explanation: String
+  ) -> [TrashResult] {
+    plan.entries.map { entry in
+      switch entry {
+      case let .input(input):
+        rejectedResult(
+          path: input.path,
+          kind: input.kind,
+          code: code,
+          explanation: explanation
+        )
+      case .missing, .inaccessible:
+        result(for: entry)
+      }
+    }
+  }
+
+  private func execute(_ input: TrashInput) -> TrashResult {
+    SingleTrashExecutor(
       fileSystem: fileSystem,
       makeTrashClient: makeTrashClient
     ).execute(input)
-    return renderer.render(result, output: output)
   }
 
   private func interactivePrompt(for plan: TrashPlan) -> (any ConfirmationPrompt)? {
@@ -329,40 +464,6 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
     }
   }
 
-  private func confirmationRequiredResult(inputs: [TrashInput]) -> CommandResult {
-    confirmationFailure(
-      code: .confirmationRequired,
-      inputs: inputs,
-      explanation: "confirmation is required before these Trash Inputs can be moved"
-    )
-  }
-
-  private func confirmationFailure(
-    code: TrashErrorCode,
-    inputs: [TrashInput],
-    explanation: String
-  ) -> CommandResult {
-    let sources = inputs.map { DryRunRenderer().renderPath($0.path) }.joined(separator: ", ")
-    let message =
-      "rmp: \(code.rawValue) for \(sources): \(explanation)\n"
-    return CommandResult(
-      standardOutput: "",
-      standardError: message,
-      exitCode: 1
-    )
-  }
-
-  private func merge(_ first: CommandResult, _ second: CommandResult) -> CommandResult {
-    CommandResult(
-      standardOutput: first.standardOutput + second.standardOutput,
-      standardError: first.standardError + second.standardError,
-      exitCode: max(first.exitCode, second.exitCode)
-    )
-  }
-
-  private var emptyResult: CommandResult {
-    CommandResult(standardOutput: "", standardError: "", exitCode: 0)
-  }
 }
 
 private enum ConfirmationDecision {
@@ -388,59 +489,4 @@ private enum ConfirmationDecision {
     reason: "confirmation input was interrupted",
     stopsFurtherPrompts: true
   )
-}
-
-private struct SingleTrashRenderer {
-  private let pathRenderer = DryRunRenderer()
-  private let unclassifiedFailure = TrashFailure(
-    code: .systemTrashFailed,
-    explanation: "The Trash operation failed without a classified error."
-  )
-
-  func render(_ result: TrashResult, output: OutputMode) -> CommandResult {
-    switch result.status {
-    case .moved:
-      let destination = result.destinationPath.map(pathRenderer.renderPath) ?? "<unknown>"
-      let standardOutput =
-        output == .quiet
-        ? ""
-        : "Moved \(pathRenderer.renderPath(result.sourcePath)) to Trash at \(destination).\n"
-      let warningOutput = result.warnings.map { render($0, sourcePath: result.sourcePath) }.joined()
-      return CommandResult(
-        standardOutput: standardOutput,
-        standardError: warningOutput,
-        exitCode: warningOutput.isEmpty ? 0 : 1
-      )
-    case .rejected, .notMoved, .stateUncertain:
-      let error = result.error ?? unclassifiedFailure
-      let source = pathRenderer.renderPath(result.sourcePath)
-      let message =
-        "rmp: \(error.code.rawValue) (\(result.status.rawValue)) for \(source): "
-        + "\(error.explanation)\n"
-      return CommandResult(
-        standardOutput: "",
-        standardError: message,
-        exitCode: 1
-      )
-    }
-  }
-
-  private func render(_ warning: TrashMoveWarning, sourcePath: String) -> String {
-    let explanation: String
-    switch warning.code {
-    case .finalizerCleanupFailed:
-      explanation =
-        "Put Back was activated, but an internal symbolic-link finalizer could not be cleaned up."
-    case .finalizerStateUncertain:
-      explanation =
-        "The finalizer call failed after its source state changed; "
-        + "Put Back and cleanup could not be confirmed."
-    case .symlinkPutBackNotGuaranteed:
-      explanation =
-        "The item was moved to Trash, but Finder Put Back could not be guaranteed."
-    }
-    return
-      "rmp: \(warning.code.rawValue) (moved) for \(pathRenderer.renderPath(sourcePath)): "
-      + "\(explanation)\n"
-  }
 }

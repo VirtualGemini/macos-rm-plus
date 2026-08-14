@@ -100,6 +100,20 @@ func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
   #expect(unavailableExecution.standardError.contains("only --dry-run execution is available"))
 }
 
+@Test("Dry run reports an inaccessible input with its stable code")
+func dryRunInaccessibleInputFails() {
+  let result = CLIApplication(
+    makeFileSystem: {
+      FakeTrashPlanningFileSystem(entries: ["blocked": .inaccessible])
+    }
+  ).run(arguments: ["--dry-run", "blocked"])
+
+  #expect(result.exitCode == 1)
+  #expect(result.standardOutput.isEmpty)
+  #expect(result.standardError.contains("inaccessible_input"))
+  #expect(result.standardError.contains("blocked"))
+}
+
 @Test("Parsed native policy is preserved in the execution-facing Trash Plan")
 func parsedPolicyIsPreservedInTrashPlan() throws {
   let request = TrashOperationRequest(

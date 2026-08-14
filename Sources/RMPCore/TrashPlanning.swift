@@ -183,6 +183,14 @@ enum TrashPlanEntry: Equatable, Sendable {
     case .missing, .inaccessible: .unknown
     }
   }
+
+  var planningError: TrashPlanningError? {
+    switch self {
+    case .input, .missing(_, true): nil
+    case let .missing(path, false): .missingPath(path)
+    case let .inaccessible(path): .inaccessiblePath(path)
+    }
+  }
 }
 
 enum ProtectedPath: String, Equatable, Sendable {
@@ -198,6 +206,36 @@ enum TrashPlanningError: Error, Equatable, Sendable {
   case inaccessiblePath(String)
   case protectedPath(path: String, protectedPath: ProtectedPath)
   case unavailableProtectedPath(path: String, protectedPath: ProtectedPath)
+
+  var code: TrashErrorCode {
+    switch self {
+    case .noInputs: .noInputs
+    case .missingPath: .missingInput
+    case .inaccessiblePath: .inaccessibleInput
+    case .protectedPath: .protectedPath
+    case .unavailableProtectedPath: .safetyIdentityUnavailable
+    }
+  }
+
+  var explanation: String {
+    switch self {
+    case .noInputs: "At least one Trash Input is required."
+    case .missingPath: "The Trash Input does not exist."
+    case .inaccessiblePath: "The Trash Input cannot be inspected."
+    case let .protectedPath(_, protectedPath):
+      "Protected Path rejected: \(protectedPath.rawValue)."
+    case let .unavailableProtectedPath(_, protectedPath):
+      "Safety identity unavailable: \(protectedPath.rawValue)."
+    }
+  }
+
+  var exitCode: Int32 {
+    switch self {
+    case .noInputs: 2
+    case .missingPath, .inaccessiblePath: 1
+    case .protectedPath, .unavailableProtectedPath: 3
+    }
+  }
 }
 
 struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
@@ -233,13 +271,10 @@ struct TrashPlanner<FileSystem: TrashPlanningFileSystem> {
       case .missing:
         if request.ignoreMissing {
           entries.append(.missing(path: path, ignored: true))
-        } else if request.dryRun {
-          throw .missingPath(path)
         } else {
           entries.append(.missing(path: path, ignored: false))
         }
       case .inaccessible:
-        if request.dryRun { throw .inaccessiblePath(path) }
         entries.append(.inaccessible(path: path))
       }
     }

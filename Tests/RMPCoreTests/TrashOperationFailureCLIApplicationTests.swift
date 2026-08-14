@@ -69,7 +69,7 @@ func cliRendersGlobalParsingDiagnostics() {
   #expect(orphanedHelpModifier.standardError.contains("only valid with --help"))
 }
 
-@Test("Unsupported JSON execution fails closed and quiet success stays silent")
+@Test("JSON execution emits a complete result and quiet success stays silent")
 func singleItemOutputModesDoNotMisrepresentResults() {
   let probes = ApplicationProbes()
   let identity = FileSystemIdentity(device: 1, inode: 60)
@@ -89,24 +89,25 @@ func singleItemOutputModesDoNotMisrepresentResults() {
 
   let json = application.run(arguments: ["--json", "report.txt"])
 
-  #expect(json.exitCode == 2)
-  #expect(json.standardOutput.isEmpty)
-  #expect(json.standardError.contains("unsupported_output_mode"))
-  #expect(json.standardError.contains("JSON Trash Operation results are not available"))
-  #expect(json.standardError.contains("report.txt"))
-  #expect(probes.fileSystemFactoryCalls == 0)
-  #expect(probes.trashClientFactoryCalls == 0)
+  #expect(json.exitCode == 0)
+  #expect(json.standardOutput.contains("\"schemaVersion\":1"))
+  #expect(json.standardOutput.contains("\"source\":\"/work/report.txt\""))
+  #expect(json.standardOutput.contains("\"destination\":\"/Trash/item\""))
+  #expect(json.standardOutput.contains("\"status\":\"moved\""))
+  #expect(json.standardError.isEmpty)
+  #expect(probes.fileSystemFactoryCalls == 1)
+  #expect(probes.trashClientFactoryCalls == 1)
 
   let quiet = application.run(arguments: ["--quiet", "report.txt"])
 
   #expect(quiet.exitCode == 0)
   #expect(quiet.standardOutput.isEmpty)
   #expect(quiet.standardError.isEmpty)
-  #expect(probes.receivedTrashPaths == ["report.txt"])
+  #expect(probes.receivedTrashPaths == ["report.txt", "report.txt"])
 }
 
-@Test("Unsupported JSON execution identifies every affected Trash Input")
-func unsupportedJSONExecutionReportsEveryInput() {
+@Test("JSON execution identifies every missing Trash Input")
+func jsonExecutionReportsEveryMissingInput() {
   let application = CLIApplication(
     makeFileSystem: { ApplicationFileSystem(entries: [:]) },
     makeTrashClient: { ApplicationTrashClient(probes: ApplicationProbes()) },
@@ -115,9 +116,12 @@ func unsupportedJSONExecutionReportsEveryInput() {
 
   let result = application.run(arguments: ["--json", "first", "second"])
 
-  #expect(result.exitCode == 2)
-  #expect(result.standardOutput.isEmpty)
-  #expect(result.standardError.contains("unsupported_output_mode"))
+  #expect(result.exitCode == 1)
+  #expect(result.standardOutput.contains("\"failed\":2"))
+  #expect(result.standardOutput.contains("\"source\":\"/work/first\""))
+  #expect(result.standardOutput.contains("\"source\":\"/work/second\""))
+  #expect(result.standardOutput.contains("\"code\":\"missing_input\""))
+  #expect(result.standardError.contains("missing_input"))
   #expect(result.standardError.contains("\"first\""))
   #expect(result.standardError.contains("\"second\""))
 }

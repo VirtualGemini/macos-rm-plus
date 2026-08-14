@@ -39,9 +39,14 @@ which case their error output and exit-status effect are suppressed.
 One standard-mode success writes exactly one escaped line containing the user-provided source and
 the exact Trash receipt destination. A standard-mode batch writes one aggregate summary instead of
 per-item success lines. `--verbose` writes every top-level moved or skipped result in input order.
-Quiet mode suppresses normal results but never a warning or error. Non-dry-run JSON output fails closed
-until the versioned schema is implemented; it never emits human output on stdout while claiming to
-be JSON.
+Quiet mode suppresses normal results but never a warning or error. `--json` writes exactly one
+schema-version-1 document to stdout for a preview or real operation. The document includes aggregate
+success and counts plus one ordered item for every top-level input. Item states are `planned`,
+`moved`, `failed`, or `skipped`; each item contains an absolute source, nullable exact destination,
+kind, and nullable structured error. Compatibility warnings and operational diagnostics remain on
+stderr. JSON exposes only rmp's stable error code and human-readable message, never a Foundation
+error domain or numeric code. Consumers must depend on the stable code rather than parsing message
+text. Absolute paths in JSON may be sensitive; rmp does not retain or upload path history.
 
 The first real Trash Operation may show a macOS Automation prompt allowing the invoking terminal or
 `rmp` to control Finder. Accepted permission is normally reused for that sender-to-Finder pair but
@@ -66,7 +71,7 @@ Native options set confirmation (`-f`, `-i`, `-I`, `--confirm`), missing-path
 (`--non-interactive`), batch (`--stop-on-error`), and compatibility-validation
 (`--strict-options`) policy independently. Arguments are parsed once from left to right, including
 characters within combined short options. `--json` conflicts with `--quiet`; `--verbose` does not
-change JSON output policy.
+change or expand the JSON schema.
 
 Compatibility Options `-r`, `-R`, `-d`, and `-x` are accepted with no effect. `-P` is accepted with
 a stderr warning that secure overwrite is not performed. That warning is independent of TTY state,

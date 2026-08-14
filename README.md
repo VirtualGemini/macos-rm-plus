@@ -11,6 +11,7 @@ rmp -Rfv --dry-run report.txt build
 rmp --dry-run -- -leading-hyphen
 rmp report.txt
 rmp --confirm=once build report.txt
+rmp --json --non-interactive --confirm=never report.txt build
 ```
 
 Dry-run mode inspects only the supplied top-level entries, reports each entry kind in input order,
@@ -33,6 +34,15 @@ does not make the operation fail. A single standard-mode success prints its esca
 system-returned Trash destination on one line. A batch prints one aggregate summary, `--verbose`
 prints every top-level result, and `--quiet` suppresses normal output without hiding warnings or
 errors.
+
+`--json` writes exactly one schema-version-1 document to stdout for a preview or real Trash
+Operation. It includes aggregate success and counts plus one ordered `planned`, `moved`, `failed`, or
+`skipped` item for every top-level input. Each item carries an absolute source, its inspected kind,
+the exact system-returned destination when moved, and a nullable error containing an rmp stable code
+and human-readable message. Compatibility warnings and operational diagnostics remain on stderr;
+`--verbose` does not change the JSON schema, and `--quiet` conflicts with `--json`. Machine consumers
+must depend only on rmp error codes, not message text or Foundation error details. JSON output can
+contain sensitive absolute paths; rmp neither retains nor uploads path history.
 
 Smart confirmation moves one ordinary file or link without prompting and asks once for multiple
 top-level inputs or any directory. `never` never prompts, `once` asks once, and `each` asks before

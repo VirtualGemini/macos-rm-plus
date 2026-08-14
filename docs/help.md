@@ -27,10 +27,11 @@ stops further prompts because no later approval can be read. `--non-interactive`
 or an unavailable prompt capability reports `confirmation_required` without reading input or
 blocking.
 
-All paths are planned before confirmation, and approved inputs are passed to Finder serially in
-input order through a structured Apple Event. Each success reports the deleted Finder item's exact
-URL. Failure never triggers permanent deletion, a `FileManager.trashItem` or
-`NSWorkspace.recycle` fallback, direct Trash-directory access, overwrite, or automatic move-back.
+All paths are planned before confirmation. Approved ordinary entries are passed to Finder serially
+through a structured Apple Event. Symbolic links use Foundation directly, never as a Finder failure
+fallback, and an owned finalizer preserves Put Back without following the link target. Each success
+reports the system-returned exact URL. Failure never triggers permanent deletion,
+`NSWorkspace.recycle`, direct Trash-directory access, or overwrite.
 Quiet mode suppresses successful results but never an error. Non-dry-run JSON output fails closed
 until the versioned schema is implemented; it never emits human output on stdout while claiming to
 be JSON.
@@ -40,11 +41,18 @@ The first real Trash Operation may show a macOS Automation prompt allowing the i
 can be revoked, reset, or requested separately by another terminal application. Consent-required,
 denied, unavailable-Finder, and timeout outcomes fail closed with stable error codes.
 
-Finder owns the private metadata used by “Put Back.” In current `FileManager.trashItem`-based
-releases, restoring an item and sending the same name to Trash again within roughly 10 seconds can
-remove or stale that entry. Wait at least 10 seconds, use another name, or perform the second
-deletion in Finder. The Workspace candidate failed its differential; the Finder-delegated candidate
-remains subject to the issue 12 Automation and Put Back acceptance before release.
+Finder owns the private metadata used by “Put Back.” Finder handles ordinary entries directly but
+refuses symbolic links. For links, rmp prepares two same-directory finalizers before moving the
+target, makes the target the first Foundation Trash call, then uses a successful Foundation
+finalizer call to activate Put Back. It does not run a target-before-move Trash preflight because
+that call was shown to consume the metadata transition needed by the target.
+Normal completion is silent and leaves no helper behind. `symlink_put_back_not_guaranteed` or
+`finalizer_cleanup_failed` reports a moved result with its exact destination on stderr and exits 1.
+If a failed finalizer call no longer has its exact source identity, rmp stops without using the
+backup and reports `finalizer_state_uncertain`, preserving the best available Put Back state.
+If the user link has not moved but a prepared finalizer cannot be identity-verified and removed, the
+operation instead fails with `finalizer_cleanup_failed`; its `not_moved` or `state_uncertain`
+classification comes from the normal post-call source-identity check.
 
 Native options set confirmation (`-f`, `-i`, `-I`, `--confirm`), missing-path
 (`--ignore-missing`), output (`-v`, `--quiet`, `--json`), preview (`--dry-run`), automation

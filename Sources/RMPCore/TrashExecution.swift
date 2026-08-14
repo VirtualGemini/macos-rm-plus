@@ -1,10 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
+public enum TrashWarningCode: String, Equatable, Sendable {
+  case finalizerCleanupFailed = "finalizer_cleanup_failed"
+  case finalizerStateUncertain = "finalizer_state_uncertain"
+  case symlinkPutBackNotGuaranteed = "symlink_put_back_not_guaranteed"
+}
+
+public struct TrashMoveWarning: Equatable, Sendable {
+  public let code: TrashWarningCode
+
+  public init(code: TrashWarningCode) {
+    self.code = code
+  }
+}
+
 public struct TrashMoveReceipt: Equatable, Sendable {
   public let destinationPath: String
+  public let warnings: [TrashMoveWarning]
 
-  public init(destinationPath: String) {
+  public init(destinationPath: String, warnings: [TrashMoveWarning] = []) {
     self.destinationPath = destinationPath
+    self.warnings = warnings
   }
 }
 
@@ -17,6 +33,7 @@ public enum TrashErrorCode: String, Equatable, Sendable {
   case finderAutomationDenied = "finder_automation_denied"
   case finderAutomationTimedOut = "finder_automation_timed_out"
   case finderUnavailable = "finder_unavailable"
+  case finalizerCleanupFailed = "finalizer_cleanup_failed"
   case inaccessibleInput = "inaccessible_input"
   case missingInput = "missing_input"
   case noInputs = "no_inputs"
@@ -68,6 +85,7 @@ struct TrashResult: Equatable, Sendable {
   let destinationPath: String?
   let kind: TrashInputKind
   let status: TrashResultStatus
+  let warnings: [TrashMoveWarning]
   let error: TrashFailure?
 }
 
@@ -90,6 +108,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
         destinationPath: nil,
         kind: input.kind,
         status: .rejected,
+        warnings: [],
         error: TrashFailure(
           code: .unsupportedInputKind,
           explanation: "The Trash Input has an unsupported entry kind."
@@ -103,6 +122,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
         destinationPath: receipt.destinationPath,
         kind: input.kind,
         status: .moved,
+        warnings: receipt.warnings,
         error: nil
       )
     } catch let error as TrashCapabilityError {
@@ -121,6 +141,7 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
       destinationPath: nil,
       kind: input.kind,
       status: status,
+      warnings: [],
       error: TrashFailure(
         code: code,
         explanation: explanation
@@ -146,6 +167,9 @@ struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
       return "Finder did not complete the Trash request before the timeout. \(sourceState)"
     case .finderUnavailable:
       return "Finder is unavailable for the Trash request. \(sourceState)"
+    case .finalizerCleanupFailed:
+      return
+        "An internal symbolic-link finalizer could not be cleaned up. \(sourceState)"
     default:
       return "The system Trash operation failed; \(sourceState.lowercased())"
     }
@@ -376,15 +400,16 @@ private struct SingleTrashRenderer {
   func render(_ result: TrashResult, output: OutputMode) -> CommandResult {
     switch result.status {
     case .moved:
-      if output == .quiet {
-        return CommandResult(standardOutput: "", standardError: "", exitCode: 0)
-      }
       let destination = result.destinationPath.map(pathRenderer.renderPath) ?? "<unknown>"
+      let standardOutput =
+        output == .quiet
+        ? ""
+        : "Moved \(pathRenderer.renderPath(result.sourcePath)) to Trash at \(destination).\n"
+      let warningOutput = result.warnings.map { render($0, sourcePath: result.sourcePath) }.joined()
       return CommandResult(
-        standardOutput:
-          "Moved \(pathRenderer.renderPath(result.sourcePath)) to Trash at \(destination).\n",
-        standardError: "",
-        exitCode: 0
+        standardOutput: standardOutput,
+        standardError: warningOutput,
+        exitCode: warningOutput.isEmpty ? 0 : 1
       )
     case .rejected, .notMoved, .stateUncertain:
       let error = result.error ?? unclassifiedFailure
@@ -398,5 +423,24 @@ private struct SingleTrashRenderer {
         exitCode: 1
       )
     }
+  }
+
+  private func render(_ warning: TrashMoveWarning, sourcePath: String) -> String {
+    let explanation: String
+    switch warning.code {
+    case .finalizerCleanupFailed:
+      explanation =
+        "Put Back was activated, but an internal symbolic-link finalizer could not be cleaned up."
+    case .finalizerStateUncertain:
+      explanation =
+        "The finalizer call failed after its source state changed; "
+        + "Put Back and cleanup could not be confirmed."
+    case .symlinkPutBackNotGuaranteed:
+      explanation =
+        "The item was moved to Trash, but Finder Put Back could not be guaranteed."
+    }
+    return
+      "rmp: \(warning.code.rawValue) (moved) for \(pathRenderer.renderPath(sourcePath)): "
+      + "\(explanation)\n"
   }
 }

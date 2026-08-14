@@ -48,6 +48,76 @@ struct WhitelistedTrashClientTests {
     #expect(spy.receivedURLs.isEmpty)
   }
 
+  @Test("authorizes only an exact production finalizer symbolic link")
+  func authorizesExactProductionFinalizer() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let finalizer = context.runDirectoryURL.appendingPathComponent(
+      ".rmp-finalizer-\(UUID().uuidString.lowercased())"
+    )
+    try FileManager.default.createSymbolicLink(
+      at: finalizer,
+      withDestinationURL: URL(fileURLWithPath: "absent-finalizer-target")
+    )
+    let returnedURL = URL(fileURLWithPath: "/Trash/\(finalizer.lastPathComponent)")
+    let spy = TrashSpy(returnedURL: returnedURL)
+    let client = WhitelistedTrashClient.testingOnly(
+      context: context,
+      authorization: .accepting,
+      systemTrash: spy.call
+    )
+
+    let authorized = try client.authorizeProductionFinalizerForPlanning(targetURL: finalizer)
+    let evidence = try client.trashItem(authorized)
+
+    #expect(spy.receivedURLs == [finalizer])
+    #expect(evidence.returnedURL == returnedURL)
+  }
+
+  @Test("rejects malformed, non-link, and nested production finalizers before system Trash")
+  func rejectsInvalidProductionFinalizers() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let nestedDirectory = try context.createFixtureDirectory(suffix: "nested-finalizer")
+    let candidates = [
+      context.runDirectoryURL.appendingPathComponent(".rmp-finalizer-not-a-uuid"),
+      context.runDirectoryURL.appendingPathComponent(
+        ".rmp-finalizer-\(UUID().uuidString.lowercased())"
+      ),
+      nestedDirectory.appendingPathComponent(
+        ".rmp-finalizer-\(UUID().uuidString.lowercased())"
+      ),
+    ]
+    try FileManager.default.createSymbolicLink(
+      at: candidates[0],
+      withDestinationURL: URL(fileURLWithPath: "absent")
+    )
+    try Data("not a link".utf8).write(to: candidates[1])
+    try FileManager.default.createSymbolicLink(
+      at: candidates[2],
+      withDestinationURL: URL(fileURLWithPath: "absent")
+    )
+    let spy = TrashSpy()
+    let client = WhitelistedTrashClient.testingOnly(
+      context: context,
+      authorization: .accepting,
+      systemTrash: spy.call
+    )
+
+    for candidate in candidates {
+      let diagnostic = captureDiagnostic {
+        _ = try client.authorizeProductionFinalizerForPlanning(targetURL: candidate)
+      }
+      #expect(diagnostic?.code == .trashFixtureName)
+    }
+
+    #expect(spy.receivedURLs.isEmpty)
+  }
+}
+
+extension WhitelistedTrashClientTests {
   @Test(
     "rejects whitelist and fixture-name violations without a system Trash call",
     arguments: AuthorizationRejectionCase.pathCases
@@ -108,6 +178,45 @@ struct WhitelistedTrashClientTests {
     #expect(volumeSpy.receivedURLs == [context.runDirectoryURL, context.runDirectoryURL])
     #expect(diagnostic?.code == .trashIntermediateSymlink)
     #expect(try fixture.snapshot() == before)
+  }
+
+  @Test("verifies the same symbolic link after its relative target becomes broken in Trash")
+  func verifiesMovedSymbolicLinkIdentity() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let target = try context.createFixtureFile(
+      suffix: "identity-target",
+      contents: Data("target".utf8)
+    )
+    let link = try context.createFixtureSymbolicLink(
+      suffix: "identity-link",
+      target: target.lastPathComponent
+    )
+    let fakeTrashDirectory = fixture.homeURL.appendingPathComponent("Trash", isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: fakeTrashDirectory,
+      withIntermediateDirectories: false
+    )
+    let returnedURL = fakeTrashDirectory.appendingPathComponent(link.lastPathComponent)
+    let client = WhitelistedTrashClient.testingOnly(
+      context: context,
+      authorization: TrashAuthorizationOperations(
+        inspectVolume: { _ in .accepted },
+        deviceMatchesRun: { $0 == $1 },
+        resourceIdentifier: testSafetyResourceIdentifier
+      ),
+      systemTrash: { sourceURL in
+        try FileManager.default.moveItem(at: sourceURL, to: returnedURL)
+        return returnedURL
+      }
+    )
+
+    let evidence = try trash(client: client, target: link)
+
+    #expect(evidence.returnedURL == returnedURL)
+    #expect(evidence.resourceIdentifier != nil)
+    #expect(FileManager.default.fileExists(atPath: target.path))
   }
 
   @Test(
@@ -272,161 +381,3 @@ struct WhitelistedTrashClientTests {
   }
 }
 // swiftlint:enable inclusive_language
-
-private final class TrashSpy: @unchecked Sendable {
-  private(set) var receivedURLs: [URL] = []
-  private let returnedURL: URL
-
-  init(returnedURL: URL = URL(fileURLWithPath: "/unused-trash-evidence")) {
-    self.returnedURL = returnedURL
-  }
-
-  func call(_ url: URL) throws -> URL {
-    receivedURLs.append(url)
-    return returnedURL
-  }
-}
-
-private final class VolumeInspectionSpy: @unchecked Sendable {
-  private(set) var receivedURLs: [URL] = []
-
-  func inspect(_ url: URL) throws -> TrashVolumeInspection {
-    receivedURLs.append(url)
-    return .accepted
-  }
-}
-
-enum AuthorizationRejectionCase: CaseIterable, CustomTestStringConvertible {
-  case outside
-  case runDirectory
-  case wrongFixturePrefix
-  case missingTarget
-  case intermediateFile
-  case mountPoint
-  case networkVolume
-  case fileProviderRoot
-  case crossVolume
-  case inspectionFailure
-
-  static let pathCases: [AuthorizationRejectionCase] = [
-    .outside, .runDirectory, .wrongFixturePrefix, .missingTarget, .intermediateFile,
-  ]
-  static let volumeCases: [AuthorizationRejectionCase] = [
-    .mountPoint, .networkVolume, .fileProviderRoot, .crossVolume, .inspectionFailure,
-  ]
-
-  var testDescription: String { expectedCode.rawValue }
-
-  var expectedCode: TestSafetyDiagnosticCode {
-    switch self {
-    case .outside: .trashOutsideRunDirectory
-    case .runDirectory: .trashSafetyDirectory
-    case .wrongFixturePrefix: .trashFixtureName
-    case .missingTarget, .intermediateFile: .trashPathInspectionFailed
-    case .mountPoint: .trashMountPoint
-    case .networkVolume: .trashNetworkVolume
-    case .fileProviderRoot: .trashFileProviderRoot
-    case .crossVolume: .trashVolumeMismatch
-    case .inspectionFailure: .trashPathInspectionFailed
-    }
-  }
-
-  var authorization: TrashAuthorizationOperations {
-    switch self {
-    case .mountPoint:
-      .replacingVolume(
-        TrashVolumeInspection(isLocal: true, isMountPoint: true, isFileProviderRoot: false)
-      )
-    case .networkVolume:
-      .replacingVolume(
-        TrashVolumeInspection(isLocal: false, isMountPoint: false, isFileProviderRoot: false)
-      )
-    case .fileProviderRoot:
-      .replacingVolume(
-        TrashVolumeInspection(isLocal: true, isMountPoint: false, isFileProviderRoot: true)
-      )
-    case .crossVolume:
-      TrashAuthorizationOperations(
-        inspectVolume: { _ in .accepted },
-        deviceMatchesRun: { _, _ in false },
-        resourceIdentifier: { _ in nil }
-      )
-    case .inspectionFailure:
-      TrashAuthorizationOperations(
-        inspectVolume: { _ in throw InjectedInspectionError() },
-        deviceMatchesRun: { $0 == $1 },
-        resourceIdentifier: { _ in nil }
-      )
-    default: .accepting
-    }
-  }
-
-  func target(context: TestSafetyContext, fixture: SafetyHomeFixture) throws -> URL {
-    switch self {
-    case .outside:
-      let target = fixture.homeURL.appendingPathComponent("\(fixturePrefix(context))outside")
-      try Data().write(to: target)
-      return target
-    case .runDirectory:
-      return context.runDirectoryURL
-    case .wrongFixturePrefix:
-      let target = context.runDirectoryURL.appendingPathComponent("fixture")
-      try Data().write(to: target)
-      return target
-    case .missingTarget:
-      return context.runDirectoryURL.appendingPathComponent("\(fixturePrefix(context))missing")
-    case .intermediateFile:
-      let intermediate = context.runDirectoryURL.appendingPathComponent("intermediate")
-      try Data().write(to: intermediate)
-      return intermediate.appendingPathComponent("\(fixturePrefix(context))nested")
-    default:
-      return try makeFixture(context: context)
-    }
-  }
-}
-
-private struct InjectedInspectionError: Error {}
-private struct InjectedSystemTrashError: Error {}
-
-extension TrashAuthorizationOperations {
-  fileprivate static let accepting = TrashAuthorizationOperations(
-    inspectVolume: { _ in .accepted },
-    deviceMatchesRun: { $0 == $1 },
-    resourceIdentifier: { _ in nil }
-  )
-
-  fileprivate static func replacingVolume(
-    _ inspection: TrashVolumeInspection
-  ) -> TrashAuthorizationOperations {
-    TrashAuthorizationOperations(
-      inspectVolume: { _ in inspection },
-      deviceMatchesRun: { $0 == $1 },
-      resourceIdentifier: { _ in nil }
-    )
-  }
-}
-
-extension TrashVolumeInspection {
-  fileprivate static let accepted = TrashVolumeInspection(
-    isLocal: true,
-    isMountPoint: false,
-    isFileProviderRoot: false
-  )
-}
-
-private func makeFixture(context: TestSafetyContext) throws -> URL {
-  let target = context.runDirectoryURL.appendingPathComponent("\(fixturePrefix(context))item")
-  try Data("fixture".utf8).write(to: target)
-  return target
-}
-
-private func fixturePrefix(_ context: TestSafetyContext) -> String {
-  "rmp-test-\(context.runID.uuidString.lowercased())-"
-}
-
-private func trash(
-  client: WhitelistedTrashClient,
-  target: URL
-) throws -> TrashVerificationEvidence {
-  try client.trashItem(client.authorizeForPlanning(targetURL: target))
-}

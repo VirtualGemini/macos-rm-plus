@@ -10,6 +10,27 @@ struct PutBackVerificationEvidence: Equatable, Sendable {
 struct PutBackRaceTrashSession {
   let sourceURL: URL
   let trash: () throws -> TrashVerificationEvidence
+  var retrash: (() throws -> TrashVerificationEvidence)?
+}
+
+/// Keeps the human-operated Put Back control independent from the symbolic-link behavior under
+/// test. Finder owns the ordinary-file control; only the second Trash call enters the production
+/// symbolic-link algorithm.
+enum PutBackRaceProductionProtocol {
+  static let controlKind = PutBackRaceFixtureKind.file
+  static let controlBackend = TestSystemTrashBackend.finder
+
+  static func makeSession(
+    control: PutBackRaceTrashSession,
+    targetSourceURL: URL,
+    targetTrash: @escaping (URL) throws -> TrashVerificationEvidence
+  ) -> PutBackRaceTrashSession {
+    PutBackRaceTrashSession(
+      sourceURL: control.sourceURL,
+      trash: control.trash,
+      retrash: { try targetTrash(targetSourceURL) }
+    )
+  }
 }
 
 struct PutBackRaceOperations {
@@ -23,6 +44,7 @@ struct PutBackRaceOperations {
   /// second Trash call. The default performs no wait at all.
   var settle: (TimeInterval) throws -> Void = { _ in }
   var settleSeconds: TimeInterval = 0
+  var finalize: () throws -> Void = {}
 }
 
 struct PutBackRaceReport: Equatable, Sendable {
@@ -31,6 +53,27 @@ struct PutBackRaceReport: Equatable, Sendable {
   let restoredURL: URL
   let secondTrashURL: URL
   let settleSeconds: TimeInterval
+}
+
+struct ProductionTrashProbeOperations {
+  let prepare: (TestSafetyContext) throws -> URL
+  let trash: (URL) throws -> TrashVerificationEvidence
+}
+
+struct ProductionTrashProbeReport: Equatable, Sendable {
+  let sourceURL: URL
+  let trashURL: URL
+}
+
+struct DuplicateTrashNameOperations {
+  let create: (TestSafetyContext) throws -> URL
+  let trash: (URL) throws -> TrashVerificationEvidence
+}
+
+struct DuplicateTrashNameReport: Equatable, Sendable {
+  let sourceURL: URL
+  let firstTrashURL: URL
+  let secondTrashURL: URL
 }
 
 /// Issue 12's platform acceptance set. The metadata race is a property of the Trash entry, so the
@@ -76,31 +119,192 @@ enum PutBackRaceAcceptance {
     return try run(context: context, operations: operations)
   }
 
+  static func runProductionProbe(
+    context: TestSafetyContext,
+    kind: PutBackRaceFixtureKind,
+    finalizerName: ProductionFinalizerName = .hidden,
+    preflight: ProductionFinalizerPreflight = .disabled
+  ) throws -> ProductionTrashProbeReport {
+    let client = WhitelistedMacOSTrashClient(
+      context: context,
+      finalizerName: finalizerName,
+      preflight: preflight
+    )
+    return try runProductionProbe(
+      context: context,
+      operations: ProductionTrashProbeOperations(
+        prepare: { receivedContext in
+          guard receivedContext === context else {
+            throw TestSafetyDiagnostic(
+              code: .unexpectedError,
+              message: "The production probe context changed unexpectedly."
+            )
+          }
+          return try makeFixture(
+            context: receivedContext,
+            suffix: kind.suffix(cycle: "production-probe"),
+            kind: kind
+          )
+        },
+        trash: client.trashItem
+      )
+    )
+  }
+
+  static func runDuplicateTrashName(
+    context: TestSafetyContext
+  ) throws -> DuplicateTrashNameReport {
+    let trashClient = WhitelistedTrashClient(context: context, backend: .finder)
+    let suffix = "duplicate-trash-name"
+    var generation = 0
+    return try runDuplicateTrashName(
+      context: context,
+      operations: DuplicateTrashNameOperations(
+        create: { receivedContext in
+          guard receivedContext === context else {
+            throw TestSafetyDiagnostic(
+              code: .unexpectedError,
+              message: "The duplicate-name acceptance context changed unexpectedly."
+            )
+          }
+          generation += 1
+          return try receivedContext.createFixtureFile(
+            suffix: suffix,
+            contents: Data("duplicate Trash name generation \(generation)\n".utf8)
+          )
+        },
+        trash: { sourceURL in
+          let authorizedTarget = try trashClient.authorizeForPlanning(targetURL: sourceURL)
+          return try trashClient.trashItem(authorizedTarget)
+        }
+      )
+    )
+  }
+
+  static func runDuplicateTrashName(
+    context: TestSafetyContext,
+    operations: DuplicateTrashNameOperations
+  ) throws -> DuplicateTrashNameReport {
+    let firstSourceURL = try operations.create(context)
+    let firstTrash = try operations.trash(firstSourceURL)
+    let secondSourceURL = try operations.create(context)
+    guard secondSourceURL == firstSourceURL else {
+      throw TestSafetyDiagnostic(
+        code: .unexpectedError,
+        message: "The duplicate-name Test Fixture did not reuse the same source path."
+      )
+    }
+    let secondTrash = try operations.trash(secondSourceURL)
+    guard secondTrash.returnedURL != firstTrash.returnedURL else {
+      throw TestSafetyDiagnostic(
+        code: .trashEvidenceMismatch,
+        message: "The duplicate Trash names did not produce distinct system-returned URLs."
+      )
+    }
+    return DuplicateTrashNameReport(
+      sourceURL: firstSourceURL,
+      firstTrashURL: firstTrash.returnedURL,
+      secondTrashURL: secondTrash.returnedURL
+    )
+  }
+
+  static func runProductionProbe(
+    context: TestSafetyContext,
+    operations: ProductionTrashProbeOperations
+  ) throws -> ProductionTrashProbeReport {
+    let sourceURL = try operations.prepare(context)
+    let evidence = try operations.trash(sourceURL)
+    return ProductionTrashProbeReport(sourceURL: sourceURL, trashURL: evidence.returnedURL)
+  }
+
   /// Restores through the maintainer's real Finder Put Back command instead of scripting the
   /// move. This variant carries no Finder Put Back capability and needs no Full Disk Access.
   static func runManual(
     context: TestSafetyContext,
     suffix: String = "put-back-race",
     kind: PutBackRaceFixtureKind = .file,
+    trashBackend: TestSystemTrashBackend = .finder,
     settleSeconds: TimeInterval = 0,
+    finalizeWithFoundation: Bool = false,
+    retrashWithProductionFinalizer: Bool = false,
+    productionFinalizerFault: ProductionFinalizerFault = .none,
     announce: @escaping (String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in }
   ) throws -> PutBackRaceReport {
     let waiter = ManualPutBackWaiter(
       context: context,
       announce: announce,
-      heartbeat: heartbeat
+      heartbeat: heartbeat,
+      postRestoreInstruction: retrashWithProductionFinalizer
+        ? "After Put Back is observed, rmp-test immediately trashes the production symbolic-link "
+          + "target. Check that target in Trash immediately; do not wait."
+        : nil
     )
+    let finalizer = finalizeWithFoundation ? FoundationTrashFinalizer(context: context) : nil
+    let prepare =
+      retrashWithProductionFinalizer
+      ? makeProductionPrepare(
+        context: context,
+        suffix: suffix,
+        kind: kind,
+        fault: productionFinalizerFault
+      )
+      : makePrepare(
+        context: context,
+        suffix: suffix,
+        kind: kind,
+        trashBackend: trashBackend
+      )
     let operations = PutBackRaceOperations(
-      prepare: makePrepare(context: context, suffix: suffix, kind: kind),
+      prepare: prepare,
       putBack: waiter.putBack,
       settle: { seconds in
         guard seconds > 0 else { return }
         Thread.sleep(forTimeInterval: seconds)
       },
-      settleSeconds: settleSeconds
+      settleSeconds: settleSeconds,
+      finalize: {
+        guard let finalizer else { return }
+        _ = try finalizer.finalize(suffix: "\(suffix)-foundation-finalizer")
+      }
     )
     return try run(context: context, operations: operations)
+  }
+
+  private static func makeProductionPrepare(
+    context: TestSafetyContext,
+    suffix: String,
+    kind: PutBackRaceFixtureKind,
+    fault: ProductionFinalizerFault
+  ) -> (TestSafetyContext) throws -> PutBackRaceTrashSession {
+    let productionClient = WhitelistedMacOSTrashClient(
+      context: context,
+      fault: fault
+    )
+    let controlPrepare = makePrepare(
+      context: context,
+      suffix: "\(suffix)-finder-control",
+      kind: PutBackRaceProductionProtocol.controlKind,
+      trashBackend: PutBackRaceProductionProtocol.controlBackend
+    )
+    return { receivedContext in
+      let control = try controlPrepare(receivedContext)
+      let targetSourceURL = try makeFixture(
+        context: receivedContext,
+        suffix: suffix,
+        kind: kind
+      )
+      return PutBackRaceProductionProtocol.makeSession(
+        control: control,
+        targetSourceURL: targetSourceURL,
+        targetTrash: { sourceURL in
+          if let expectedWarning = fault.expectedWarning {
+            return try productionClient.trashItem(sourceURL, expecting: expectedWarning)
+          }
+          return try productionClient.trashItem(sourceURL)
+        }
+      )
+    }
   }
 
   /// Runs the manual scenario repeatedly inside one Run Directory so the maintainer can perform a
@@ -112,7 +316,10 @@ enum PutBackRaceAcceptance {
     context: TestSafetyContext,
     cycles: Int,
     kind: PutBackRaceFixtureKind = .file,
+    trashBackend: TestSystemTrashBackend = .finder,
     settleSeconds: TimeInterval = 0,
+    finalizeWithFoundation: Bool = false,
+    retrashWithProductionFinalizer: Bool = false,
     announce: @escaping (Int, String) -> Void,
     heartbeat: @escaping (Int) -> Void = { _ in },
     runCycle: ((Int, String) throws -> PutBackRaceReport)? = nil
@@ -124,7 +331,10 @@ enum PutBackRaceAcceptance {
           context: context,
           suffix: suffix,
           kind: kind,
+          trashBackend: trashBackend,
           settleSeconds: settleSeconds,
+          finalizeWithFoundation: finalizeWithFoundation,
+          retrashWithProductionFinalizer: retrashWithProductionFinalizer,
           announce: { announce(cycle, $0) },
           heartbeat: heartbeat
         )
@@ -145,9 +355,10 @@ enum PutBackRaceAcceptance {
   private static func makePrepare(
     context: TestSafetyContext,
     suffix: String,
-    kind: PutBackRaceFixtureKind = .file
+    kind: PutBackRaceFixtureKind = .file,
+    trashBackend: TestSystemTrashBackend = .finder
   ) -> (TestSafetyContext) throws -> PutBackRaceTrashSession {
-    let trashClient = WhitelistedTrashClient(context: context)
+    let trashClient = WhitelistedTrashClient(context: context, backend: trashBackend)
     return { receivedContext in
       guard receivedContext === context else {
         throw TestSafetyDiagnostic(
@@ -202,7 +413,8 @@ enum PutBackRaceAcceptance {
     let firstTrash = try session.trash()
     let restored = try operations.putBack(firstTrash, session.sourceURL)
     try operations.settle(operations.settleSeconds)
-    let secondTrash = try session.trash()
+    let secondTrash = try session.retrash?() ?? session.trash()
+    try operations.finalize()
     return PutBackRaceReport(
       sourceURL: session.sourceURL,
       firstTrashURL: firstTrash.returnedURL,

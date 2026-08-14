@@ -1,33 +1,35 @@
 # 12 — Put Back entry lost when re-trashing a same-named item soon after Put Back
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 **Classification:** defect — user-visible product anomaly at the macOS Trash
 integration boundary. Recoverability of `rmp` deletions is degraded relative
 to Finder-native deletion; reclassified from environment noise by the
 maintainer on 2026-07-18.
 
-## Current state (2026-08-01)
+## Current state (2026-08-13)
 
-The defect is reproduced, diagnosed, and fixed on
-`fix/12-put-back-metadata-race`. `FinderTrashClient` delegates the delete to
-Finder over a fixed Apple Event handler, making Finder the single `.DS_Store`
-writer. The ticket's 30-cycle actual-menu differential passed **30/30** against
-roughly 10% retention for the previous Foundation client in the same flow.
+The defect is reproduced, diagnosed, and fixed on the issue 12 branch. `FinderTrashClient`
+delegates ordinary files and directories to Finder over a fixed Apple Event handler, making Finder
+the single `.DS_Store` writer. The ticket's 30-cycle actual-menu differential passed **30/30**
+against roughly 10% retention for the previous Foundation client in the same flow.
 
-Confirmed working: ordinary files (30 cycles across all three delay buckets),
-directories, and names containing quotes or newlines. **Symbolic links are the
-exception** — Finder will not delete them over Apple Events at all, so they need
-a separate path that reintroduces this ticket's race for that shape alone.
+Finder refuses symbolic links over Apple Events, so production routes resolving and broken symbolic
+links through Foundation with two pre-created, identity-verified Finalizers. The target is the first
+Foundation Trash call; the former target-before-move preflight is disabled by default because an
+otherwise equivalent preflight-enabled probe failed while two resolving-link probes and one
+broken-link probe without it offered Put Back. Production-default resolving-link run
+`a23a6d5a-21e2-415b-b512-681630c573b9` confirmed that result without a diagnostic override.
+
+The pure suite has 221 tests in 20 suites. Review remediation adds explicit
+`finalizer_cleanup_failed` reporting when a target has not moved but a prepared helper cannot be
+safely cleaned up, and adds a whitelisted `duplicate-trash-name` acceptance that records two exact
+system receipts without searching Trash. Real run `0be21573-4de3-4465-9c86-74717a1255ca`
+confirmed Finder renamed the second same-source item and returned distinct URLs. Production line
+coverage is 97.16%.
 
 Outstanding before release:
 
-- **Agent-runnable.** Extend the acceptance scenario to the platform set —
-  directories, symbolic links, broken symbolic links, duplicate Trash names, and
-  path text containing quotes and newlines. Every differential cycle so far used
-  one ordinary small file on one local volume, so fixture shape is the largest
-  untested dimension. The agent builds the fixtures and drives the sequence; only
-  the final Finder menu judgment needs the maintainer.
 - **Maintainer only.** The Feedback Assistant report to Apple about the
   `.DS_Store` coherence race, and the release decision itself.
 
@@ -592,12 +594,11 @@ Neither path gives symbolic links Finder-grade recoverability. That is a macOS
 constraint, not an implementation choice: Finder will not touch the link, and
 anything that bypasses Finder re-enters the metadata race.
 
-#### Recorded remediation direction (not implemented)
+#### Implemented remediation
 
-The maintainer selected dispatch-by-type on 2026-08-01, on the grounds that
-"deletes, with a metadata limitation" is strictly better than "shows an
-inexplicable dialog, hangs, then fails". Implementation is deliberately deferred
-until the rest of the acceptance set has been measured.
+The maintainer selected dispatch-by-type on 2026-08-01. The finalizer evidence on
+2026-08-10 replaced the earlier known-limitation-only plan with the production
+protocol in ADR-0002.
 
 - Route symbolic links through a Foundation client and everything else through
   Finder, deciding by `lstat` rather than by any resolved path.
@@ -605,12 +606,15 @@ until the rest of the acceptance set has been measured.
   script currently forbids it everywhere and must be narrowed rather than
   relaxed, and the new client must itself refuse any target that is not a
   symbolic link.
-- A new ADR records that "Finder is the single `.DS_Store` writer" no longer
-  holds for symbolic links, and why no alternative was available.
-- README, `docs/help.md`, and this ticket carry the known limitation: a symbolic
-  link re-trashed shortly after a Put Back can lose its Put Back entry.
-- Issue 12's conclusion splits: fixed for ordinary files and directories,
-  constrained by macOS for symbolic links.
+- Prepare two UUID helpers before the irreversible point and make the user target the first
+  Foundation Trash call. Do not run the rejected target-before-move preflight in production.
+- Retry a failed activation only when the exact helper remains at its source and can
+  be verified and removed. If it moved before throwing, stop rather than shifting
+  metadata again and report `finalizer_state_uncertain`.
+- Preserve exact moved receipts and report activation or cleanup degradation with
+  stable warnings and exit code 1.
+- ADR-0002, README, `docs/help.md`, the product spec, and this ticket define the
+  behavior and the unavoidable crash/unmount/concurrent-replacement boundary.
 
 ### Finder candidate acceptance
 
@@ -648,12 +652,13 @@ until the rest of the acceptance set has been measured.
       2026-08-01: directories, quoted names, and newline names all retain Put
       Back; symbolic links and broken symbolic links cannot be deleted through
       Finder at all.
-- [ ] Implement dispatch-by-type so symbolic links delete through Foundation,
-      with the boundary, ADR, and known-limitation documentation it requires.
-      Direction recorded below; deliberately not implemented yet.
-- [ ] Test duplicate Trash names, the one shape in acceptance criterion 5 with
-      no fixture kind yet. It needs a same-basename decoy already in the Trash,
-      which the current single-Run-Directory scenario cannot produce.
+- [x] Implement dispatch-by-type and the production Foundation Finalizer protocol,
+      including static capability boundaries, ADR-0002, honest moved warnings, pure
+      failure-state tests, and a whitelisted production acceptance entry.
+- [x] Test duplicate Trash names. Recorded 2026-08-13: run
+      `0be21573-4de3-4465-9c86-74717a1255ca` exclusively created and trashed two generations at the
+      exact same source path. Finder returned distinct original-name and time-suffixed URLs without
+      any Trash enumeration or cleanup.
 - [ ] Decide whether the quoted-name and newline-name rows need the same
       10-cycle depth as ordinary files, or whether one cycle each is enough
       given that they probe argument passing rather than the metadata race.
@@ -670,6 +675,36 @@ until the rest of the acceptance set has been measured.
       the implementation agent.
 
 ## Comments
+
+2026-08-07 — Opened `test/12-symlink-put-back-delay-threshold` to test the maintainer-selected
+dispatch direction before production implementation. The previously observed `>= 10 s` workaround
+is not accepted as a safe threshold: it lacks a Foundation symbolic-link delay differential and a
+statistical confidence bound. The test-only command routes both symbolic-link Trash calls through a
+whitelisted Foundation adapter, applies the declared delay only after the real Finder Put Back and
+before the second call, and retains a zero-delay positive control. No production fallback is added by
+this branch.
+
+2026-08-07 — The first zero-delay positive-control attempt used run
+`340d7c85-ef6d-4041-aa8d-52a0536029de`. The first whitelisted Foundation Trash call succeeded and
+returned the exact UUID-prefixed symbolic link, but no real Finder Put Back was observed during the
+180-second manual window. The command failed closed with
+`test-safety.put-back-manual-timeout`; it made no second Trash call, and the round is not threshold
+evidence. The Run Directory retains only its marker and the link target, while the link remains in
+Trash for explicit maintainer handling.
+
+2026-08-07 — A fully automated symbolic-link restore feasibility probe found no red-capable path on
+the current host. Direct reads of `~/.Trash` fail with `Operation not permitted`, and Accessibility
+UI control is disabled. Finder can enumerate the UUID-prefixed link in the home Trash, but reports
+its `original item` as `missing value`; moving it back through Finder's `trash` container fails with
+Apple Event `-5000`. A separately created 32 MB disposable APFS image confirmed the same result
+outside the Home Trash TCC boundary: Foundation moved the link itself to
+`/Volumes/rmp-pb-c04fc7ca/.Trashes/501/`, Finder initially returned `-1728` before the documented
+post-population remount, then returned `-5000` after remount. The image was detached and deleted.
+Using `FileManager.moveItem` to restore would not exercise Finder's deferred metadata cleanup, while
+using Finder `move` to verify the second item does not depend on Put Back metadata and could produce
+a false green. Therefore the exact symbolic-link symptom cannot be tested fully automatically on
+this host without enabling Accessibility control of Finder's real Put Back menu. No delay threshold
+result was produced by these feasibility probes.
 
 2026-07-18 — The investigation initially recorded this in the manual-testing
 notes as an environment/system-boundary pattern. The maintainer reclassified
@@ -731,3 +766,417 @@ were recorded. The temporary shell/`osascript` race attempt was rejected because
 it introduced a second Automation sender; the checked-in authority is now the
 single-process Swift `rmp-test put-back-race` scenario. The 30-cycle metadata and
 actual-menu differentials remain human release gates.
+
+2026-08-09 — The first valid symbolic-link delay smoke completed on run
+`9b285816-9005-435c-89dc-05c9f5821576` (macOS 26.5.1 build `25F80`, Finder 26.4).
+The command used fixture `symbolic-link`, `settle-seconds=0.0`, and one cycle with
+`trash-backend=foundation-symlink`. The maintainer performed the real Finder Put
+Back for `rmp-test-9b285816-9005-435c-89dc-05c9f5821576-put-back-race-symbolic-link`,
+and the runner then completed the second Foundation Trash call. After the required
+15-second deferred-write-back window, Finder did **not** offer Put Back for the
+second Trash item. The authorized Run Directory remained
+`/Users/virtualgemini/rmp-test/test/9b285816-9005-435c-89dc-05c9f5821576`; its link
+target remained present in a read-only post-run check. No alternate restore or
+cleanup was attempted. This is red smoke evidence for the exact symptom, not yet
+the required 10-cycle zero-delay positive control or a threshold result.
+
+2026-08-09 — An attempted zero-delay positive-control batch completed on run
+`299f6173-3994-4955-8e8e-210ed578fba4` (macOS 26.5.1 build `25F80`, Finder 26.4),
+with fixture `symbolic-link`, `settle-seconds=0.0`, and `completed-cycles=10/10`.
+The maintainer performed all ten real Finder Put Back actions. Corrected on 2026-08-10:
+the maintainer inspected each cycle's second Trash item immediately after the runner
+re-trashed it, rather than waiting until 15 seconds after the batch completed. Targets
+01–09 immediately offered Put Back and were restored; target 10, the final cycle, did
+not immediately offer Put Back and remains in Trash. A read-only Run Directory check
+found 9 restored symbolic links and all 10 sibling link-target files present. Because
+the successful observations occurred inside Finder's deferred write-back window, this
+batch does not satisfy the required positive control. It is diagnostic evidence of a
+final-cycle asymmetry, not threshold evidence.
+
+2026-08-10 — Two 1.5-second diagnostic batches reproduced the same final-cycle
+asymmetry during immediate per-cycle inspection. Run
+`44791fef-e392-42d1-b9ba-3439fdcf7bac` completed 10/10 cycles: targets 01–09
+immediately offered Put Back, while final target 10 did not. Run
+`19d82344-30f9-4002-8485-c1c778c389c4` completed 5/5 cycles: targets 01–04
+immediately offered Put Back, while final target 05 did not. Moving the failure from
+target 10 to target 05 when only the requested cycle count changed strongly implicates
+the runner's final-call lifecycle or another final-cycle-only effect. Neither batch is
+threshold evidence because the menu observations occurred before the required
+15-second window elapsed.
+
+2026-08-09 — An attempted inverse-order control used run
+`31ca92e6-e731-4cef-b33a-3865b2979a26` with fixture `symbolic-link`,
+`settle-seconds=1.5`, and five requested cycles. The maintainer did not complete
+the first Put Back for cycle 5 within the 180-second window. The runner stopped
+closed at `completed-cycles=4/5` with `test-safety.put-back-manual-timeout` and
+made no second Trash call for cycle 5. This round is invalid and is not threshold
+evidence; its Run Directory and Trash item are retained.
+
+2026-08-10 — The maintainer reset the symbolic-link delay-threshold experiment.
+Every run recorded before this reset is excluded from the formal threshold matrix:
+the multi-cycle runs mixed final and non-final process lifecycles, several menu
+observations occurred immediately rather than under one consistent protocol, and
+the latest clean-restart attempts were interrupted or left unjudged. Those runs
+remain diagnostic history only. The replacement matrix uses one fresh process and
+fresh UUID per sample (`CYCLES=1`) and scans the pre-Trash settle buckets in descending
+order: 15, 10, 7.5, 5, 3, 1.5, then 0 seconds. In every sample the declared settle
+interval begins only after the runner observes and revalidates the maintainer's real
+Finder Put Back, and ends immediately before the second Foundation Trash call.
+
+2026-08-10 — Formal descending-matrix sample 1/10 for the 15-second bucket used
+run `ea5bc65d-52b1-4784-a19b-02a3fbf49f49` on macOS 26.5.1 build `25F80`
+with Finder 26.4. The independent `CYCLES=1` process observed and revalidated the
+maintainer's real Finder Put Back, applied `settle-seconds=15.0`, and completed the
+second `foundation-symlink` Trash call. After the required 15-second observation
+window, Finder did not offer Put Back for the second Trash item. The item remains in
+Trash as evidence; a read-only Run Directory check confirmed that its sibling link
+target remained present. Result: **failure (0/1 retained) at 15 seconds**.
+
+2026-08-10 — A complete two-cycle sentinel control used run
+`1d8bf2d1-8c7a-46ec-94e9-f864c54c719c` with `settle-seconds=15.0`. The
+maintainer checked each second Trash item immediately, without a post-Trash wait.
+Cycle 1 immediately offered Put Back while the runner remained alive in cycle 2 and
+was restored. Cycle 2 completed the same 15-second pre-Trash settle, then the runner
+finished; that final item did not immediately offer Put Back. Together with the
+earlier 10-, 5-, and 1-cycle diagnostics, immediate Put Back availability has matched
+`requested cycles - 1` in every completed batch. This establishes a final-call or
+next-call-dependent harness effect. Non-final cycles are not valid threshold samples
+because each is followed by another Foundation Trash call; delay scanning remains
+paused until that variable is isolated.
+
+2026-08-10 — A no-code LLDB lifecycle probe used independent run
+`85141e35-5390-4dd9-864f-81f9c2633dc5` with `CYCLES=1` and
+`settle-seconds=15.0`. LLDB stopped at `main.swift:169` after the final second
+Foundation Trash call returned but before the single-run summary, operation closure
+return, or process exit. The maintainer immediately inspected the exact Trash item
+and Put Back was already absent. Continuing the process then produced the normal
+summary and clean exit. This falsifies summary generation and process exit as the
+cause of the final-item failure. The remaining differential is inside the transition
+to a subsequent cycle, most notably its additional Foundation Trash call.
+
+2026-08-10 — A second no-code LLDB probe isolated the subsequent Trash call with
+run `f7f7f31d-5768-4192-93f1-6d7e8664bbec`, `CYCLES=2`, and
+`settle-seconds=15.0`. LLDB first stopped at `PutBackRaceAcceptance.swift:143`
+after cycle 1's second Foundation Trash returned but before its report was appended
+or cycle 2 began. The maintainer immediately inspected target 01: Put Back was absent.
+After continuing only far enough for cycle 2 to create its fixture and complete its
+first Foundation Trash call, while the runner waited for cycle 2's real Finder Put
+Back, the maintainer rechecked target 01: Put Back was now present. Cycle 2 was then
+completed normally with the same 15-second pre-Trash settle; its final second Trash
+item did not offer Put Back. This directly establishes the observed transition as
+`absent before the next Foundation Trash call -> present after that call`, while the
+new final item remains absent. A pre-Trash delay therefore cannot by itself make the
+last or only symbolic-link Trash item reliable; the planned delay-threshold matrix is
+not a viable production mitigation under the current Foundation call behavior.
+
+2026-08-10 — The same LLDB before/after probe was repeated at zero pre-Trash delay
+with run `25626d8e-abc8-4b61-95c4-f13967141545`, `CYCLES=2`, and
+`settle-seconds=0.0`. After cycle 1's second Foundation Trash returned but before
+cycle 2 began, target 01 did not offer Put Back. Immediately after cycle 2's first
+Foundation Trash call, target 01 offered Put Back. After cycle 2's own immediate
+second Trash, final target 02 did not offer Put Back. This exactly matches the
+15-second probe and demonstrates that the observed state transition is independent
+of the pre-Trash settle interval across the tested endpoints: the prior item changes
+from absent to present only when the next Foundation Trash call occurs, while the
+tail item remains absent. The empirical abstraction is that the final call has no
+subsequent call to materialize or refresh its Put Back state; the private Foundation
+and Finder implementation prevents claiming a more specific internal mechanism.
+
+2026-08-10 — Three Foundation-only controls ruled out clean lifecycle or failure-path
+finalization. In run `1dd0528d-4cb5-42fb-b28b-394192f6b341`, the final second Trash
+item had no Put Back before an additional `FileManager.trashItem` call against its
+now-missing original URL; that call returned the expected Cocoa file-not-found error,
+and the same item still had no Put Back afterward. Run
+`51932ff3-ec57-4ded-a099-44cb505cffdf` replaced `FileManager.default` with a newly
+constructed `FileManager` for every Foundation call, and run
+`dd2989b0-b22a-4280-b1bb-ec474729d7e6` additionally enclosed each call in an explicit
+autorelease pool. Each independent `CYCLES=1`, zero-delay run completed both Trash
+calls, but its final item still lacked Put Back. A failed next call, a fresh manager
+instance, and explicit Objective-C temporary-object drainage therefore do not replace
+the successful subsequent Foundation Trash call observed by the earlier probes.
+
+2026-08-10 — A Foundation-only finalizer cleanup probe used run
+`eb884e39-12b2-4e2d-9d57-78fca9c2da31`. Cycle 1's second Foundation Trash was the
+user-visible item under test. Cycle 2's first Foundation Trash was treated as an
+application-owned finalizer and the debugger stopped immediately after that successful
+call. Target 01 then offered Put Back. Using target 02's exact Foundation-returned
+Trash URL, the same process moved the finalizer back to its exact original Test Fixture
+URL, verified that the UUID-scoped entry was again a symbolic link, and removed only
+that restored link. Both sibling link-target files remained present, target 02 no
+longer existed in either Trash or the Run Directory, and target 01 still offered Put
+Back after cleanup. The LLDB move expression did not return before interruption even
+though the filesystem move had completed, so this establishes behavioral feasibility,
+not yet an acceptable production implementation. A production candidate still needs
+an explicit ownership/identity boundary, bounded cleanup behavior, failure-state
+classification, and an automated acceptance path for the finalizer lifecycle.
+
+2026-08-10 — The behavioral probe was encoded as a compile-time-isolated,
+test-only `FoundationTrashFinalizer`. Pure regression tests first failed because
+the finalizer and the post-second-Trash orchestration step did not exist. The
+implementation creates one UUID-owned broken symbolic link, trashes it only through
+`WhitelistedTrashClient` and `FoundationSymlinkTrashClient`, restores the exact
+returned Trash URL, checks the original device/inode, link type, and available
+resource identifier, then unlinks only the verified restored entry relative to the
+retained Run Directory descriptor. Restore failure, source occupation, and restored
+identity replacement all stop closed and retain evidence. A distinct
+`put-back-symlink-finalizer-manual` command fixes settle delay at zero and keeps the
+unfinalized delay command as its control. This closes the automated-lifecycle evidence
+gap but does not authorize or implement production dispatch.
+
+2026-08-10 — The first automated real-menu finalizer acceptance passed with run
+`c74f26f6-9f38-45d2-858f-59bb7c333265`, `CYCLES=1`, fixture
+`symbolic-link`, and `settle-seconds=0.0`. After the maintainer used Finder's
+real Put Back command, the runner immediately performed the second user-visible
+Foundation Trash call, issued the owned Foundation finalizer call, restored and
+verified the exact returned finalizer URL, and reported
+`foundation-finalizer=cleaned`. The maintainer inspected the user-visible Trash
+item immediately after command completion, without a post-Trash wait, and Finder
+offered Put Back. This validates one complete test-only finalizer lifecycle on the
+reporting host; reliability over repeated cycles and production integration remain
+separate acceptance questions.
+
+2026-08-10 — The production candidate was implemented through `MacOSTrashClient` and
+ADR-0002. It dispatches ordinary entries to Finder and final symbolic links to Foundation.
+Before moving a link it completes a same-directory Finalizer preflight and prepares two
+additional UUID helpers. The target identity is rechecked immediately before Trash and the
+returned target identity is checked before its URL can be reported. Successful activation
+restores and removes only the exact returned helper outside Trash.
+
+The pure suite now covers the critical target-moved/finalizer-failed matrix. A definitely
+not-moved first activation failure uses the prepared backup; two definitely not-moved
+failures return the exact target receipt with `symlink_put_back_not_guaranteed`; an
+activation that moved its helper before throwing stops without invoking the backup and
+returns `finalizer_state_uncertain`; a successful activation followed by restore or cleanup
+failure returns `finalizer_cleanup_failed` without claiming Put Back was lost. Wrong target
+and helper return identities are rejected without touching unrelated entries. The same
+matrix covers resolving and broken symbolic links.
+
+`put-back-symlink-production-manual` is the real-menu gate for this implementation. A separate
+ordinary-file Finder Trash supplies the control item for the maintainer's real Finder Put Back.
+Only after that exact restore is observed and revalidated does the runner Trash the symbolic-link
+target through the production algorithm. Every production preflight, target, and activation call is
+separately authorized by the Test Safety Context; internal helpers must be direct Run Directory
+children with exact `.rmp-finalizer-<canonical-lowercase-uuid>` names. Pure tests pass; the repeated
+resolving-link and broken-link Finder menu rounds remain pending maintainer execution.
+
+2026-08-11 — The first production-algorithm real-menu acceptance passed with run
+`dcfb1130-ba53-4add-b275-e080ca3b588b`, `CYCLES=1`, fixture `symbolic-link`, and
+`settle-seconds=0.0`. After the maintainer used Finder's real Put Back command, the runner
+immediately performed the production preflight, target Trash, Finalizer activation, exact
+Finalizer restore, and verified cleanup. It reported
+`foundation-finalizer=production-cleaned`. The maintainer checked the target immediately after
+command completion, with no post-Trash delay, and confirmed that Finder offered Put Back. This
+is one resolving-link smoke pass for the integrated production algorithm; repeated resolving-link,
+broken-link, and target-moved/finalizer-failed acceptance remain open.
+
+2026-08-11 — The deterministic failure-path regression passed in the full pure suite (204 tests,
+19 suites). Its injected scenario moves the target successfully, moves a Finalizer successfully,
+then makes Finalizer restore/cleanup fail. The client preserves the exact moved-target receipt and
+reports `finalizer_cleanup_failed`; it does not claim that Put Back was lost. This is the safe,
+repeatable way to verify the target-moved/finalizer-failed contract, since manufacturing a real
+Finder/Trash cleanup fault would require unsafe interference with the user's Trash.
+
+2026-08-11 — The first broken-symbolic-link production-algorithm real-menu acceptance passed with
+run `0ee3eefa-cc00-48c8-a7fa-d41bb0e92e6b`, `CYCLES=1`, and `settle-seconds=0.0`.
+After the maintainer's real Finder Put Back, the runner immediately completed the production
+preflight, target Trash, Finalizer activation, exact restore, and cleanup, reporting
+`foundation-finalizer=production-cleaned`. The maintainer checked immediately after completion and
+confirmed that Finder offered Put Back. The integrated smoke set now has one resolving-link and one
+broken-link pass; repeated reliability rounds and injected post-target failure acceptance remain
+open.
+
+2026-08-11 — A test-only production Finalizer fault injector was added behind
+`put-back-symlink-production-manual` and the existing Test Safety Context. The
+`not-moved-before-error` mode authorizes the first activation helper and throws before Foundation;
+the prepared backup must complete the real activation and cleanup. The `moved-before-error` mode
+performs the first activation through the real whitelisted Foundation call and then throws; the
+production algorithm must retain the exact target receipt with `finalizer_state_uncertain`, stop
+before the backup, and leave the moved helper as evidence. Fault modes require one cycle, never
+enter production `rmp`, and accept only their exact expected warning. The full pure suite passes
+208 tests in 19 suites; real-menu execution of both modes remains pending.
+
+2026-08-11 — The first real injected-failure acceptance passed with run
+`fae052b3-5bc5-4571-8037-72e34c3a0d02`, `CYCLES=1`, fixture `symbolic-link`, and
+`FINALIZER_FAULT=not-moved-before-error`. After the maintainer's real Finder Put Back, the target
+was re-trashed immediately. The injected first activation failed before its Foundation call; the
+prepared backup activated and cleaned successfully. The command reported
+`foundation-finalizer=backup-recovered`, `trash-warning=none`, and retained the exact target
+receipt. The maintainer checked immediately after completion and confirmed Put Back. This validates
+the real backup takeover path on the reporting host.
+
+2026-08-11 — The real moved-before-error acceptance passed with run
+`518542ae-04b5-49be-a7ea-75ffe18a5ee7`, `CYCLES=1`, fixture `symbolic-link`, and
+`FINALIZER_FAULT=moved-before-error`. After the maintainer's real Finder Put Back, the target was
+re-trashed immediately and the first activation Finalizer entered Trash through the real
+whitelisted Foundation call before the injected error. The production algorithm stopped before the
+backup, retained the exact target receipt, and reported `foundation-finalizer=state-uncertain` with
+`trash-warning=finalizer_state_uncertain`. The moved UUID Finalizer remains in Trash as intended
+evidence. The maintainer checked the target immediately and confirmed Put Back. This directly
+validates the target-moved/finalizer-state-uncertain behavior on the reporting host.
+
+2026-08-11 — The first attempted five-cycle resolving-link production batch used run
+`424dd437-9778-4f10-a60d-15f8780c9ea9`. Cycle 1 completed, but cycle 2's first Foundation control
+item did not offer Put Back, so the maintainer could not continue and the agent interrupted the
+runner. No cycle-2 production target Trash occurred. This reproduced the earlier `CYCLES-1`
+asymmetry in the test protocol itself: each cycle finalized its second production target but did not
+Finalize the next cycle's first control before waiting for Finder Put Back. The batch is invalid as
+production reliability evidence.
+
+The runner now performs an identity-verified, whitelisted test Finalizer immediately after every
+Foundation control Trash and before waiting for the maintainer. A deterministic regression test
+requires the event order `control Trash -> control Finalizer -> Finder Put Back -> production target
+Trash`; the full pure suite passes 209 tests in 19 suites. The interrupted Run Directory and Trash
+items remain as evidence. A fresh real five-cycle rerun is still required.
+
+2026-08-11 — That proposed external control-Finalizer fix was falsified by fresh run
+`0363f907-eead-40e3-87cc-6ffe100d4466`. Cycle 1 completed, but cycle 2's raw Foundation control still
+did not offer Put Back even though the runner had completed and cleaned the separate test Finalizer
+before asking the maintainer. The agent interrupted the runner before cycle 2's production target.
+This proves that sequencing an external test Finalizer is not an adequate control setup for repeated
+production acceptance; the ordering-only regression test was removed.
+
+The then-current production acceptance proposal used two independent whitelisted production clients
+in every cycle. The first was fault-free and performed its own production preflight, target Trash,
+activation, restore, and cleanup before the maintainer's Put Back; the second ran the scenario under
+test. That proposal was superseded by the 2026-08-12 protocol below after run `5a1e216d-a681-4296-91a5-bf621b2a22bf`
+showed that even its first production symbolic-link control could lack Put Back.
+
+2026-08-12 — The two-production-client proposal was falsified by fresh run
+`5a1e216d-a681-4296-91a5-bf621b2a22bf`, `CYCLES=2`, fixture `symbolic-link`. The first cycle's
+fault-free production symbolic-link control did not offer Put Back, so no second production Trash
+occurred and the runner was stopped. Together with run `0363f907-eead-40e3-87cc-6ffe100d4466`, this
+shows that neither an external Finalizer nor a complete production Finalizer lifecycle makes a
+Foundation symbolic-link operation suitable as the human control. Both batches are invalid as
+production reliability evidence.
+
+The production acceptance protocol now separates the prerequisite from the behavior under test.
+Each cycle first trashes a uniquely named ordinary-file control through the whitelisted Finder
+backend. After the maintainer uses Finder Put Back and the runner verifies that exact restored
+identity, a separate symbolic-link fixture enters the production `MacOSTrashClient` once. A
+deterministic regression requires `Finder file control -> Finder Put Back -> production symbolic
+link`, and also requires the target URL to differ from the control URL. The targeted pure suite
+passes five tests. A fresh real run is required before this protocol is accepted.
+
+2026-08-12 — The separated Finder-control proposal was falsified by fresh run
+`3624a784-419b-4085-a18a-df5e2052ac8b`, `CYCLES=1`, fixture `symbolic-link`. Finder successfully
+trashed the independent ordinary-file control, the maintainer restored that exact control, and the
+runner immediately executed the production symbolic-link path with zero settle delay. The command
+reported `foundation-finalizer=production-cleaned` and `trash-warning=none`, but the maintainer's
+immediate menu check found no Put Back for the symbolic-link target. This is a production acceptance
+failure, not a menu-observation timing result, and the Finder-control protocol is not accepted.
+
+The next minimal probe removes the control and manual restore entirely. A fresh Run Directory will
+perform exactly one production symbolic-link target operation, including its normal preflight and
+Finalizer lifecycle, and the maintainer will inspect the target immediately. This changes one
+variable: if the target gains Put Back, the preceding Finder control perturbed the relevant
+Foundation state; if it does not, a successful production Finalizer lifecycle is not sufficient in
+a clean standalone invocation on the reporting host.
+
+2026-08-12 — The control-free standalone production probe completed with run
+`c858d5b7-5fbf-48f8-ad85-b8f97f8ed75f`, fixture `symbolic-link`, and `control=none`. It performed one
+production target operation in a fresh Run Directory and reported
+`foundation-finalizer=production-cleaned` with `trash-warning=none`. The maintainer inspected the
+exact target immediately and found no Put Back. This excludes the Finder control, manual restore,
+settle delay, cycle boundary, and repeated target naming as necessary causes. A successful hidden
+production Finalizer lifecycle is therefore not sufficient in this minimal run.
+
+The next ranked single-variable probe keeps the production preflight, target, activation, restore,
+cleanup, and whitelist checks unchanged while replacing only the hidden `.rmp-finalizer-<uuid>`
+helper basename with a visible run-prefixed UUID basename. The earlier successful test-only
+Finalizer used a visible run-prefixed name; if the visible production helper succeeds, hidden-name
+handling is causal. If it fails, the next variables are preflight presence and immediate helper
+restore/cleanup. Earlier production menu successes conflict with the hidden-name hypothesis, so it
+remains a falsifiable probe rather than a conclusion.
+
+The visible-name experiment is implemented as `--finalizer-name visible` on the standalone probe.
+It remains test-target-only, keeps the production default hidden basename unchanged, and preserves
+the same run-prefix, UUID, identity, restore, and cleanup checks. Its result will decide whether the
+hidden helper basename is causal before any production-default change is considered.
+
+2026-08-13 — The visible-name standalone probe completed with run
+`bf677d28-c80b-4795-b414-fafd89c8f26a`, fixture `symbolic-link`, `control=none`, and
+`finalizer-name=visible`. It retained the production preflight, target, activation, exact restore,
+and cleanup sequence and reported `foundation-finalizer=production-cleaned` with
+`trash-warning=none`. The maintainer inspected the exact target immediately and found no Put Back.
+This falsifies hidden helper naming as the cause; changing `.rmp-finalizer-<uuid>` to a visible
+run-prefixed name is not a fix.
+
+The next single-variable probe returns to the production hidden helper name and disables only the
+target-before-move Finalizer preflight. Target Trash, prepared activation helpers, successful
+activation, exact restore, cleanup, and every whitelist/identity check remain unchanged. If this
+probe succeeds, the preflight's successful Foundation Trash plus restore is causal; if it fails,
+the next variable is retaining the activation helper in Trash instead of immediately restoring it.
+
+2026-08-13 — The preflight-disabled standalone probe completed with run
+`0516390e-686b-4d0d-ba62-cc5b40d22064`, fixture `symbolic-link`, `control=none`, hidden Finalizer
+names, and `preflight=disabled`. It reported `foundation-finalizer=production-cleaned` with
+`trash-warning=none`. The maintainer inspected the exact target immediately and confirmed Put Back
+was offered. Compared with the otherwise equivalent hidden-name standalone failure
+`c858d5b7-5fbf-48f8-ad85-b8f97f8ed75f`, this changes only the production preflight and is therefore
+strong causal evidence that the preflight's Foundation Trash-plus-restore operation perturbs the
+subsequent target's Put Back metadata state. One identical fresh-run replication is required before
+accepting that conclusion; if it succeeds, the same probe must cover a broken symbolic link before
+the production default is changed.
+
+The identical fresh-run replication completed with run
+`0a34c398-056b-4a45-9892-0f3d7fed7614`. It again used fixture `symbolic-link`, `control=none`,
+hidden Finalizer names, and `preflight=disabled`; production activation, restore, and cleanup
+completed without a warning. The maintainer immediately confirmed Put Back was offered for the new
+target. The result is reproducible across two independently named runs and accepts the diagnosis:
+the target-before-move Foundation preflight is the operation that invalidates the following target's
+Put Back outcome in the minimal production sequence on the reporting host. The next required check
+is the same preflight-disabled path with a broken symbolic link.
+
+The broken-link check completed with run `a6a43b18-bba2-4d8b-b681-0c12d83569ca`, fixture
+`broken-symbolic-link`, `control=none`, hidden Finalizer names, and `preflight=disabled`. Production
+activation, exact restore, and cleanup completed with no warning, and the maintainer immediately
+confirmed Put Back was offered for the broken symbolic-link target. The accepted production change
+is therefore to remove the target-before-move Foundation preflight for both resolving and broken
+symbolic links while retaining target identity verification, two prepared activation Finalizers,
+the backup-on-definitely-not-moved behavior, exact restore, cleanup, and existing warnings.
+
+Production commit `9b5294d` makes the no-preflight sequence the default. Final acceptance run
+`a23a6d5a-21e2-415b-b512-681630c573b9` invoked the standalone resolving-link probe without either
+`--preflight` or `--finalizer-name`, so no diagnostic override selected the result. The command
+reported the production defaults `finalizer-name=hidden`, `preflight=disabled`,
+`foundation-finalizer=production-cleaned`, and `trash-warning=none`. The maintainer immediately
+confirmed Put Back was offered for the exact target. Together with the two resolving-link diagnosis
+runs, the broken-link run, 213 passing tests in 19 suites, and all repository gates, this accepts the
+no-preflight Finalizer sequence for production on the reporting host.
+
+2026-08-13 — Review remediation added the missing duplicate-Trash-name platform acceptance. Real
+run `0be21573-4de3-4465-9c86-74717a1255ca` used the same exact source path for two exclusively
+created ordinary-file generations and sent both through the whitelisted Finder backend. Finder
+returned
+`rmp-test-0be21573-4de3-4465-9c86-74717a1255ca-duplicate-trash-name` for the first item and
+`rmp-test-0be21573-4de3-4465-9c86-74717a1255ca-duplicate-trash-name 15.21.04` for the second.
+The command reported `renamed=true` and did not restore, enumerate, search, or automatically clean
+Trash. The same remediation replaces silently discarded pre-target Finalizer cleanup errors with
+stable `finalizer_cleanup_failed` reporting. The complete pure suite passes 219 tests in 20 suites
+with 96.77% production line coverage.
+
+2026-08-13 — A second independent broken-symbolic-link production run completed with
+`aac33a66-1491-4bef-a890-00df89fa1946`, `finalizer-name=hidden`, `preflight=disabled`, and
+`control=none`. The production lifecycle reported `foundation-finalizer=production-cleaned` and
+`trash-warning=none`; the maintainer inspected the exact target immediately after command completion
+and confirmed Finder offered Put Back. Together with broken-link run
+`a6a43b18-bba2-4d8b-b681-0c12d83569ca`, this supplies two independently named broken-link successes.
+Resolving links have two independently named no-preflight diagnosis successes plus production-default
+acceptance `a23a6d5a-21e2-415b-b512-681630c573b9`, so the requested repeated normal reliability rounds
+are complete on the reporting host.
+
+2026-08-13 — Final Standards review found that the post-`symlinkat` first-identity-failure branch
+still unlinked the helper basename without a verified device/inode and discarded the `unlinkat`
+result. A deterministic red test replaced the just-created helper before that identity read: the old
+code returned `trash_system_call_failed` and deleted the replacement. Production now preserves any
+entry that cannot pass its first identity check and reports `finalizer_cleanup_failed`; the same test
+passes with the replacement and user target intact. The final pure suite passes 220 tests in 20
+suites, Release builds, and production line coverage ratchets to 97.16%.
+
+2026-08-14 — Final Spec review found that the production acceptance wrapper revalidated the Test
+Safety Context before every real Foundation Trash call but not immediately before the real
+Finalizer restore move. A deterministic red test invalidated the run marker after activation Trash:
+the old wrapper still called restore once and incorrectly succeeded. The wrapper now uses a private
+restorer boundary that revalidates the complete context before delegating to `FileManager.moveItem`.
+The same test now fails closed with zero restore calls and retains the moved Finalizer as evidence.
+The complete pure suite passes 221 tests in 20 suites.

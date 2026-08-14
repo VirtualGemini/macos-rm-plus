@@ -35,12 +35,14 @@ struct ManualPutBackWaiter {
   private let makeWatch: MakeDirectoryChangeWatch
   private let now: MonotonicClock
   private let timeout: TimeInterval
+  private let postRestoreInstruction: String?
 
   init(
     context: TestSafetyContext,
     announce: @escaping Announce,
     heartbeat: @escaping Heartbeat = { _ in },
     timeout: TimeInterval = ManualPutBackWaiter.defaultTimeout,
+    postRestoreInstruction: String? = nil,
     resourceIdentifier: @escaping ResourceIdentifier = testSafetyResourceIdentifier,
     entryProbe: EntryProbe? = nil,
     makeWatch: MakeDirectoryChangeWatch? = nil,
@@ -50,6 +52,7 @@ struct ManualPutBackWaiter {
     self.announce = announce
     self.heartbeat = heartbeat
     self.timeout = timeout
+    self.postRestoreInstruction = postRestoreInstruction
     self.resourceIdentifier = resourceIdentifier
     self.entryProbe = entryProbe ?? { try Self.runDirectoryEntryExists(context: context, name: $0) }
     self.makeWatch = makeWatch ?? { try Self.watchRunDirectory(context: context) }
@@ -81,7 +84,8 @@ struct ManualPutBackWaiter {
     announce(
       Self.instruction(
         trashedName: evidence.returnedURL.lastPathComponent,
-        timeout: timeout
+        timeout: timeout,
+        postRestoreInstruction: postRestoreInstruction
       )
     )
     try waitForRestoredEntry(named: name, watch: watch)
@@ -128,13 +132,20 @@ struct ManualPutBackWaiter {
     }
   }
 
-  private static func instruction(trashedName: String, timeout: TimeInterval) -> String {
-    """
-    first-trash-complete
-    trash-item=\(trashedName)
-    Open Finder, select that item in Trash, and choose Put Back.
-    rmp-test re-trashes it the moment it returns; waiting up to \(Int(timeout))s.
-    """
+  private static func instruction(
+    trashedName: String,
+    timeout: TimeInterval,
+    postRestoreInstruction: String?
+  ) -> String {
+    let nextStep =
+      postRestoreInstruction
+      ?? "rmp-test re-trashes it the moment it returns; waiting up to \(Int(timeout))s."
+    return """
+      first-trash-complete
+      trash-item=\(trashedName)
+      Open Finder, select that item in Trash, and choose Put Back.
+      \(nextStep)
+      """
   }
 
   private static func runDirectoryEntryExists(

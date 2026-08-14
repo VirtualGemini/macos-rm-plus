@@ -23,11 +23,20 @@ cat >"$repo/Sources/RMPPlatform/FinderTrashClient.swift" <<'EOF'
 let script = NSAppleScript(source: "tell application id \"com.apple.finder\"")
 let event = NSAppleEventDescriptor.list()
 EOF
+cat >"$repo/TestSupport/RMPTestSafety/FoundationSymlinkTrashClient.swift" <<'EOF'
+let client = FileManager.default
+try client.trashItem(at: target, resultingItemURL: &result)
+EOF
 cat >"$repo/Sources/rmp/main.swift" <<'EOF'
-let client = FinderTrashClient()
+let client = MacOSTrashClient()
+EOF
+cat >"$repo/Sources/RMPPlatform/MacOSTrashClient.swift" <<'EOF'
+let finder = FinderTrashClient()
+try FileManager.default.trashItem(at: target, resultingItemURL: &result)
 EOF
 cat >"$repo/TestSupport/RMPTestSafety/WhitelistedTrashClient.swift" <<'EOF'
 let client = FinderTrashClient()
+let symlinkClient = FoundationSymlinkTrashClient()
 EOF
 cat >"$repo/TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift" <<'EOF'
 let script = NSAppleScript(source: "tell application id \"com.apple.finder\"")
@@ -39,7 +48,36 @@ EOF
 cat >"$repo/Tests/RMPPlatformTests/FinderTrashClientTests.swift" <<'EOF'
 let client = makeInjectedFinderTrashClient(finderDelete: spy.call)
 EOF
+cat >"$repo/Tests/RMPPlatformTests/MacOSTrashClientTests.swift" <<'EOF'
+let client = makeInjectedMacOSTrashClient(
+  finderTrash: finder.call,
+  foundationTrash: foundation.call
+)
+EOF
+cat >"$repo/TestSupport/RMPTestSafety/WhitelistedMacOSTrashClient.swift" <<'EOF'
+let client = makeInjectedMacOSTrashClient(
+  finderTrash: finder.call,
+  foundationTrash: foundation.call
+)
+EOF
+cat >"$repo/Tests/RMPPlatformTests/FoundationSymlinkTrashClientTests.swift" <<'EOF'
+let client = FoundationSymlinkTrashClient(systemTrash: spy.call)
+EOF
 cat >"$repo/Tests/RMPPlatformTests/WhitelistedTrashClientTests.swift" <<'EOF'
+let client = WhitelistedTrashClient.testingOnly(
+  context: context,
+  authorization: authorization,
+  systemTrash: spy.call
+)
+EOF
+cat >"$repo/Tests/RMPPlatformTests/FoundationTrashFinalizerTests.swift" <<'EOF'
+let client = WhitelistedTrashClient.testingOnly(
+  context: context,
+  authorization: authorization,
+  systemTrash: spy.call
+)
+EOF
+cat >"$repo/Tests/RMPPlatformTests/WhitelistedMacOSTrashClientTests.swift" <<'EOF'
 let client = WhitelistedTrashClient.testingOnly(
   context: context,
   authorization: authorization,
@@ -186,10 +224,37 @@ if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
 fi
 
 cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
+let client = MacOSTrashClient()
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: macOS Trash client escaped approved production wiring" >&2
+  exit 1
+fi
+
+cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
+let client = makeInjectedMacOSTrashClient(
+  finderTrash: finder.call,
+  foundationTrash: foundation.call
+)
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: macOS Trash injection factory escaped its adapter test" >&2
+  exit 1
+fi
+
+cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
 let client = WhitelistedPutBackClient(context: context)
 EOF
 if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
   echo "test failure: Finder Put Back client escaped its acceptance wiring" >&2
+  exit 1
+fi
+
+cat >"$repo/FutureTarget/Bypass.swift" <<'EOF'
+let client = FoundationSymlinkTrashClient()
+EOF
+if "$repo/scripts/check-system-trash-boundary.sh" >/dev/null 2>&1; then
+  echo "test failure: Foundation symbolic-link Trash client escaped approved test wiring" >&2
   exit 1
 fi
 

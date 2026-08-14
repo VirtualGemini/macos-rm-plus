@@ -14,6 +14,19 @@ struct AuthorizedTrashTarget: Sendable {
   let targetURL: URL
   fileprivate let runID: UUID
   fileprivate let plannedIdentity: FileIdentity
+  fileprivate let namePolicy: TrashTargetNamePolicy
+}
+
+private enum TrashTargetNamePolicy: Sendable {
+  case fixture(prefix: String)
+  case productionFinalizer(name: String)
+
+  var returnedNamePrefix: String {
+    switch self {
+    case let .fixture(prefix): prefix
+    case let .productionFinalizer(name): name
+    }
+  }
 }
 
 struct TrashVolumeInspection: Sendable {
@@ -53,19 +66,32 @@ struct TrashAuthorizationOperations: Sendable {
   )
 }
 
+enum TestSystemTrashBackend: String, Sendable {
+  case finder
+  case foundationSymlink = "foundation-symlink"
+}
+
 // The ticket and PRD define this safety-boundary name.
 // swiftlint:disable:next inclusive_language
-final class WhitelistedTrashClient {
+final class WhitelistedTrashClient: @unchecked Sendable {
   typealias SystemTrash = @Sendable (URL) throws -> URL
 
   private let context: TestSafetyContext
   private let authorization: TrashAuthorizationOperations
   private let systemTrash: SystemTrash
 
-  init(context: TestSafetyContext) {
+  init(
+    context: TestSafetyContext,
+    backend: TestSystemTrashBackend = .finder
+  ) {
     self.context = context
     authorization = .system
-    systemTrash = platformSystemTrash
+    switch backend {
+    case .finder:
+      systemTrash = platformSystemTrash
+    case .foundationSymlink:
+      systemTrash = foundationSymlinkSystemTrash
+    }
   }
 
   private init(
@@ -93,10 +119,38 @@ final class WhitelistedTrashClient {
   func authorizeForPlanning(targetURL: URL) throws -> AuthorizedTrashTarget {
     try context.revalidate()
     let target = targetURL.standardizedFileURL
+    let namePolicy = TrashTargetNamePolicy.fixture(prefix: fixturePrefix)
     return AuthorizedTrashTarget(
       targetURL: target,
       runID: context.runID,
-      plannedIdentity: try authorize(target)
+      plannedIdentity: try authorize(target, namePolicy: namePolicy),
+      namePolicy: namePolicy
+    )
+  }
+
+  func authorizeProductionFinalizerForPlanning(
+    targetURL: URL,
+    expectedPrefix: String = ".rmp-finalizer-"
+  ) throws -> AuthorizedTrashTarget {
+    try context.revalidate()
+    let target = targetURL.standardizedFileURL
+    let name = target.lastPathComponent
+    let identifierText = String(name.dropFirst(expectedPrefix.count))
+    guard name.hasPrefix(expectedPrefix),
+      let identifier = UUID(uuidString: identifierText),
+      identifierText == identifier.uuidString.lowercased()
+    else {
+      throw diagnostic(
+        .trashFixtureName,
+        "A production finalizer basename must use the expected prefix and one canonical UUID."
+      )
+    }
+    let namePolicy = TrashTargetNamePolicy.productionFinalizer(name: name)
+    return AuthorizedTrashTarget(
+      targetURL: target,
+      runID: context.runID,
+      plannedIdentity: try authorize(target, namePolicy: namePolicy),
+      namePolicy: namePolicy
     )
   }
 
@@ -108,7 +162,10 @@ final class WhitelistedTrashClient {
         "The authorized Trash target belongs to a different test run."
       )
     }
-    let currentIdentity = try authorize(authorizedTarget.targetURL)
+    let currentIdentity = try authorize(
+      authorizedTarget.targetURL,
+      namePolicy: authorizedTarget.namePolicy
+    )
     guard currentIdentity == authorizedTarget.plannedIdentity else {
       throw diagnostic(
         .trashPlanIdentityMismatch,
@@ -141,7 +198,7 @@ final class WhitelistedTrashClient {
     } catch {
       throw evidenceMismatch("The returned Trash URL could not be identified.")
     }
-    let expectedPrefix = fixturePrefix
+    let expectedPrefix = authorizedTarget.namePolicy.returnedNamePrefix
     guard returnedURL.isFileURL, returnedURL.lastPathComponent.hasPrefix(expectedPrefix) else {
       throw evidenceMismatch("The returned Trash URL lost the Test Fixture run prefix.")
     }
@@ -160,7 +217,10 @@ final class WhitelistedTrashClient {
     "rmp-test-\(context.runID.uuidString.lowercased())-"
   }
 
-  private func authorize(_ targetURL: URL) throws -> FileIdentity {
+  private func authorize(
+    _ targetURL: URL,
+    namePolicy: TrashTargetNamePolicy
+  ) throws -> FileIdentity {
     let runURL = context.runDirectoryURL.standardizedFileURL
     let target = targetURL.standardizedFileURL
     let runComponents = runURL.pathComponents
@@ -179,22 +239,42 @@ final class WhitelistedTrashClient {
       )
     }
 
-    guard target.lastPathComponent.hasPrefix(fixturePrefix) else {
-      throw diagnostic(
-        .trashFixtureName,
-        "A Test Fixture basename must carry the current run UUID prefix."
-      )
+    switch namePolicy {
+    case let .fixture(prefix):
+      guard target.lastPathComponent.hasPrefix(prefix) else {
+        throw diagnostic(
+          .trashFixtureName,
+          "A Test Fixture basename must carry the current run UUID prefix."
+        )
+      }
+    case let .productionFinalizer(name):
+      guard
+        targetComponents.count == runComponents.count + 1,
+        target.lastPathComponent == name
+      else {
+        throw diagnostic(
+          .trashFixtureName,
+          "A production finalizer must be a direct child of the authorized Run Directory."
+        )
+      }
     }
 
-    return try validateComponents(Array(targetComponents.dropFirst(runComponents.count)))
+    let entry = try validateComponents(Array(targetComponents.dropFirst(runComponents.count)))
+    if case .productionFinalizer = namePolicy, entry.mode & S_IFMT != S_IFLNK {
+      throw diagnostic(
+        .trashFixtureName,
+        "A production finalizer must be a symbolic link."
+      )
+    }
+    return entry.identity
   }
 
-  private func validateComponents(_ components: [String]) throws -> FileIdentity {
+  private func validateComponents(_ components: [String]) throws -> ValidatedTrashEntry {
     var parentDescriptor = try context.duplicateRunDirectoryDescriptor()
     defer { close(parentDescriptor) }
 
     var currentURL = context.runDirectoryURL.standardizedFileURL
-    var finalIdentity: FileIdentity?
+    var finalEntry: ValidatedTrashEntry?
     for (index, component) in components.enumerated() {
       let isFinal = index == components.index(before: components.endIndex)
       currentURL.appendPathComponent(component, isDirectory: !isFinal)
@@ -211,7 +291,10 @@ final class WhitelistedTrashClient {
       else {
         throw diagnostic(.trashVolumeMismatch, "The Trash target crossed the authorized volume.")
       }
-      if isFinal { finalIdentity = FileIdentity(status: status) }
+      if isFinal {
+        finalEntry = ValidatedTrashEntry(
+          identity: FileIdentity(status: status), mode: status.st_mode)
+      }
 
       if !isFinal, status.st_mode & S_IFMT != S_IFDIR {
         let code: TestSafetyDiagnosticCode =
@@ -232,10 +315,10 @@ final class WhitelistedTrashClient {
         parentDescriptor = nextDescriptor
       }
     }
-    guard let finalIdentity else {
+    guard let finalEntry else {
       throw diagnostic(.trashPathInspectionFailed, "The Trash target identity is unavailable.")
     }
-    return finalIdentity
+    return finalEntry
   }
 
   private func validateVolume(at url: URL, status: stat, isFinal: Bool) throws {
@@ -302,6 +385,11 @@ final class WhitelistedTrashClient {
   }
 }
 
+private struct ValidatedTrashEntry {
+  let identity: FileIdentity
+  let mode: mode_t
+}
+
 private func isFileProviderItem(at url: URL) throws -> Bool {
   let result = FileProviderProbeResult()
   // swift-format and SwiftLint disagree on this imported Objective-C callback layout.
@@ -350,6 +438,10 @@ private enum FileProviderInspectionError: Error {
 private func platformSystemTrash(_ sourceURL: URL) throws -> URL {
   let receipt = try FinderTrashClient().trashItem(atPath: sourceURL.path)
   return URL(fileURLWithPath: receipt.destinationPath)
+}
+
+private func foundationSymlinkSystemTrash(_ sourceURL: URL) throws -> URL {
+  try FoundationSymlinkTrashClient().trashItem(sourceURL)
 }
 
 private func diagnostic(

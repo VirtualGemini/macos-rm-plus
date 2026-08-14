@@ -13,7 +13,11 @@ SWIFT_WARNING_FLAGS := -Xswiftc -warnings-as-errors
 
 .PHONY: bootstrap hooks-install format format-check lint lint-scripts lint-actions \
 	build build-release test test-unit test-integration test-put-back-race \
-	test-put-back-race-manual check-spdx check-dangerous \
+	test-put-back-race-manual test-put-back-symlink-delay-manual \
+	test-put-back-symlink-finalizer-manual test-put-back-symlink-production-manual \
+	test-put-back-symlink-production-probe \
+	test-duplicate-trash-name \
+	check-spdx check-dangerous \
 	test-policy coverage-report check-tool-versions check-swift-toolchain \
 	check-system-trash-boundary \
 	check-policy-ownership check ci clean
@@ -83,11 +87,41 @@ SETTLE_SECONDS ?= 0
 
 CYCLES ?= 1
 FIXTURE ?= file
+SYMLINK_FIXTURE ?= symbolic-link
+FINALIZER_FAULT ?= none
+FINALIZER_NAME ?= hidden
+PREFLIGHT ?= disabled
 
 test-put-back-race-manual:
 	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
 		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
 		--fixture "$(FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
+
+test-put-back-symlink-delay-manual:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-delay-manual \
+		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
+		--fixture "$(SYMLINK_FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
+
+test-put-back-symlink-finalizer-manual:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-finalizer-manual \
+		--cycles "$(CYCLES)" --fixture "$(SYMLINK_FIXTURE)" \
+		--test-run-id "$(TEST_RUN_ID)"
+
+test-put-back-symlink-production-manual:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-production-manual \
+		--cycles "$(CYCLES)" --fixture "$(SYMLINK_FIXTURE)" \
+		--finalizer-fault "$(FINALIZER_FAULT)" \
+		--test-run-id "$(TEST_RUN_ID)"
+
+test-put-back-symlink-production-probe:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-production-probe \
+		--fixture "$(SYMLINK_FIXTURE)" --finalizer-name "$(FINALIZER_NAME)" \
+		--preflight "$(PREFLIGHT)" \
+		--test-run-id "$(TEST_RUN_ID)"
+
+test-duplicate-trash-name:
+	swift run $(SWIFT_WARNING_FLAGS) rmp-test duplicate-trash-name \
+		--test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:
 	./scripts/check-spdx.sh

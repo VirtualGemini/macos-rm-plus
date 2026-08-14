@@ -121,4 +121,61 @@ struct PutBackRaceFixtureKindTests {
     #expect(Set(suffixes).count == PutBackRaceFixtureKind.allCases.count)
     #expect(PutBackRaceFixtureKind.allCases.count == 6)
   }
+
+  @Test("maps production finalizer fault modes to their expected warning contract")
+  func mapsProductionFinalizerFaultModes() {
+    #expect(
+      ProductionFinalizerFault(rawValue: "not-moved-before-error")
+        == .firstActivationNotMoved
+    )
+    #expect(
+      ProductionFinalizerFault(rawValue: "moved-before-error")
+        == .firstActivationMovedBeforeError
+    )
+    #expect(ProductionFinalizerFault(rawValue: "unknown") == nil)
+    #expect(ProductionFinalizerFault.firstActivationNotMoved.expectedWarning == nil)
+    #expect(
+      ProductionFinalizerFault.firstActivationMovedBeforeError.expectedWarning
+        == .finalizerStateUncertain
+    )
+  }
+
+  @Test("extracts only a known production finalizer fault option")
+  func extractsProductionFinalizerFaultOption() throws {
+    let (fault, remaining) = try extractProductionFinalizerFault([
+      "--fixture", "symbolic-link", "--finalizer-fault", "moved-before-error",
+    ])
+
+    #expect(fault == .firstActivationMovedBeforeError)
+    #expect(remaining == ["--fixture", "symbolic-link"])
+    #expect(
+      captureDiagnostic {
+        _ = try extractProductionFinalizerFault(["--finalizer-fault", "unknown"])
+      }?.code == .invalidCommandArguments
+    )
+  }
+
+  @Test("the standalone production probe accepts only its symbolic-link fixture option")
+  func extractsStandaloneProductionProbeOptions() throws {
+    let defaultOptions = try extractProductionProbeOptions([
+      "--test-run-id", "default-run-id",
+    ])
+    let options = try extractProductionProbeOptions([
+      "--fixture", "broken-symbolic-link", "--finalizer-name", "visible",
+      "--preflight", "disabled", "--test-run-id", "run-id",
+    ])
+
+    #expect(defaultOptions.preflight == .disabled)
+    #expect(options.kind == .brokenSymbolicLink)
+    #expect(options.finalizerName == .visible)
+    #expect(options.preflight == .disabled)
+    #expect(options.driverArguments == ["--test-run-id", "run-id"])
+    for unsupported in ["--cycles", "--settle-seconds", "--finalizer-fault"] {
+      #expect(
+        captureDiagnostic {
+          _ = try extractProductionProbeOptions([unsupported, "1"])
+        }?.code == .invalidCommandArguments
+      )
+    }
+  }
 }

@@ -291,16 +291,11 @@ struct PutBackRaceAcceptanceSequenceTests {
     let secondTrashURL = URL(fileURLWithPath: "/Trash/second-put-back-race")
     let resourceIdentifier = Data("fixture-identity".utf8)
     var events: [String] = []
-    var trashEvidence = [
-      TrashVerificationEvidence(
-        returnedURL: firstTrashURL,
-        resourceIdentifier: resourceIdentifier
-      ),
-      TrashVerificationEvidence(
-        returnedURL: secondTrashURL,
-        resourceIdentifier: resourceIdentifier
-      ),
-    ]
+    var trashEvidence = makeTrashEvidence(
+      firstURL: firstTrashURL,
+      secondURL: secondTrashURL,
+      resourceIdentifier: resourceIdentifier
+    )
     let operations = PutBackRaceOperations(
       prepare: { receivedContext in
         #expect(receivedContext === context)
@@ -319,7 +314,8 @@ struct PutBackRaceAcceptanceSequenceTests {
           returnedURL: sourceURL,
           resourceIdentifier: resourceIdentifier
         )
-      }
+      },
+      finalize: { events.append("finalize") }
     )
 
     let report = try PutBackRaceAcceptance.run(context: context, operations: operations)
@@ -331,6 +327,7 @@ struct PutBackRaceAcceptanceSequenceTests {
           "trash:first-put-back-race",
           "put-back:first-put-back-race",
           "trash:second-put-back-race",
+          "finalize",
         ]
     )
     #expect(
@@ -343,6 +340,123 @@ struct PutBackRaceAcceptanceSequenceTests {
           settleSeconds: 0
         )
     )
+  }
+
+  @Test("uses a dedicated production retrash operation only after Put Back")
+  func usesDedicatedProductionRetrash() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let sourceURL = context.runDirectoryURL.appendingPathComponent("production-retrash")
+    let firstTrashURL = URL(fileURLWithPath: "/Trash/first")
+    let secondTrashURL = URL(fileURLWithPath: "/Trash/second")
+    var events: [String] = []
+    let operations = PutBackRaceOperations(
+      prepare: { _ in
+        PutBackRaceTrashSession(
+          sourceURL: sourceURL,
+          trash: {
+            events.append("foundation-control")
+            return TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil)
+          },
+          retrash: {
+            events.append("production-finalizer")
+            return TrashVerificationEvidence(returnedURL: secondTrashURL, resourceIdentifier: nil)
+          }
+        )
+      },
+      putBack: { _, _ in
+        events.append("put-back")
+        return PutBackVerificationEvidence(returnedURL: sourceURL, resourceIdentifier: nil)
+      }
+    )
+
+    let report = try PutBackRaceAcceptance.run(context: context, operations: operations)
+
+    #expect(events == ["foundation-control", "put-back", "production-finalizer"])
+    #expect(report.firstTrashURL == firstTrashURL)
+    #expect(report.secondTrashURL == secondTrashURL)
+  }
+
+  @Test("uses a Finder file as the control before the production symbolic-link Trash")
+  func usesFinderFileControlBeforeProductionSymbolicLinkTrash() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let controlURL = context.runDirectoryURL.appendingPathComponent("finder-file-control")
+    let targetURL = context.runDirectoryURL.appendingPathComponent("production-symbolic-link")
+    let firstTrashURL = URL(fileURLWithPath: "/Trash/finder-file-control")
+    let secondTrashURL = URL(fileURLWithPath: "/Trash/production-symbolic-link")
+    var events: [String] = []
+    let control = PutBackRaceTrashSession(sourceURL: controlURL) {
+      events.append("finder-file-control")
+      return TrashVerificationEvidence(returnedURL: firstTrashURL, resourceIdentifier: nil)
+    }
+    let session = PutBackRaceProductionProtocol.makeSession(
+      control: control,
+      targetSourceURL: targetURL,
+      targetTrash: { receivedTargetURL in
+        #expect(receivedTargetURL == targetURL)
+        events.append("production-symbolic-link")
+        return TrashVerificationEvidence(returnedURL: secondTrashURL, resourceIdentifier: nil)
+      }
+    )
+    let operations = PutBackRaceOperations(
+      prepare: { _ in session },
+      putBack: { _, _ in
+        events.append("put-back")
+        return PutBackVerificationEvidence(returnedURL: controlURL, resourceIdentifier: nil)
+      }
+    )
+
+    let report = try PutBackRaceAcceptance.run(context: context, operations: operations)
+
+    #expect(PutBackRaceProductionProtocol.controlKind == .file)
+    #expect(PutBackRaceProductionProtocol.controlBackend == .finder)
+    #expect(events == ["finder-file-control", "put-back", "production-symbolic-link"])
+    #expect(report.sourceURL == controlURL)
+    #expect(report.secondTrashURL == secondTrashURL)
+  }
+
+  @Test("runs one production symbolic-link Trash without a control or Put Back")
+  func runsProductionSymbolicLinkProbeWithoutControl() throws {
+    let fixture = try SafetyHomeFixture()
+    defer { fixture.remove() }
+    let context = try fixture.establishContext()
+    let sourceURL = context.runDirectoryURL.appendingPathComponent("production-probe")
+    let trashURL = URL(fileURLWithPath: "/Trash/production-probe")
+    var events: [String] = []
+    let operations = ProductionTrashProbeOperations(
+      prepare: { receivedContext in
+        #expect(receivedContext === context)
+        events.append("prepare-target")
+        return sourceURL
+      },
+      trash: { receivedSourceURL in
+        #expect(receivedSourceURL == sourceURL)
+        events.append("production-trash")
+        return TrashVerificationEvidence(returnedURL: trashURL, resourceIdentifier: nil)
+      }
+    )
+
+    let report = try PutBackRaceAcceptance.runProductionProbe(
+      context: context,
+      operations: operations
+    )
+
+    #expect(events == ["prepare-target", "production-trash"])
+    #expect(report == ProductionTrashProbeReport(sourceURL: sourceURL, trashURL: trashURL))
+  }
+
+}
+
+private func makeTrashEvidence(
+  firstURL: URL,
+  secondURL: URL,
+  resourceIdentifier: Data
+) -> [TrashVerificationEvidence] {
+  [firstURL, secondURL].map {
+    TrashVerificationEvidence(returnedURL: $0, resourceIdentifier: resourceIdentifier)
   }
 }
 

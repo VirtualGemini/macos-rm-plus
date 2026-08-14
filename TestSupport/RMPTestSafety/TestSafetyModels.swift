@@ -87,6 +87,10 @@ enum TestSafetyDiagnosticCode: String, Sendable {
   case directoryWrongType = "test-safety.directory-wrong-type"
   case duplicateRunID = "test-safety.duplicate-run-id"
   case executableIdentityUnavailable = "test-safety.executable-identity-unavailable"
+  case finalizerCleanupFailed = "test-safety.finalizer-cleanup-failed"
+  case finalizerEvidenceMismatch = "test-safety.finalizer-evidence-mismatch"
+  case finalizerRestoreFailed = "test-safety.finalizer-restore-failed"
+  case finalizerSourceOccupied = "test-safety.finalizer-source-occupied"
   case fixtureCreateFailed = "test-safety.fixture-create-failed"
   case fixtureNameInvalid = "test-safety.fixture-name-invalid"
   case fixtureWriteFailed = "test-safety.fixture-write-failed"
@@ -125,6 +129,7 @@ enum TestSafetyDiagnosticCode: String, Sendable {
   case trashPathInspectionFailed = "test-safety.trash-path-inspection-failed"
   case trashPlanIdentityMismatch = "test-safety.trash-plan-identity-mismatch"
   case trashSafetyDirectory = "test-safety.trash-safety-directory"
+  case trashSymlinkRequired = "test-safety.trash-symlink-required"
   case trashSystemCallFailed = "test-safety.trash-system-call-failed"
   case trashVolumeMismatch = "test-safety.trash-volume-mismatch"
 }

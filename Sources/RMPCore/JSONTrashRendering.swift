@@ -150,10 +150,18 @@ struct JSONTrashRenderer {
     let items = results.map { result in
       item(for: result, currentDirectoryPath: currentDirectoryPath)
     }
-    let success = !results.contains(where: \.requiresFailureExit)
-    let result = encode(
+    let success = !results.contains(where: \.representsOperationFailure)
+    let encodedResult = encode(
       JSONTrashOperation(dryRun: dryRun, items: items, success: success)
     )
+    let result =
+      encodedResult.standardOutput.isEmpty
+      ? encodedResult
+      : encodedResult.withExitCode(
+        results.contains(where: \.requiresFailureExit)
+          ? ExitStatus.failure.rawValue
+          : ExitStatus.success.rawValue
+      )
     let diagnostics = TrashResultRenderer().render(results, output: .quiet)
     return CommandResult(
       standardOutput: result.standardOutput,
@@ -168,7 +176,7 @@ struct JSONTrashRenderer {
     code: TrashErrorCode,
     message: String,
     currentDirectoryPath: String,
-    exitCode: Int32 = 1
+    exitCode: Int32 = ExitStatus.failure.rawValue
   ) -> CommandResult {
     let items = paths.map { path in
       JSONTrashItem(
@@ -294,7 +302,9 @@ struct JSONTrashRenderer {
       return CommandResult(
         standardOutput: output + "\n",
         standardError: "",
-        exitCode: operation.success ? 0 : 1
+        exitCode: operation.success
+          ? ExitStatus.success.rawValue
+          : ExitStatus.failure.rawValue
       )
     } catch {
       return encodingFailure()
@@ -307,7 +317,7 @@ struct JSONTrashRenderer {
       standardError:
         "rmp: \(TrashErrorCode.jsonEncodingFailed.rawValue): "
         + "could not encode the JSON Trash Operation result\n",
-      exitCode: 2
+      exitCode: ExitStatus.failure.rawValue
     )
   }
 

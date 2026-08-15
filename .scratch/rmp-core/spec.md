@@ -190,7 +190,8 @@ rmp --json --non-interactive --confirm=never build
 rmp [OPTIONS] <PATH>...
 ```
 
-至少需要一个路径。路径参数在 Shell 展开后逐个作为顶层对象处理。
+通常至少需要一个路径；兼容短选项 `-f` 最终生效且没有路径时，按 macOS `rm` 的成功空操作返回
+退出码 0。路径参数在 Shell 展开后逐个作为顶层对象处理。
 
 ### 8.2 原生选项
 
@@ -229,7 +230,7 @@ v0.1.0 的版本输出固定为 `rmp 0.1.0`。帮助与版本命令在进入路�
 默认模式只要接受了 `-P`，就必须将警告写入 stderr；该行为不依赖 stdin、stdout 或 stderr 是否为
 TTY。`--non-interactive`、`--quiet`、输出重定向和 `--json` 均不得抑制该警告，且 JSON 模式的
 stdout 仍只能包含 JSON 文档。警告本身不改变退出码；退出码由命令的其余结果决定。严格模式下
-`-P` 是用法错误，返回退出码 2，不再同时输出“已接受但无效果”的警告，也不得进入路径检查或
+`-P` 是用法错误，返回退出码 64，不再同时输出“已接受但无效果”的警告，也不得进入路径检查或
 Trash 能力调用。
 
 兼容参数不在主帮助的选项列表中。用户可以运行：
@@ -308,8 +309,9 @@ rmp --help -a -zh
 
 确认提示写入 stderr。忽略首尾空白并进行大小写折叠后，仅 `y` 和 `yes` 表示批准；空回答、`n`
 和 `no` 表示拒绝，其他回答无效，无法取得下一行输入表示确认中断。程序不对无效或中断回答猜测
-用户意图，也不因此发起 Trash 调用。上述失败分别使用 `confirmation_declined`、
-`confirmation_invalid_response` 和 `confirmation_interrupted` 稳定错误码并返回退出码 1。
+用户意图，也不因此发起 Trash 调用。上述结果分别使用 `confirmation_declined`、
+`confirmation_invalid_response` 和 `confirmation_interrupted` 稳定错误码，但逐项确认本身不改变
+成功退出码。
 `--non-interactive`、非 TTY stdin 或不可用的确认能力使用 `confirmation_required`，不得读取或阻塞。
 逐项确认中的无效回答按拒绝处理并继续后续输入；确认输入中断会停止继续提示，因为已无法可靠
 取得后续批准。
@@ -381,8 +383,8 @@ Trash 成功。成功返回的 Finalizer URL 必须在恢复前验证符号链�
 FR-SAFE-018：所有 Finalizer 激活尝试失败时，结果仍必须保留用户目标的精确废纸篓 URL，状态为
 `moved`，并附加 `symlink_put_back_not_guaranteed`。激活已经成功但恢复或清理失败时必须附加
 `finalizer_cleanup_failed`，不得误报 Put Back 未激活。调用抛错且 Finalizer 源已消失或改变时必须附加
-`finalizer_state_uncertain`，说明 Put Back 与内部残留状态均无法确认。三种警告均写入 stderr 并使操作
-退出码为 1，同时保留已知的精确用户目标 URL。该处的 `finalizer_cleanup_failed` 是带目标移动回执的
+`finalizer_state_uncertain`，说明 Put Back 与内部残留状态均无法确认。三种警告均写入 stderr，但不改变
+成功退出码，并保留已知的精确用户目标 URL。该处的 `finalizer_cleanup_failed` 是带目标移动回执的
 Trash Warning；FR-SAFE-016 所述目标移动前清理失败则是没有移动回执的 Trash failure，两者不得混淆。
 
 ## 11. 执行模型
@@ -464,10 +466,9 @@ Moved 3 items to Trash; 1 failed.
 
 | 退出码 | 含义 |
 | --- | --- |
-| `0` | 所有需要处理的项目成功，或失败仅为被忽略的 missing path |
-| `1` | 至少一个项目操作失败或用户拒绝确认 |
-| `2` | 命令行用法、未知选项或不支持选项错误 |
-| `3` | 安全策略拒绝，例如受保护路径或 root 执行 |
+| `0` | 所有需要处理的项目成功，或失败仅为被忽略的 missing path；已移动 warning 也保持成功 |
+| `1` | 至少一个项目操作失败、批量确认拒绝、确认无法进行，或安全策略拒绝 |
+| `64` | 命令行用法、未知选项或不支持选项错误 |
 
 退出码在 v1.0 前可以扩展，但不得在补丁版本中改变既有含义。
 
@@ -818,7 +819,7 @@ CLI 输出契约必须通过纯测试覆盖：
 - 默认模式接受 `-P` 时，无论 stdin 是否为 TTY、是否启用 `--non-interactive` 或 `--quiet`，都在
   stderr 输出安全覆写未执行的警告；JSON 模式同时证明 stdout 仍是单个完整 JSON 文档。
 - 仅有 `-P` 兼容警告时，成功操作的退出码仍为 0；操作本身失败时保留相应非零退出码。
-- `--strict-options -P` 与 `-P --strict-options` 都返回退出码 2，只输出严格模式用法错误，并证明
+- `--strict-options -P` 与 `-P --strict-options` 都返回退出码 64，只输出严格模式用法错误，并证明
   路径检查、确认和 TrashClient 调用次数均为零。
 
 ### 17.3 文件系统集成测试

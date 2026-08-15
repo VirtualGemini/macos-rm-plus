@@ -2,6 +2,7 @@
 
 enum ParsedCommand: Equatable, Sendable {
   case operation(TrashOperationRequest)
+  case noOperation
   case help(HelpPage)
   case version
 }
@@ -62,6 +63,7 @@ enum CommandParser {
     var warnings: [CompatibilityWarning] = []
     var sawJSON = false
     var sawQuiet = false
+    var compatibilityForceActive = false
   }
 
   static func parse(arguments: [String]) throws(CommandParsingError) -> ParsedInvocation {
@@ -110,7 +112,10 @@ enum CommandParser {
   private static func operationCommand(
     from state: State
   ) throws(CommandParsingError) -> ParsedCommand {
-    guard !state.paths.isEmpty else { throw .noInputs }
+    if state.paths.isEmpty {
+      if state.compatibilityForceActive { return .noOperation }
+      throw .noInputs
+    }
 
     return .operation(
       TrashOperationRequest(
@@ -222,7 +227,9 @@ enum CommandParser {
     _ character: Character, state: inout State
   ) throws(CommandParsingError) {
     switch character {
-    case "f": applyForce(to: &state)
+    case "f":
+      applyForce(to: &state)
+      state.compatibilityForceActive = true
     case "i": applyInteractive(to: &state)
     case "I": state.confirmation = .conditionalOnce
     case "v":
@@ -252,6 +259,7 @@ enum CommandParser {
 
   private static func applyInteractive(to state: inout State) {
     state.confirmation = .each
+    state.compatibilityForceActive = false
     if state.missingPathPolicy == .ignoreFromForce {
       state.missingPathPolicy = .fail
     }

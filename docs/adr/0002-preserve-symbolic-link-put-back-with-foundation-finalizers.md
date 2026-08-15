@@ -4,7 +4,7 @@ Status: Accepted
 
 Date: 2026-08-10
 
-Revised: 2026-08-13
+Revised: 2026-08-14
 
 ## Context
 
@@ -49,7 +49,10 @@ with `finalizer_state_uncertain`. If every definitely-not-moved activation fails
 receipt is retained with `symlink_put_back_not_guaranteed`. If activation succeeds but restore or
 cleanup fails, the receipt
 uses `finalizer_cleanup_failed`; Put Back remains classified as activated. All three warnings keep
-the item status `moved`, write a stable diagnostic to stderr, and produce exit code 1.
+the item status `moved` and write a stable diagnostic to stderr. They do not change an otherwise
+successful exit status because the user target is confirmed absent from its source and its exact
+Trash receipt is retained; this matches macOS `rm`, which exits successfully once every named target
+has been removed.
 
 Preparation, the optional diagnostic preflight, and the target Trash call can also fail before a
 moved target receipt exists. Cleanup of every already prepared Finalizer is then mandatory and

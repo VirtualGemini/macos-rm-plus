@@ -24,7 +24,7 @@ struct DryRunApplication<FileSystem: TrashPlanningFileSystem> {
       return CommandResult(
         standardOutput: renderer.render(plan),
         standardError: "",
-        exitCode: 0
+        exitCode: ExitStatus.success.rawValue
       )
     } catch {
       if request.output == .json {

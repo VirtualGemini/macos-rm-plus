@@ -52,7 +52,7 @@ func dryRunApplicationReportsUnknownOptions() {
     arguments: ["--dry-run", "--unknown", "report.txt"]
   )
 
-  #expect(result.exitCode == 2)
+  #expect(result.exitCode == 64)
   #expect(result.standardOutput.isEmpty)
   #expect(result.standardError == "rmp: unknown option \"--unknown\"\n")
 }
@@ -63,7 +63,7 @@ func dryRunApplicationRejectsEmptyNativeRequest() {
     fileSystem: FakeTrashPlanningFileSystem(entries: [:])
   ).run(request: TrashOperationRequest(paths: []))
 
-  #expect(result.exitCode == 2)
+  #expect(result.exitCode == 64)
   #expect(result.standardOutput.isEmpty)
   #expect(
     result.standardError
@@ -71,7 +71,7 @@ func dryRunApplicationRejectsEmptyNativeRequest() {
   )
 }
 
-@Test("CLI compatibility warnings use stderr and usage failures return exit code 2")
+@Test("CLI compatibility warnings use stderr and usage failures return exit code 64")
 func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
   let fileSystem = FakeTrashPlanningFileSystem(
     entries: [
@@ -85,7 +85,7 @@ func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
   #expect(warning.standardError.contains("warning: -P does not securely overwrite"))
 
   let unsupported = application.run(arguments: ["--dry-run", "-W", "report.txt"])
-  #expect(unsupported.exitCode == 2)
+  #expect(unsupported.exitCode == 64)
   #expect(unsupported.standardOutput.isEmpty)
   #expect(unsupported.standardError.contains("unsupported Compatibility Option -W"))
 
@@ -95,7 +95,7 @@ func cliCompatibilityDiagnosticsUseStableChannelsAndExitCodes() {
   #expect(failedWithWarning.standardError.contains("Trash Input does not exist"))
 
   let unavailableExecution = application.run(arguments: ["-P", "report.txt"])
-  #expect(unavailableExecution.exitCode == 2)
+  #expect(unavailableExecution.exitCode == 1)
   #expect(unavailableExecution.standardError.contains("warning: -P does not securely overwrite"))
   #expect(unavailableExecution.standardError.contains("only --dry-run execution is available"))
 }
@@ -147,7 +147,7 @@ func parsedPolicyIsPreservedInTrashPlan() throws {
   #expect(plan.strictOptions)
 }
 
-@Test("Dry-run rejects a Protected Path with exit code 3 before presenting a plan")
+@Test("Dry-run rejects a Protected Path with exit code 1 before presenting a plan")
 func dryRunRejectsProtectedPathWithSafetyExitCode() {
   let rootIdentity = FileSystemIdentity(device: 1, inode: 1)
   let fileSystem = FakeTrashPlanningFileSystem(
@@ -158,7 +158,7 @@ func dryRunRejectsProtectedPathWithSafetyExitCode() {
     request: TrashOperationRequest(paths: ["/tmp/.."])
   )
 
-  #expect(result.exitCode == 3)
+  #expect(result.exitCode == 1)
   #expect(result.standardOutput.isEmpty)
   #expect(
     result.standardError

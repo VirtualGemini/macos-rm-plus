@@ -231,9 +231,9 @@ enum TrashPlanningError: Error, Equatable, Sendable {
 
   var exitCode: Int32 {
     switch self {
-    case .noInputs: 2
-    case .missingPath, .inaccessiblePath: 1
-    case .protectedPath, .unavailableProtectedPath: 3
+    case .noInputs: ExitStatus.usage.rawValue
+    case .missingPath, .inaccessiblePath: ExitStatus.failure.rawValue
+    case .protectedPath, .unavailableProtectedPath: ExitStatus.failure.rawValue
     }
   }
 }

@@ -36,6 +36,18 @@ unsupported. Compatibility diagnostics remain in the CLI result envelope; Compat
 never become execution-facing Trash Operation requests or Trash Plan fields.
 _Avoid_: Legacy flag, ignored flag
 
+**Exit Status Compatibility**:
+The contract that an invocation expressible using supported macOS `rm` options other than `-W` and
+path operands produces the same numeric exit status under equivalent filesystem and confirmation
+outcomes. Native rmp extensions are outside command-for-command comparison, but their usage failures
+use the macOS usage status; `-W` remains explicitly unsupported because whiteout undeletion is not a
+Trash Operation.
+Exit Status Compatibility standardizes numeric meanings only; it does not require rmp to reproduce
+macOS `rm` deletion behavior, confirmation flow, option effects, diagnostics, or output.
+The public values are `0` for success, `1` for operational or safety failure, and `64` for usage
+failure.
+_Avoid_: Exit code mapping, approximate compatibility
+
 **Trash Result**:
 The planned, moved, failed, or skipped outcome for one Trash Input.
 Pre-capability validation failures use `rejected`; they do not claim that a post-call filesystem
@@ -44,6 +56,8 @@ Operation-scope rejections carry stable codes and identify every affected top-le
 An ignored missing input is skipped without an error or nonzero exit-status effect. With
 stop-on-error, every input after the first failure is skipped without reaching confirmation or the
 Trash capability.
+Under per-input `-i` confirmation, a declined, unrecognized, or end-of-file response does not by
+itself cause a nonzero Exit Status.
 Trash execution distinguishes `not_moved`, used only when the original directory entry's kind
 and filesystem identity can be confirmed unchanged after a system Trash failure, from
 `state_uncertain`, used whenever the final source state cannot be established reliably. A moved
@@ -72,6 +86,8 @@ _Avoid_: Temporary file, dummy file
 A stable diagnostic attached to a moved Trash Result when the destination is known but either Put
 Back could not be guaranteed, a failed Finalizer call left its source state uncertain, or an
 already-activated Trash Finalizer could not be cleaned up.
+A Trash Warning does not change an otherwise successful Exit Status because the user's source entry
+was confirmed moved and an exact Trash receipt exists.
 _Avoid_: Trash failure, state-uncertain error
 
 **Trash Finalizer Cleanup Failure**:

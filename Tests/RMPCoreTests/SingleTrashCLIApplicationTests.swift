@@ -32,7 +32,7 @@ func rootExecutionCannotBeForcedPastSafety() {
   for arguments in argumentCases {
     let result = application.run(arguments: arguments)
 
-    #expect(result.exitCode == 3)
+    #expect(result.exitCode == 1)
     #expect(result.standardOutput.isEmpty)
     #expect(result.standardError.contains("root_execution"))
     #expect(result.standardError.contains("report.txt"))
@@ -60,7 +60,7 @@ func rootExecutionReportsEveryInput() {
 
   let result = application.run(arguments: ["--confirm=each", "first", "second"])
 
-  #expect(result.exitCode == 3)
+  #expect(result.exitCode == 1)
   #expect(result.standardError.contains("first"))
   #expect(result.standardError.contains("second"))
   #expect(probes.fileSystemFactoryCalls == 0)
@@ -100,7 +100,7 @@ func protectedPathCannotBeForcedPastSafety() {
   for arguments in argumentCases {
     let result = application.run(arguments: arguments)
 
-    #expect(result.exitCode == 3)
+    #expect(result.exitCode == 1)
     #expect(result.standardError.contains("protected_path"))
     #expect(result.standardError.contains("Protected Path rejected"))
     #expect(result.standardError.contains("home-alias"))
@@ -159,7 +159,7 @@ func movedSymbolicLinkReportsPutBackWarning() {
 
   let result = application.run(arguments: ["shortcut"])
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(result.standardOutput.contains("/Users/test/.Trash/shortcut"))
   #expect(result.standardError.contains("symlink_put_back_not_guaranteed"))
   #expect(result.standardError.contains("(moved)"))
@@ -188,7 +188,7 @@ func movedSymbolicLinkReportsFinalizerCleanupWarning() {
 
   let result = application.run(arguments: ["shortcut"])
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(result.standardOutput.contains("/Users/test/.Trash/shortcut"))
   #expect(result.standardError.contains("finalizer_cleanup_failed"))
   #expect(result.standardError.contains("(moved)"))
@@ -241,7 +241,7 @@ func movedSymbolicLinkReportsUncertainFinalizerWarning() {
 
   let result = application.run(arguments: ["shortcut"])
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(result.standardOutput.contains("/Users/test/.Trash/shortcut"))
   #expect(result.standardError.contains("finalizer_state_uncertain"))
   #expect(result.standardError.contains("(moved)"))

@@ -21,8 +21,10 @@ top-level inputs and directories and never inspect directory contents or calcula
 Prompts are written to stderr. After surrounding whitespace is ignored, only case-insensitive `y` or
 `yes` approves an input. Empty, `n`, or `no` responses decline; other text is invalid; and end of
 input is interrupted. These outcomes report `confirmation_declined`,
-`confirmation_invalid_response`, or `confirmation_interrupted`, respectively, with exit code 1 and
-no unapproved Trash call. Invalid per-input responses continue like a rejection; interrupted input
+`confirmation_invalid_response`, or `confirmation_interrupted`, respectively, with no unapproved
+Trash call. For per-input confirmation, these responses do not change the successful exit code;
+batch confirmation refusal remains an operational failure. Invalid per-input responses continue like a
+rejection; interrupted input
 stops further prompts because no later approval can be read. `--non-interactive`, a non-TTY stdin,
 or an unavailable prompt capability reports `confirmation_required` without reading input or
 blocking.
@@ -59,7 +61,8 @@ target, makes the target the first Foundation Trash call, then uses a successful
 finalizer call to activate Put Back. It does not run a target-before-move Trash preflight because
 that call was shown to consume the metadata transition needed by the target.
 Normal completion is silent and leaves no helper behind. `symlink_put_back_not_guaranteed` or
-`finalizer_cleanup_failed` reports a moved result with its exact destination on stderr and exits 1.
+`finalizer_cleanup_failed` reports a moved result with its exact destination on stderr without
+changing the successful exit code.
 If a failed finalizer call no longer has its exact source identity, rmp stops without using the
 backup and reports `finalizer_state_uncertain`, preserving the best available Put Back state.
 If the user link has not moved but a prepared finalizer cannot be identity-verified and removed, the
@@ -85,11 +88,11 @@ either help surface. `rmp --version` prints `rmp 0.1.0`. These information comma
 Input, do not construct the platform filesystem adapter, and do not inspect filesystem or Trash
 capabilities.
 
-Required missing paths and operational failures return exit code 1. Usage errors and unsupported
-options return exit code 2. Protected Paths return exit code 3 without presenting a plan. Protected Paths include filesystem
+Required missing paths, operational failures, and Protected Path refusals return exit code 1. Usage
+errors and unsupported options return exit code 64 without presenting a plan. Protected Paths include filesystem
 root, the current working directory, the user's home directory, their identity-equivalent path
 expressions, and explicit parent-directory expressions such as `..`. Effective root execution also
-returns exit code 3 before planning or Trash capability construction. `-f`, `--confirm=never`, and
+returns exit code 1 before planning or Trash capability construction. `-f`, `--confirm=never`, and
 `--non-interactive` cannot bypass root or Protected Path policy. A failed system Trash call reports a
 stable code plus `not_moved` when the original identity remains, or `state_uncertain` when the final
 state cannot be established reliably.

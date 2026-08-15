@@ -325,7 +325,7 @@ func eachConfirmationRejectionContinues() {
 
   let result = application.run(arguments: ["--confirm=each", "first", "second"])
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(result.standardError.contains("confirmation_declined"))
   #expect(result.standardError.contains("first"))
   #expect(
@@ -360,7 +360,7 @@ func eachConfirmationRejectionStopsWhenRequested() {
     arguments: ["--confirm=each", "--stop-on-error", "first", "second"]
   )
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(prompt.receivedPrompts == ["Move [file] \"first\" to Trash? [y/N] "])
   #expect(probes.receivedTrashPaths.isEmpty)
 }
@@ -425,7 +425,7 @@ func interruptedPerInputConfirmationStops() {
     arguments: ["--confirm=each", "invalid", "interrupted", "approved"]
   )
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(result.standardError.contains("confirmation_invalid_response"))
   #expect(result.standardError.contains("confirmation_interrupted"))
   #expect(prompt.receivedPrompts.count == 2)

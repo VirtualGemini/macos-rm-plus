@@ -69,43 +69,6 @@ public protocol ConfirmationPrompt: Sendable {
   func readResponse(prompt: String) -> ConfirmationResponse
 }
 
-enum TrashResultStatus: String, Equatable, Sendable {
-  case moved
-  case rejected
-  case skipped
-  case notMoved = "not_moved"
-  case stateUncertain = "state_uncertain"
-}
-
-struct TrashFailure: Equatable, Sendable {
-  let code: TrashErrorCode
-  let explanation: String
-}
-
-struct TrashResult: Equatable, Sendable {
-  let sourcePath: String
-  let destinationPath: String?
-  let kind: TrashInputKind
-  let status: TrashResultStatus
-  let skipReason: TrashSkipReason?
-  let warnings: [TrashMoveWarning]
-  let error: TrashFailure?
-
-  var requiresFailureExit: Bool {
-    switch status {
-    case .moved: !warnings.isEmpty
-    case .skipped: false
-    case .rejected, .notMoved, .stateUncertain: true
-    }
-  }
-}
-
-enum TrashSkipReason: Equatable, Sendable {
-  case confirmationInterrupted
-  case ignoredMissing
-  case stoppedAfterFailure
-}
-
 struct SingleTrashExecutor<FileSystem: TrashPlanningFileSystem> {
   private let fileSystem: FileSystem
   private let makeTrashClient: () -> any TrashClient
@@ -276,7 +239,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
       }
       let result = result(for: entry)
       results.append(result)
-      if plan.stopOnError && result.requiresFailureExit {
+      if plan.stopOnError && result.representsOperationFailure {
         shouldSkipRemainingInputs = true
       }
     }
@@ -312,7 +275,8 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
     path: String,
     kind: TrashInputKind = .unknown,
     code: TrashErrorCode,
-    explanation: String
+    explanation: String,
+    failureExitSuppressed: Bool = false
   ) -> TrashResult {
     TrashResult(
       sourcePath: path,
@@ -321,7 +285,8 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
       status: .rejected,
       skipReason: nil,
       warnings: [],
-      error: TrashFailure(code: code, explanation: explanation)
+      error: TrashFailure(code: code, explanation: explanation),
+      failureExitSuppressed: failureExitSuppressed
     )
   }
 
@@ -396,7 +361,8 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
             path: input.path,
             kind: input.kind,
             code: code,
-            explanation: "\(reason); the Trash Input was not moved"
+            explanation: "\(reason); the Trash Input was not moved",
+            failureExitSuppressed: true
           )
           confirmationWasInterrupted = stopsFurtherPrompts
         }
@@ -407,7 +373,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
       results.append(entryResult)
       if confirmationWasInterrupted {
         skipReason = .confirmationInterrupted
-      } else if plan.stopOnError && entryResult.requiresFailureExit {
+      } else if plan.stopOnError && entryResult.representsOperationFailure {
         skipReason = .stoppedAfterFailure
       }
     }

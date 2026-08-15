@@ -169,7 +169,7 @@ func unavailableSafetyIdentityReportsSourcePath() {
 
   let result = application.run(arguments: [path])
 
-  #expect(result.exitCode == 3)
+  #expect(result.exitCode == 1)
   #expect(result.standardOutput.isEmpty)
   #expect(result.standardError.contains("safety_identity_unavailable"))
   #expect(result.standardError.contains("\"victim\\n.txt\""))

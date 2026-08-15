@@ -504,9 +504,9 @@ printf 'cwd-exit=%s\n' "$?"
 ```text
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
-root-exit=3 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
-home-exit=3 stderr: rmp: protected_path (home-directory): Protected Path rejected: "/Users/virtualgemini"
-cwd-exit=3 stderr: rmp: protected_path (current-directory): Protected Path rejected: ".../tmp.tbyfgQFr3V"
+root-exit=1 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
+home-exit=1 stderr: rmp: protected_path (home-directory): Protected Path rejected: "/Users/virtualgemini"
+cwd-exit=1 stderr: rmp: protected_path (current-directory): Protected Path rejected: ".../tmp.tbyfgQFr3V"
 stdout 均为空；废纸篓计数=0
 结果: PASS
 ```
@@ -520,7 +520,7 @@ rmp -f /
 printf 'exit=%s\n' "$?"
 ```
 
-预期：退出码 3；仍为安全拒绝；不得调用 Trash。
+预期：退出码 1；仍为安全拒绝；不得调用 Trash。
 
 反馈：
 
@@ -528,7 +528,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
-exit=3
+exit=1
 stdout: 空；废纸篓计数=0
 结果: PASS
 ```
@@ -543,7 +543,7 @@ rmp --not-an-option unknown-file
 printf 'exit=%s\n' "$?"
 ```
 
-预期：退出码 2；stderr 包含 `unknown option`；文件仍存在。
+预期：退出码 64；stderr 包含 `unknown option`；文件仍存在。
 
 反馈：
 
@@ -551,7 +551,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unknown option "--not-an-option"
-exit=2
+exit=64
 source=present（unknown-file 未移动）
 废纸篓计数=0
 结果: PASS
@@ -618,7 +618,7 @@ rmp --json json-file
 printf 'exit=%s\n' "$?"
 ```
 
-预期：退出码 2；stderr 包含 `unsupported_output_mode`；文件仍存在，不移动。
+预期：退出码 64；stderr 包含 `unsupported_output_mode`；文件仍存在，不移动。
 
 反馈：
 
@@ -637,7 +637,7 @@ rmp
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 为 `rmp: at least one Trash Input is required`；不检查文件系统，不调用 Trash。
+预期退出码：64。stderr 为 `rmp: at least one Trash Input is required`；不检查文件系统，不调用 Trash。
 
 反馈：
 
@@ -645,7 +645,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: at least one Trash Input is required
-exit=2
+exit=64
 stdout: 空；废纸篓计数未因本用例变化
 结果: PASS
 备注: TC-19/TC-20/TC-21 状态为暂不支持，本轮跳过
@@ -908,7 +908,7 @@ printf 'exit=%s\n' "$?"
 test -f file-invalid-confirm && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `invalid confirmation mode "sometimes"`；文件仍在原处。
+预期退出码：64。stderr 包含 `invalid confirmation mode "sometimes"`；文件仍在原处。
 
 反馈：
 
@@ -916,7 +916,7 @@ test -f file-invalid-confirm && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: invalid confirmation mode "sometimes"
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -930,7 +930,7 @@ rmp --confirm= file-invalid-confirm
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `invalid confirmation mode ""`；不检查路径，不调用 Trash。
+预期退出码：64。stderr 包含 `invalid confirmation mode ""`；不检查路径，不调用 Trash。
 
 反馈：
 
@@ -938,7 +938,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: invalid confirmation mode ""
-exit=2
+exit=64
 结果: PASS（不检查路径，不调用 Trash）
 ```
 
@@ -951,7 +951,7 @@ rmp --confirm=conditionalOnce file-invalid-confirm
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `invalid confirmation mode "conditionalOnce"`；该内部策略不能通过长选项使用。
+预期退出码：64。stderr 包含 `invalid confirmation mode "conditionalOnce"`；该内部策略不能通过长选项使用。
 
 反馈：
 
@@ -959,7 +959,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: invalid confirmation mode "conditionalOnce"
-exit=2
+exit=64
 结果: PASS
 ```
 
@@ -972,7 +972,7 @@ rmp --confirm file-invalid-confirm
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `unknown option "--confirm"`；只接受 `--confirm=<mode>` 形式。
+预期退出码：64。stderr 包含 `unknown option "--confirm"`；只接受 `--confirm=<mode>` 形式。
 
 反馈：
 
@@ -980,7 +980,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unknown option "--confirm"
-exit=2
+exit=64
 结果: PASS（仅接受 --confirm=<mode>）
 ```
 
@@ -1500,7 +1500,7 @@ printf 'exit=%s\n' "$?"
 test -f file-json-verbose && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `unsupported_output_mode`。后面的 verbose 不会把 JSON 策略改回人类输出，文件仍在原处。
+预期退出码：64。stderr 包含 `unsupported_output_mode`。后面的 verbose 不会把 JSON 策略改回人类输出，文件仍在原处。
 
 反馈：
 
@@ -1508,7 +1508,7 @@ test -f file-json-verbose && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported_output_mode for "file-json-verbose": JSON Trash Operation results are not available in this build
-exit=2
+exit=64
 source=present
 结果: PASS（JSON 执行 10 暂不支持，安全失败）
 ```
@@ -1524,7 +1524,7 @@ printf 'exit=%s\n' "$?"
 test -f file-json-quiet && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `conflicting options --json and --quiet`；冲突在执行前拒绝。
+预期退出码：64。stderr 包含 `conflicting options --json and --quiet`；冲突在执行前拒绝。
 
 反馈：
 
@@ -1532,7 +1532,7 @@ test -f file-json-quiet && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: conflicting options --json and --quiet
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -1686,7 +1686,7 @@ test ! -e file-stop-a && test ! -e file-stop-b && echo 'sources=absent'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported_input_count for "file-stop-a", "file-stop-b": single-item execution requires exactly one Trash Input
-exit=2
+exit=64
 sources=present（均未移动）
 结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
@@ -1902,7 +1902,7 @@ printf 'exit=%s\n' "$?"
 test -f file-compat-W && echo 'source=present'
 ```
 
-预期退出码：2。stderr 为 `rmp: unsupported Compatibility Option -W`；文件仍在原处。
+预期退出码：64。stderr 为 `rmp: unsupported Compatibility Option -W`；文件仍在原处。
 
 反馈：
 
@@ -1910,7 +1910,7 @@ test -f file-compat-W && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported Compatibility Option -W
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -1925,7 +1925,7 @@ rmp --strict-options -r file-strict-r
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -r is not allowed with --strict-options`；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -r is not allowed with --strict-options`；文件仍在原处。
 
 反馈：
 
@@ -1933,7 +1933,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -r is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -1948,7 +1948,7 @@ rmp --strict-options -R file-strict-R
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -R is not allowed with --strict-options`；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -R is not allowed with --strict-options`；文件仍在原处。
 
 反馈：
 
@@ -1956,7 +1956,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -R is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -1971,7 +1971,7 @@ rmp --strict-options -d file-strict-d
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -d is not allowed with --strict-options`；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -d is not allowed with --strict-options`；文件仍在原处。
 
 反馈：
 
@@ -1979,7 +1979,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -d is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -1994,7 +1994,7 @@ rmp --strict-options -x file-strict-x
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -x is not allowed with --strict-options`；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -x is not allowed with --strict-options`；文件仍在原处。
 
 反馈：
 
@@ -2002,7 +2002,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -x is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -2017,7 +2017,7 @@ rmp --strict-options -P file-strict-P
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -P is not allowed with --strict-options`，不输出普通 `-P` 警告；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -P is not allowed with --strict-options`，不输出普通 `-P` 警告；文件仍在原处。
 
 反馈：
 
@@ -2025,7 +2025,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -P is not allowed with --strict-options
-exit=2
+exit=64
 source=present（无普通 -P 警告）
 结果: PASS
 ```
@@ -2040,7 +2040,7 @@ rmp --strict-options -W file-strict-W
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 为 `unsupported Compatibility Option -W`。`-W` 始终拒绝，不进入无效果兼容项判断。
+预期退出码：64。stderr 为 `unsupported Compatibility Option -W`。`-W` 始终拒绝，不进入无效果兼容项判断。
 
 反馈：
 
@@ -2048,7 +2048,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported Compatibility Option -W
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -2148,7 +2148,7 @@ rmp -a
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 为 `rmp: -a is only valid with --help`；不检查文件系统。
+预期退出码：64。stderr 为 `rmp: -a is only valid with --help`；不检查文件系统。
 
 反馈：
 
@@ -2156,7 +2156,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: -a is only valid with --help
-exit=2
+exit=64
 结果: PASS
 ```
 
@@ -2169,7 +2169,7 @@ rmp -zh
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 为 `rmp: -zh is only valid with --help`；不检查文件系统。
+预期退出码：64。stderr 为 `rmp: -zh is only valid with --help`；不检查文件系统。
 
 反馈：
 
@@ -2177,7 +2177,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: -zh is only valid with --help
-exit=2
+exit=64
 结果: PASS
 ```
 
@@ -2190,7 +2190,7 @@ rmp --help --version
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 为 `rmp: --help and --version cannot be used together`；stdout 为空。
+预期退出码：64。stderr 为 `rmp: --help and --version cannot be used together`；stdout 为空。
 
 反馈：
 
@@ -2198,7 +2198,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: --help and --version cannot be used together
-exit=2
+exit=64
 stdout: 空
 结果: PASS
 ```
@@ -2278,7 +2278,7 @@ rmp --version --strict-options -r
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stdout 为空；stderr 包含 `Compatibility Option -r is not allowed with --strict-options`。
+预期退出码：64。stdout 为空；stderr 包含 `Compatibility Option -r is not allowed with --strict-options`。
 
 反馈：
 
@@ -2286,7 +2286,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -r is not allowed with --strict-options
-exit=2
+exit=64
 stdout: 空
 结果: PASS
 ```
@@ -2300,7 +2300,7 @@ rmp --help --json --quiet
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stdout 为空；stderr 包含 `conflicting options --json and --quiet`，不输出帮助正文。
+预期退出码：64。stdout 为空；stderr 包含 `conflicting options --json and --quiet`，不输出帮助正文。
 
 反馈：
 
@@ -2308,7 +2308,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: conflicting options --json and --quiet
-exit=2
+exit=64
 stdout: 空
 结果: PASS
 ```
@@ -2324,7 +2324,7 @@ printf 'exit=%s\n' "$?"
 test -f file-unknown-short && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `unknown option "-z"`；文件仍在原处。
+预期退出码：64。stderr 包含 `unknown option "-z"`；文件仍在原处。
 
 反馈：
 
@@ -2332,7 +2332,7 @@ test -f file-unknown-short && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unknown option "-z"
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -2348,7 +2348,7 @@ printf 'exit=%s\n' "$?"
 test -f file-unknown-cluster && echo 'source=present'
 ```
 
-预期退出码：2。虽然先解析到 `-f`，未知的 `-z` 仍使整条命令失败；文件不移动。
+预期退出码：64。虽然先解析到 `-f`，未知的 `-z` 仍使整条命令失败；文件不移动。
 
 反馈：
 
@@ -2356,7 +2356,7 @@ test -f file-unknown-cluster && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unknown option "-z"
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -2436,7 +2436,7 @@ test ! -e file-middle-a && test ! -e file-middle-b && echo 'sources=absent'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported_input_count for "file-middle-a", "file-middle-b": single-item execution requires exactly one Trash Input
-exit=2
+exit=64
 sources=present（-f 识别为选项；两文件均未移动）
 结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
@@ -2463,7 +2463,7 @@ test ! -e file-boundary-a && test ! -e file-boundary-b && echo 'sources=absent'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported_input_count for "file-boundary-a", "file-boundary-b": single-item execution requires exactly one Trash Input
-exit=2
+exit=64
 sources=present（-- 不成为路径；两文件均未移动）
 结果: PASS（多对象真实执行 09 暂不支持，安全失败）
 ```
@@ -2725,7 +2725,7 @@ rmp --dry-run //
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (filesystem-root)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (filesystem-root)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -2733,7 +2733,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "//"
-exit=3
+exit=1
 stdout: 空
 结果: PASS
 ```
@@ -2747,7 +2747,7 @@ rmp --dry-run .
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (current-directory)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (current-directory)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -2755,7 +2755,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (current-directory): Protected Path rejected: "."
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -2768,7 +2768,7 @@ rmp --dry-run "$HOME/"
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (home-directory)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (home-directory)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -2776,7 +2776,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (home-directory): Protected Path rejected: "/Users/virtualgemini/"
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -2789,7 +2789,7 @@ rmp --dry-run ..
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (parent-directory)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (parent-directory)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -2797,7 +2797,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (parent-directory): Protected Path rejected: ".."
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -2810,7 +2810,7 @@ rmp --confirm=never /
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path`；never 只改变确认策略，不能绕过受保护路径检查。
+预期退出码：1。stderr 包含 `protected_path`；never 只改变确认策略，不能绕过受保护路径检查。
 
 反馈：
 
@@ -2818,7 +2818,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
-exit=3
+exit=1
 结果: PASS（--confirm=never 不能绕过）
 ```
 
@@ -2831,7 +2831,7 @@ rmp --non-interactive /
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path`；非交互模式不能绕过受保护路径检查。
+预期退出码：1。stderr 包含 `protected_path`；非交互模式不能绕过受保护路径检查。
 
 反馈：
 
@@ -2839,7 +2839,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/"
-exit=3
+exit=1
 结果: PASS（--non-interactive 不能绕过）
 ```
 
@@ -2854,7 +2854,7 @@ printf 'exit=%s\n' "$?"
 test -f root-safe-file && echo 'source=present'
 ```
 
-预期退出码：3。stderr 包含 `root_execution` 和源路径；即使使用 `-f` 也在规划和 Trash 调用前拒绝，文件仍在原处。
+预期退出码：1。stderr 包含 `root_execution` 和源路径；即使使用 `-f` 也在规划和 Trash 调用前拒绝，文件仍在原处。
 
 反馈：
 
@@ -2862,7 +2862,7 @@ test -f root-safe-file && echo 'source=present'
 日期: 2026-07-15
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.hUTlkLMaoh
 stderr: rmp: root_execution: refusing to move Trash Input "/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.hUTlkLMaoh/root-safe-file" while running as root because Trash ownership and recovery would be unsafe
-exit=3
+exit=1
 source=present
 结果: PASS（root 执行不能被 -f 绕过；在规划和 Trash 调用前拒绝）
 ```
@@ -3003,7 +3003,7 @@ rmp --version -a
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `-a is only valid with --help`；stdout 为空。
+预期退出码：64。stderr 包含 `-a is only valid with --help`；stdout 为空。
 
 反馈：
 
@@ -3011,7 +3011,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: -a is only valid with --help
-exit=2
+exit=64
 stdout: 空
 结果: PASS
 ```
@@ -3027,7 +3027,7 @@ printf 'exit=%s\n' "$?"
 test -f file-verbose-json && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `unsupported_output_mode`。后面的 JSON 覆盖 verbose，文件仍在原处。
+预期退出码：64。stderr 包含 `unsupported_output_mode`。后面的 JSON 覆盖 verbose，文件仍在原处。
 
 反馈：
 
@@ -3035,7 +3035,7 @@ test -f file-verbose-json && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported_output_mode for "file-verbose-json": JSON Trash Operation results are not available in this build
-exit=2
+exit=64
 source=present
 结果: PASS（JSON 10 暂不支持）
 ```
@@ -3051,7 +3051,7 @@ printf 'exit=%s\n' "$?"
 test -f file-quiet-json && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `conflicting options --json and --quiet`；选项顺序不改变冲突结果。
+预期退出码：64。stderr 包含 `conflicting options --json and --quiet`；选项顺序不改变冲突结果。
 
 反馈：
 
@@ -3059,7 +3059,7 @@ test -f file-quiet-json && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: conflicting options --json and --quiet
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -3075,7 +3075,7 @@ printf 'exit=%s\n' "$?"
 test -f file-strict-last-r && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -r is not allowed with --strict-options`；严格模式的位置不改变结果。
+预期退出码：64。stderr 包含 `Compatibility Option -r is not allowed with --strict-options`；严格模式的位置不改变结果。
 
 反馈：
 
@@ -3083,7 +3083,7 @@ test -f file-strict-last-r && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -r is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -3099,7 +3099,7 @@ printf 'exit=%s\n' "$?"
 test -f file-strict-last-R && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -R is not allowed with --strict-options`；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -R is not allowed with --strict-options`；文件仍在原处。
 
 反馈：
 
@@ -3107,7 +3107,7 @@ test -f file-strict-last-R && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -R is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -3123,7 +3123,7 @@ printf 'exit=%s\n' "$?"
 test -f file-strict-last-d && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -d is not allowed with --strict-options`；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -d is not allowed with --strict-options`；文件仍在原处。
 
 反馈：
 
@@ -3131,7 +3131,7 @@ test -f file-strict-last-d && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -d is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -3147,7 +3147,7 @@ printf 'exit=%s\n' "$?"
 test -f file-strict-last-x && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -x is not allowed with --strict-options`；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -x is not allowed with --strict-options`；文件仍在原处。
 
 反馈：
 
@@ -3155,7 +3155,7 @@ test -f file-strict-last-x && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -x is not allowed with --strict-options
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -3171,7 +3171,7 @@ printf 'exit=%s\n' "$?"
 test -f file-strict-last-P && echo 'source=present'
 ```
 
-预期退出码：2。stderr 包含 `Compatibility Option -P is not allowed with --strict-options`，不输出普通 `-P` 警告；文件仍在原处。
+预期退出码：64。stderr 包含 `Compatibility Option -P is not allowed with --strict-options`，不输出普通 `-P` 警告；文件仍在原处。
 
 反馈：
 
@@ -3179,7 +3179,7 @@ test -f file-strict-last-P && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: Compatibility Option -P is not allowed with --strict-options
-exit=2
+exit=64
 source=present（无普通 -P 警告）
 结果: PASS
 ```
@@ -3195,7 +3195,7 @@ printf 'exit=%s\n' "$?"
 test -f file-strict-last-W && echo 'source=present'
 ```
 
-预期退出码：2。stderr 为 `unsupported Compatibility Option -W`；解析在 `-W` 处立即失败。
+预期退出码：64。stderr 为 `unsupported Compatibility Option -W`；解析在 `-W` 处立即失败。
 
 反馈：
 
@@ -3203,7 +3203,7 @@ test -f file-strict-last-W && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported Compatibility Option -W
-exit=2
+exit=64
 source=present
 结果: PASS
 ```
@@ -3217,7 +3217,7 @@ rmp --version --help
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 为 `rmp: --help and --version cannot be used together`；stdout 为空。
+预期退出码：64。stderr 为 `rmp: --help and --version cannot be used together`；stdout 为空。
 
 反馈：
 
@@ -3225,7 +3225,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: --help and --version cannot be used together
-exit=2
+exit=64
 stdout: 空
 结果: PASS
 ```
@@ -3261,7 +3261,7 @@ rmp --dry-run /./
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (filesystem-root)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (filesystem-root)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -3269,7 +3269,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (filesystem-root): Protected Path rejected: "/./"
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -3305,7 +3305,7 @@ rmp --dry-run ./
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (current-directory)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (current-directory)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -3313,7 +3313,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (current-directory): Protected Path rejected: "./"
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -3326,7 +3326,7 @@ rmp --dry-run "$PWD/."
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (current-directory)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (current-directory)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -3334,7 +3334,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (current-directory): Protected Path rejected: ".../tmp.tbyfgQFr3V/."
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -3347,7 +3347,7 @@ rmp --dry-run ./..
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (parent-directory)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (parent-directory)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -3355,7 +3355,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (parent-directory): Protected Path rejected: "./.."
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -3368,7 +3368,7 @@ rmp --dry-run ././..
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：3。stderr 包含 `protected_path (parent-directory)`；不显示计划，不调用 Trash。
+预期退出码：1。stderr 包含 `protected_path (parent-directory)`；不显示计划，不调用 Trash。
 
 反馈：
 
@@ -3376,7 +3376,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: protected_path (parent-directory): Protected Path rejected: "././.."
-exit=3
+exit=1
 结果: PASS
 ```
 
@@ -3389,7 +3389,7 @@ rmp --version -zh
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 包含 `-zh is only valid with --help`；stdout 为空。
+预期退出码：64。stderr 包含 `-zh is only valid with --help`；stdout 为空。
 
 反馈：
 
@@ -3397,7 +3397,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: -zh is only valid with --help
-exit=2
+exit=64
 stdout: 空
 结果: PASS
 ```
@@ -3452,7 +3452,7 @@ test ! -e plain-batch-a && test ! -e plain-batch-b && echo 'sources=absent'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported_input_count for "plain-batch-a", "plain-batch-b": single-item execution requires exactly one Trash Input
-exit=2
+exit=64
 sources=present
 结果: PASS（多对象 09 暂不支持，安全失败）
 ```
@@ -3466,7 +3466,7 @@ rmp --dry-run
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。stderr 为 `rmp: at least one Trash Input is required`；不构造计划，不调用 Trash。
+预期退出码：64。stderr 为 `rmp: at least one Trash Input is required`；不构造计划，不调用 Trash。
 
 反馈：
 
@@ -3474,7 +3474,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: at least one Trash Input is required
-exit=2
+exit=64
 结果: PASS
 ```
 
@@ -3564,7 +3564,7 @@ rmp --
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：2。`--` 只结束选项解析，不是路径；stderr 为 `rmp: at least one Trash Input is required`。
+预期退出码：64。`--` 只结束选项解析，不是路径；stderr 为 `rmp: at least one Trash Input is required`。
 
 反馈：
 
@@ -3572,7 +3572,7 @@ printf 'exit=%s\n' "$?"
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: at least one Trash Input is required
-exit=2
+exit=64
 结果: PASS
 ```
 
@@ -3699,7 +3699,7 @@ printf 'exit=%s\n' "$?"
 test -f file-P-W && echo 'source=present'
 ```
 
-预期退出码：2。stderr 只报告 `unsupported Compatibility Option -W`；解析失败时不会输出已累积的 `-P` 警告，文件仍在原处。
+预期退出码：64。stderr 只报告 `unsupported Compatibility Option -W`；解析失败时不会输出已累积的 `-P` 警告，文件仍在原处。
 
 反馈：
 
@@ -3707,7 +3707,7 @@ test -f file-P-W && echo 'source=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported Compatibility Option -W
-exit=2
+exit=64
 source=present（无累积 -P 警告输出）
 结果: PASS
 ```
@@ -3771,7 +3771,7 @@ make -C "$REPO_ROOT" test-unit
 printf 'exit=%s\n' "$?"
 ```
 
-预期退出码：0。测试输出包含 `Unavailable safety identity reports the escaped source path without Trash access` 并通过；对应 CLI 分支返回退出码 3，stderr 包含 `safety_identity_unavailable` 和源路径，Trash 调用次数为 0。
+预期退出码：0。测试输出包含 `Unavailable safety identity reports the escaped source path without Trash access` 并通过；对应 CLI 分支返回退出码 1，stderr 包含 `safety_identity_unavailable` 和源路径，Trash 调用次数为 0。
 
 反馈：
 
@@ -3825,7 +3825,7 @@ printf 'exit=%s\n' "$?"
 test -f json-batch-a && test -f json-batch-b && echo 'sources=present'
 ```
 
-预期退出码：2。stderr 包含 `unsupported_output_mode` 以及两个源路径；两个文件都不移动，且不构造
+预期退出码：64。stderr 包含 `unsupported_output_mode` 以及两个源路径；两个文件都不移动，且不构造
 文件系统或 Trash capability。
 
 反馈：
@@ -3834,7 +3834,7 @@ test -f json-batch-a && test -f json-batch-b && echo 'sources=present'
 日期: 2026-07-14
 TEST_DIR: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/tmp.tbyfgQFr3V
 stderr: rmp: unsupported_input_count for "json-batch-a", "json-batch-b": single-item execution requires exactly one Trash Input
-exit=2
+exit=64
 无 unsupported_output_mode
 sources=present
 结果: PASS（多对象错误优先于 JSON 模式错误）

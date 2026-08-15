@@ -29,6 +29,7 @@ Trash Inputs.
 
 Trash Inputs are processed serially in command-line order. By default, a missing or failed input is
 reported and later inputs continue; `--stop-on-error` records every later input as skipped instead.
+An item that moved with a Trash Warning remains successful and does not trigger that stop.
 `--ignore-missing` keeps an absent input in the ordered result set but suppresses its diagnostic and
 does not make the operation fail. A single standard-mode success prints its escaped source and exact
 system-returned Trash destination on one line. A batch prints one aggregate summary, `--verbose`
@@ -85,9 +86,13 @@ failed Trash Result and classifies the source from its verified post-call identi
 release acceptance remain tracked in
 [issue 12](.scratch/rmp-core/issues/12-put-back-metadata-race.md).
 
-Exit Status Compatibility changes only numeric results and does not change rmp's Trash behavior:
-`0` means success, `1` means an operational or safety failure, and `64` means command-line usage
-failure. `-W` remains explicitly unsupported.
+Exit Status Compatibility changes numeric results and has one rm-compatible empty-invocation rule:
+a short `-f` that remains effective with no paths is a successful no-op. A later confirmation option
+alone does not clear force-derived ignore-missing; both force effects must be overridden to restore
+the usage error. Moved warnings remain successful and do not trigger `--stop-on-error`; `0` means
+success, `1` means an operational or safety failure, and `64` means command-line usage failure.
+With `--json`, the empty operation is represented by a complete schema-version-1 document with no
+items. `-W` remains explicitly unsupported.
 
 ## Project status
 

@@ -64,7 +64,19 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
         standardError: renderWarnings(invocation.warnings),
         exitCode: ExitStatus.success.rawValue
       )
-    case .noOperation:
+    case let .noOperation(output, dryRun):
+      if output == .json {
+        let result = JSONTrashRenderer().render(
+          results: [],
+          dryRun: dryRun,
+          currentDirectoryPath: makeCurrentDirectoryPath()
+        )
+        return .init(
+          standardOutput: result.standardOutput,
+          standardError: renderWarnings(invocation.warnings) + result.standardError,
+          exitCode: result.exitCode
+        )
+      }
       return .init(
         standardOutput: "",
         standardError: renderWarnings(invocation.warnings),

@@ -90,10 +90,14 @@ global validation. Compatibility diagnostics stay in the CLI result envelope and
 native Trash Operation request passed to planning or execution modules. The module responsibilities
 and Interfaces are recorded in ADR-0001.
 
-Exit Status Compatibility changes only the numeric CLI result: successful Trash moves, including
-moved results with Trash Warnings, use `0`; operational and safety failures use `1`; parser and usage
-failures use macOS `EX_USAGE` value `64`. It does not change rmp's Trash behavior, confirmation
-policy, output schema, or safety boundary; `-W` remains explicitly unsupported.
+Exit Status Compatibility changes numeric CLI results and adds one rm-compatible empty-invocation
+rule: a short `-f` that remains effective with no paths is a successful no-op. Successful Trash
+moves, including moved results with Trash Warnings, use `0`; operational and safety failures use
+`1`; parser and usage failures use macOS `EX_USAGE` value `64`. Moved warnings do not trigger
+stop-on-error. The no-op rule follows independent confirmation and missing-path precedence, so a
+later confirmation option alone does not clear force-derived ignore-missing. It does not otherwise
+change rmp's Trash behavior, confirmation policy, output schema, or safety boundary; `-W` remains
+explicitly unsupported. JSON mode still renders the no-op as a complete empty result document.
 
 Non-dry-run planning retains one ordered entry for every supplied top-level path. Missing and
 inaccessible entries become pre-capability Trash Results, while Protected Path and unavailable
@@ -200,7 +204,7 @@ not retain or upload the absolute paths it emits.
   reviewed baseline change on the target branch before the implementation PR. An upward ratchet is
   governed by the same policy-executor approval rules as every other policy file; the coverage gate
   independently requires the declared value to equal the measured production coverage.
-- The v1 production coverage baseline is `97.39%`, ratcheted upward with platform Trash adapter,
+- The v1 production coverage baseline is `97.48%`, ratcheted upward with platform Trash adapter,
   deterministic confirmation, Finalizer failure classification, ordered batch and stable JSON
   result handling, Exit Status Compatibility, and review-remediation coverage without changing the
   coverage metric definition.

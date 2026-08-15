@@ -239,7 +239,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
       }
       let result = result(for: entry)
       results.append(result)
-      if plan.stopOnError && result.representsOperationFailure {
+      if plan.stopOnError && result.triggersStopOnError {
         shouldSkipRemainingInputs = true
       }
     }
@@ -276,7 +276,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
     kind: TrashInputKind = .unknown,
     code: TrashErrorCode,
     explanation: String,
-    failureExitSuppressed: Bool = false
+    suppressesFailureExit: Bool = false
   ) -> TrashResult {
     TrashResult(
       sourcePath: path,
@@ -286,7 +286,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
       skipReason: nil,
       warnings: [],
       error: TrashFailure(code: code, explanation: explanation),
-      failureExitSuppressed: failureExitSuppressed
+      suppressesFailureExit: suppressesFailureExit
     )
   }
 
@@ -362,7 +362,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
             kind: input.kind,
             code: code,
             explanation: "\(reason); the Trash Input was not moved",
-            failureExitSuppressed: true
+            suppressesFailureExit: true
           )
           confirmationWasInterrupted = stopsFurtherPrompts
         }
@@ -373,7 +373,7 @@ struct TrashOperationApplication<FileSystem: TrashPlanningFileSystem> {
       results.append(entryResult)
       if confirmationWasInterrupted {
         skipReason = .confirmationInterrupted
-      } else if plan.stopOnError && entryResult.representsOperationFailure {
+      } else if plan.stopOnError && entryResult.triggersStopOnError {
         skipReason = .stoppedAfterFailure
       }
     }

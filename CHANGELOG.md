@@ -8,10 +8,13 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Changed
 
-- Align public CLI exit-status values with macOS `rm` while retaining rmp's Trash behavior: success
-  and moved warnings return `0`, operational and safety failures return `1`, and usage failures
-  return `64`; `-W` remains explicitly unsupported.
-- Ratchet the production line-coverage baseline from 97.31% to 97.39% with Exit Status Compatibility
+- Align public CLI exit-status values with macOS `rm`: success and moved warnings return `0`,
+  operational and safety failures return `1`, and usage failures return `64`. A short `-f` that
+  remains effective with no paths is a successful no-op; that rule follows the independent
+  confirmation and missing-path precedence. Moved warnings do not trigger `--stop-on-error`, and
+  `--json` renders the no-op as an empty schema-version-1 document; `-W` remains explicitly
+  unsupported.
+- Ratchet the production line-coverage baseline from 97.31% to 97.48% with Exit Status Compatibility
   tests, without changing the coverage metric.
 
 - Route approved Trash Inputs through Finder's Apple Event `delete` command, pass path text as a

@@ -21,7 +21,7 @@ struct TrashResult: Equatable, Sendable {
   let skipReason: TrashSkipReason?
   let warnings: [TrashMoveWarning]
   let error: TrashFailure?
-  let failureExitSuppressed: Bool
+  let suppressesFailureExit: Bool
 
   init(
     sourcePath: String,
@@ -31,7 +31,7 @@ struct TrashResult: Equatable, Sendable {
     skipReason: TrashSkipReason?,
     warnings: [TrashMoveWarning],
     error: TrashFailure?,
-    failureExitSuppressed: Bool = false
+    suppressesFailureExit: Bool = false
   ) {
     self.sourcePath = sourcePath
     self.destinationPath = destinationPath
@@ -40,24 +40,19 @@ struct TrashResult: Equatable, Sendable {
     self.skipReason = skipReason
     self.warnings = warnings
     self.error = error
-    self.failureExitSuppressed = failureExitSuppressed
+    self.suppressesFailureExit = suppressesFailureExit
   }
 
   var requiresFailureExit: Bool {
-    if failureExitSuppressed { return false }
-    switch status {
-    case .moved: return false
-    case .skipped: return false
-    case .rejected, .notMoved, .stateUncertain: return true
-    }
+    !suppressesFailureExit && status.isFailure
   }
 
-  var representsOperationFailure: Bool {
-    switch status {
-    case .moved: !warnings.isEmpty
-    case .skipped: false
-    case .rejected, .notMoved, .stateUncertain: true
-    }
+  var preventsAggregateSuccess: Bool {
+    status.isFailure || !warnings.isEmpty
+  }
+
+  var triggersStopOnError: Bool {
+    status.isFailure
   }
 }
 
@@ -65,4 +60,13 @@ enum TrashSkipReason: Equatable, Sendable {
   case confirmationInterrupted
   case ignoredMissing
   case stoppedAfterFailure
+}
+
+private extension TrashResultStatus {
+  var isFailure: Bool {
+    switch self {
+    case .moved, .skipped: false
+    case .rejected, .notMoved, .stateUncertain: true
+    }
+  }
 }

@@ -42,8 +42,11 @@ path operands produces the same numeric exit status under equivalent filesystem 
 outcomes. Native rmp extensions are outside command-for-command comparison, but their usage failures
 use the macOS usage status; `-W` remains explicitly unsupported because whiteout undeletion is not a
 Trash Operation.
-Exit Status Compatibility standardizes numeric meanings only; it does not require rmp to reproduce
-macOS `rm` deletion behavior, confirmation flow, option effects, diagnostics, or output.
+Exit Status Compatibility standardizes numeric meanings and the documented short-`-f` empty
+invocation. The empty invocation follows independent field precedence: overriding only confirmation
+does not remove force-derived ignore-missing, while overriding both effects does. It does not
+require rmp to reproduce macOS `rm` deletion behavior, confirmation flow, other option effects,
+diagnostics, or output; JSON mode still emits its complete empty result document for this no-op.
 The public values are `0` for success, `1` for operational or safety failure, and `64` for usage
 failure.
 _Avoid_: Exit code mapping, approximate compatibility
@@ -87,7 +90,7 @@ A stable diagnostic attached to a moved Trash Result when the destination is kno
 Back could not be guaranteed, a failed Finalizer call left its source state uncertain, or an
 already-activated Trash Finalizer could not be cleaned up.
 A Trash Warning does not change an otherwise successful Exit Status because the user's source entry
-was confirmed moved and an exact Trash receipt exists.
+was confirmed moved and an exact Trash receipt exists. It also does not trigger stop-on-error.
 _Avoid_: Trash failure, state-uncertain error
 
 **Trash Finalizer Cleanup Failure**:

@@ -35,8 +35,9 @@ fallback, and an owned finalizer preserves Put Back without following the link t
 reports the system-returned exact URL. Failure never triggers permanent deletion,
 `NSWorkspace.recycle`, direct Trash-directory access, or overwrite.
 By default, an item failure does not prevent later inputs from being processed; `--stop-on-error`
-records all later inputs as skipped. Missing inputs fail unless `--ignore-missing` is active, in
-which case their error output and exit-status effect are suppressed.
+records all later inputs as skipped. A moved result with a Trash Warning is successful and does not
+trigger that stop. Missing inputs fail unless `--ignore-missing` is active, in which case their
+error output and exit-status effect are suppressed.
 
 One standard-mode success writes exactly one escaped line containing the user-provided source and
 the exact Trash receipt destination. A standard-mode batch writes one aggregate summary instead of
@@ -88,8 +89,11 @@ either help surface. `rmp --version` prints `rmp 0.1.0`. These information comma
 Input, do not construct the platform filesystem adapter, and do not inspect filesystem or Trash
 capabilities.
 
-Required missing paths, operational failures, and Protected Path refusals return exit code 1. Usage
-errors and unsupported options return exit code 64 without presenting a plan. Protected Paths include filesystem
+Required missing paths, operational failures, and Protected Path refusals return exit code 1. A
+short `-f` that remains effective with no paths is a successful empty operation; other empty
+invocations are usage errors. Usage errors and unsupported options return exit code 64 without
+presenting a plan. In JSON mode, the successful empty operation is represented by a complete empty
+schema-version-1 document. Protected Paths include filesystem
 root, the current working directory, the user's home directory, their identity-equivalent path
 expressions, and explicit parent-directory expressions such as `..`. Effective root execution also
 returns exit code 1 before planning or Trash capability construction. `-f`, `--confirm=never`, and

@@ -12,7 +12,7 @@
 - [x] Non-interactive mode and non-TTY stdin never block; an operation that still requires confirmation fails with a recognizable diagnostic and exit code 1.
 - [x] Negative, invalid, and interrupted confirmation responses never initiate an unapproved Trash call.
 - [x] Confirmation summaries count only top-level inputs and directories and never recursively scan contents or calculate directory sizes.
-- [x] Protected Path and root refusals occur independently of confirmation and remain exit code 3 under every confirmation option.
+- [x] Protected Path and root refusals occur independently of confirmation and remain exit code 1 under every confirmation option.
 - [x] Tests exercise the confirmation matrix through executable-level input/output seams with fake prompts and Trash capabilities.
 
 ## Comments

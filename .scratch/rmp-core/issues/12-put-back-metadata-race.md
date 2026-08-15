@@ -612,7 +612,7 @@ protocol in ADR-0002.
   be verified and removed. If it moved before throwing, stop rather than shifting
   metadata again and report `finalizer_state_uncertain`.
 - Preserve exact moved receipts and report activation or cleanup degradation with
-  stable warnings and exit code 1.
+  stable warnings without changing the successful exit code.
 - ADR-0002, README, `docs/help.md`, the product spec, and this ticket define the
   behavior and the unavoidable crash/unmount/concurrent-replacement boundary.
 

@@ -150,7 +150,7 @@ struct JSONTrashRenderer {
     let items = results.map { result in
       item(for: result, currentDirectoryPath: currentDirectoryPath)
     }
-    let success = !results.contains(where: \.representsOperationFailure)
+    let success = !results.contains(where: \.preventsAggregateSuccess)
     let encodedResult = encode(
       JSONTrashOperation(dryRun: dryRun, items: items, success: success)
     )

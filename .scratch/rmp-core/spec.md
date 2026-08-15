@@ -191,7 +191,11 @@ rmp [OPTIONS] <PATH>...
 ```
 
 通常至少需要一个路径；兼容短选项 `-f` 最终生效且没有路径时，按 macOS `rm` 的成功空操作返回
-退出码 0。路径参数在 Shell 展开后逐个作为顶层对象处理。
+退出码 0。该特殊规则按 `-f` 的两个独立效果判断：后续只覆盖确认策略时（例如 `-fI` 或
+`-f --confirm=each`），兼容 ignore-missing 仍使空操作成功；只有确认和 missing-path 两个效果都被
+后续选项覆盖时才恢复用法错误。路径参数在 Shell 展开后逐个作为顶层对象处理。
+若该空操作同时选择 `--json`，stdout 仍必须输出一个 schema-version-1 的空 Trash Operation
+文档（`items` 为空、各计数为 0、`success` 为 true）；其他人类输出模式保持无输出。
 
 ### 8.2 原生选项
 
@@ -384,7 +388,8 @@ FR-SAFE-018：所有 Finalizer 激活尝试失败时，结果仍必须保留用�
 `moved`，并附加 `symlink_put_back_not_guaranteed`。激活已经成功但恢复或清理失败时必须附加
 `finalizer_cleanup_failed`，不得误报 Put Back 未激活。调用抛错且 Finalizer 源已消失或改变时必须附加
 `finalizer_state_uncertain`，说明 Put Back 与内部残留状态均无法确认。三种警告均写入 stderr，但不改变
-成功退出码，并保留已知的精确用户目标 URL。该处的 `finalizer_cleanup_failed` 是带目标移动回执的
+成功退出码，也不触发 stop-on-error，并保留已知的精确用户目标 URL。该处的
+`finalizer_cleanup_failed` 是带目标移动回执的
 Trash Warning；FR-SAFE-016 所述目标移动前清理失败则是没有移动回执的 Trash failure，两者不得混淆。
 
 ## 11. 执行模型

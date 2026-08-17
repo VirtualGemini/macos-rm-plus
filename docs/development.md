@@ -491,9 +491,10 @@ TC_BINARY=/absolute/path/to/tc TC_RESULTS_DIR=/absolute/results/path \
   ./scripts/run-production-cli-exit-status-tests.sh Run the non-Trash production CLI exit-status suite
 ```
 
-The exit-status runner normalizes the repository and temporary fixture roots to `REPO_ROOT` and
-`TEST_ROOT` in persisted evidence. Committed reports therefore identify canonical commands and
-repository-relative source binaries without recording the maintainer-owned checkout path.
+The exit-status runner normalizes the repository root plus both the logical and filesystem-canonical
+forms of its temporary fixture root to `REPO_ROOT` and `TEST_ROOT` in persisted evidence. Committed
+reports therefore identify canonical commands and repository-relative source binaries without
+recording the maintainer-owned checkout path or host-specific temporary-directory aliases.
 
 Hooks and validation scripts never download dependencies. The explicitly invoked `make bootstrap`
 command may download only the pinned, checksum-verified development tools recorded in

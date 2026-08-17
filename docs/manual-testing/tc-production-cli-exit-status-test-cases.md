@@ -70,9 +70,10 @@ TC_RESULTS_DIR=docs/manual-testing/results/tc-production-cli-exit-status-current
 - `run.log`：终端 PASS/FAIL 响应；
 - `metadata.txt`：提交、二进制 SHA-256、脚本 SHA-256、版本和起止时间。
 
-提交这些证据前，脚本会把仓库绝对路径和临时 fixture 根目录分别规范化为 `REPO_ROOT` 与
-`TEST_ROOT`，并把仓库内的构建产物记录为 `REPO_ROOT/.build/release/tc`。因此报告不会固化
-维护者本地 checkout 的名称或绝对路径。
+提交这些证据前，脚本会把仓库绝对路径以及临时 fixture 根目录的逻辑路径和物理路径分别规范化为
+`REPO_ROOT` 与 `TEST_ROOT`，并把仓库内的构建产物记录为
+`REPO_ROOT/.build/release/tc`。因此报告不会固化维护者本地 checkout 的名称、绝对路径或主机特有的
+临时目录别名。
 
 下面的代码块保留测试命令矩阵供审阅；生成正式证据时必须运行仓库脚本。
 
@@ -273,13 +274,11 @@ exit 0
 - `report.md`、`cases.tsv`、`responses.log`、`run.log` 和 `metadata.txt` 必须全部生成。
 - 运行期间不应出现 CLI 确认提示、Finder Automation 提示或新的废纸篓项目。
 
-## 本次运行证据
+## Canonical evidence 状态
 
-2026-08-17 的最终无人值守运行已提交在
-[`results/tc-production-cli-exit-status-20260817/report.md`](results/tc-production-cli-exit-status-20260817/report.md)。
-该报告对应提交 `eeeeb14`、版本 `tc 0.1.0`，结果为 `86/86`；同目录的
-[`responses.log`](results/tc-production-cli-exit-status-20260817/responses.log) 保存每个用例的完整
-stdout/stderr，`cases.tsv` 保存机器可读的退出码对照。
+迁移前的运行结果已随产品身份迁移删除，不能改名后继续作为 canonical evidence。当前状态为待生成；
+breaking migration 及其修复通过双轴 review 后，将在独立的 evidence commit 中使用 canonical
+可执行文件、命令和路径重新运行并提交结果。
 
 以下分支不在本生产 CLI 脚本中强制构造：真实移动成功、系统 Trash 调用失败、Moved Trash
 Warning、逐项确认拒绝/中断、root 拒绝、Protected Path 身份比较、无法取得安全身份以及无法访问的

@@ -770,14 +770,12 @@ actual-menu differentials remain human release gates.
 2026-08-09 — The first valid symbolic-link delay smoke completed on run
 `9b285816-9005-435c-89dc-05c9f5821576` (macOS 26.5.1 build `25F80`, Finder 26.4).
 The command used fixture `symbolic-link`, `settle-seconds=0.0`, and one cycle with
-`trash-backend=foundation-symlink`. The maintainer performed the real Finder Put
-Back for `tc-test-9b285816-9005-435c-89dc-05c9f5821576-put-back-race-symbolic-link`,
-and the runner then completed the second Foundation Trash call. After the required
-15-second deferred-write-back window, Finder did **not** offer Put Back for the
-second Trash item. The authorized Run Directory remained
-`/Users/virtualgemini/tc-test/test/9b285816-9005-435c-89dc-05c9f5821576`; its link
-target remained present in a read-only post-run check. No alternate restore or
-cleanup was attempted. This is red smoke evidence for the exact symptom, not yet
+`trash-backend=foundation-symlink`. The maintainer performed the real Finder Put Back for the run's
+UUID-prefixed pre-migration fixture, and the runner then completed the second Foundation Trash call.
+After the required 15-second deferred-write-back window, Finder did **not** offer Put Back for the
+second Trash item. The authorized pre-migration Run Directory and its link target remained present
+in a read-only post-run check. No alternate restore or cleanup was attempted. This is red smoke
+evidence for the exact symptom, not yet
 the required 10-cycle zero-delay positive control or a threshold result.
 
 2026-08-09 — An attempted zero-delay positive-control batch completed on run
@@ -1147,9 +1145,8 @@ no-preflight Finalizer sequence for production on the reporting host.
 2026-08-13 — Review remediation added the missing duplicate-Trash-name platform acceptance. Real
 run `0be21573-4de3-4465-9c86-74717a1255ca` used the same exact source path for two exclusively
 created ordinary-file generations and sent both through the whitelisted Finder backend. Finder
-returned
-`tc-test-0be21573-4de3-4465-9c86-74717a1255ca-duplicate-trash-name` for the first item and
-`tc-test-0be21573-4de3-4465-9c86-74717a1255ca-duplicate-trash-name 15.21.04` for the second.
+returned the run's UUID-prefixed pre-migration fixture basename for the first item and a
+timestamp-suffixed duplicate of that basename for the second.
 The command reported `renamed=true` and did not restore, enumerate, search, or automatically clean
 Trash. The same remediation replaces silently discarded pre-target Finalizer cleanup errors with
 stable `finalizer_cleanup_failed` reporting. The complete pure suite passes 219 tests in 20 suites

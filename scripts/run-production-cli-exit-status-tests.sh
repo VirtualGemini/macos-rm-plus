@@ -36,6 +36,7 @@ else
 fi
 
 TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/tc-exit-status.XXXXXX") || exit 1
+TEST_ROOT_CANONICAL=$(CDPATH='' cd -- "$TEST_ROOT" && pwd -P) || exit 1
 WORK_DIR="$TEST_ROOT/work"
 BIN_DIR="$TEST_ROOT/bin"
 STDOUT_DIR="$TEST_ROOT/stdout"
@@ -54,7 +55,9 @@ esac
 
 normalize_file() {
   input_file=$1
-  awk -v repository_root="$REPO_ROOT" -v test_root="$TEST_ROOT" '
+  awk -v repository_root="$REPO_ROOT" \
+    -v test_root="$TEST_ROOT" \
+    -v canonical_test_root="$TEST_ROOT_CANONICAL" '
     function replace_literal(text, needle, replacement, position) {
       while (needle != "" && (position = index(text, needle)) != 0) {
         text = substr(text, 1, position - 1) replacement \
@@ -64,6 +67,7 @@ normalize_file() {
     }
     {
       line = replace_literal($0, repository_root, "REPO_ROOT")
+      line = replace_literal(line, canonical_test_root, "TEST_ROOT")
       print replace_literal(line, test_root, "TEST_ROOT")
     }
   ' "$input_file"

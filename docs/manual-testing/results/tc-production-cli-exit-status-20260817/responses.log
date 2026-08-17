@@ -1,0 +1,823 @@
+[ES-0-01]
+command: tc <--help>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Usage: tc [OPTIONS] <PATH>...
+
+Move files and directories to the macOS system Trash. Permanent deletion is never used, and
+force options cannot bypass Protected Path checks.
+
+Native options:
+  -f, --force             Never confirm and ignore missing paths
+  -i, --interactive       Confirm each top-level Trash Input
+  -I                       Confirm once for >3 inputs or any directory
+  -v, --verbose           Report every top-level result
+      --confirm=<MODE>    smart, never, once, or each
+      --ignore-missing    Ignore missing paths only
+      --dry-run           Print the Trash Plan without moving anything
+      --non-interactive   Fail if confirmation would require terminal input
+      --quiet             Suppress normal output
+      --json              Emit the complete result as JSON
+      --stop-on-error     Stop after the first failed Trash Input
+      --strict-options    Reject no-effect Compatibility Options
+      --help              Show this help
+      --version           Show version information
+  --                       End option parsing
+
+Examples:
+  tc report.txt
+  tc --dry-run build report.txt
+  tc -- -leading-hyphen
+
+Run 'tc --help -a' for Compatibility Option details.
+--- stderr ---
+
+[ES-0-02]
+command: tc <--help> <-a>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+tc Compatibility Options
+
+Accepted with no effect:
+  -r, -R, -d, -x   Directories are moved as top-level items without recursive traversal.
+
+Accepted with a warning:
+  -P               Secure overwrite is not performed; the item is only moved to Trash.
+
+Unsupported:
+  -W               This requests a different operation and is rejected.
+
+--strict-options rejects every no-effect Compatibility Option, including -P.
+--- stderr ---
+
+[ES-0-03]
+command: tc <--help> <-zh>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+用法：tc [选项] <路径>...
+
+将文件和目录移入 macOS 系统废纸篓。tc 不会降级为永久删除，强制选项也不能绕过受保护路径检查。
+
+原生选项：
+  -f, --force             不确认并忽略不存在的路径
+  -i, --interactive       逐个确认顶层废纸篓输入
+  -I                       超过 3 个输入或包含目录时整批确认一次
+  -v, --verbose           输出每个顶层结果
+      --confirm=<模式>    smart、never、once 或 each
+      --ignore-missing    仅忽略不存在的路径
+      --dry-run           输出废纸篓计划但不移动任何项目
+      --non-interactive   需要终端确认时直接失败
+      --quiet             抑制正常输出
+      --json              输出完整 JSON 结果
+      --stop-on-error     首次失败后停止
+      --strict-options    拒绝无效果的兼容选项
+      --help              显示帮助
+      --version           显示版本
+  --                       结束选项解析
+
+示例：
+  tc report.txt
+  tc --dry-run build report.txt
+  tc -- -leading-hyphen
+
+运行 'tc --help -a -zh' 查看兼容选项说明。
+--- stderr ---
+
+[ES-0-04]
+command: tc <--help> <-a> <-zh>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+tc 兼容选项
+
+接受但无效果：
+  -r, -R, -d, -x   目录作为顶层项目整体移动，不执行递归遍历。
+
+接受但会警告：
+  -P               不执行安全覆写；项目只会移入废纸篓。
+
+不支持：
+  -W               该选项表示不同操作意图，因此拒绝。
+
+--strict-options 会拒绝所有无效果的兼容选项，包括 -P。
+--- stderr ---
+
+[ES-0-05]
+command: tc <--version>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+tc 0.1.0
+--- stderr ---
+
+[ES-0-06]
+command: tc <--help> <missing-information-path>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Usage: tc [OPTIONS] <PATH>...
+
+Move files and directories to the macOS system Trash. Permanent deletion is never used, and
+force options cannot bypass Protected Path checks.
+
+Native options:
+  -f, --force             Never confirm and ignore missing paths
+  -i, --interactive       Confirm each top-level Trash Input
+  -I                       Confirm once for >3 inputs or any directory
+  -v, --verbose           Report every top-level result
+      --confirm=<MODE>    smart, never, once, or each
+      --ignore-missing    Ignore missing paths only
+      --dry-run           Print the Trash Plan without moving anything
+      --non-interactive   Fail if confirmation would require terminal input
+      --quiet             Suppress normal output
+      --json              Emit the complete result as JSON
+      --stop-on-error     Stop after the first failed Trash Input
+      --strict-options    Reject no-effect Compatibility Options
+      --help              Show this help
+      --version           Show version information
+  --                       End option parsing
+
+Examples:
+  tc report.txt
+  tc --dry-run build report.txt
+  tc -- -leading-hyphen
+
+Run 'tc --help -a' for Compatibility Option details.
+--- stderr ---
+
+[ES-0-07]
+command: tc <--version> <missing-information-path>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+tc 0.1.0
+--- stderr ---
+
+[ES-0-08]
+command: tc <--help> <-P>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Usage: tc [OPTIONS] <PATH>...
+
+Move files and directories to the macOS system Trash. Permanent deletion is never used, and
+force options cannot bypass Protected Path checks.
+
+Native options:
+  -f, --force             Never confirm and ignore missing paths
+  -i, --interactive       Confirm each top-level Trash Input
+  -I                       Confirm once for >3 inputs or any directory
+  -v, --verbose           Report every top-level result
+      --confirm=<MODE>    smart, never, once, or each
+      --ignore-missing    Ignore missing paths only
+      --dry-run           Print the Trash Plan without moving anything
+      --non-interactive   Fail if confirmation would require terminal input
+      --quiet             Suppress normal output
+      --json              Emit the complete result as JSON
+      --stop-on-error     Stop after the first failed Trash Input
+      --strict-options    Reject no-effect Compatibility Options
+      --help              Show this help
+      --version           Show version information
+  --                       End option parsing
+
+Examples:
+  tc report.txt
+  tc --dry-run build report.txt
+  tc -- -leading-hyphen
+
+Run 'tc --help -a' for Compatibility Option details.
+--- stderr ---
+
+tc: warning: -P does not securely overwrite; the item will only be moved to Trash
+[ES-0-09]
+command: tc <--version> <-P>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+tc 0.1.0
+--- stderr ---
+
+tc: warning: -P does not securely overwrite; the item will only be moved to Trash
+[ES-0-10]
+command: tc <--dry-run> <present-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [file] "present-file"
+--- stderr ---
+
+[ES-0-11]
+command: tc <--dry-run> <directory>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [directory] "directory"
+--- stderr ---
+
+[ES-0-12]
+command: tc <--dry-run> <symbolic-link>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [symbolic-link] "symbolic-link"
+--- stderr ---
+
+[ES-0-13]
+command: tc <--dry-run> <broken-symbolic-link>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [broken-symbolic-link] "broken-symbolic-link"
+--- stderr ---
+
+[ES-0-14]
+command: tc <--dry-run> <fifo-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [other] "fifo-input"
+--- stderr ---
+
+[ES-0-15]
+command: tc <--dry-run> <first-file> <directory> <second-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 3 items to Trash:
+  [file] "first-file"
+  [directory] "directory"
+  [file] "second-file"
+--- stderr ---
+
+[ES-0-16]
+command: tc <--quiet> <--dry-run> <present-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [file] "present-file"
+--- stderr ---
+
+[ES-0-17]
+command: tc <--json> <--dry-run> <present-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"TEST_ROOT/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
+--- stderr ---
+
+[ES-0-18]
+command: tc <--json> <--verbose> <--dry-run> <present-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"TEST_ROOT/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
+--- stderr ---
+
+[ES-0-19]
+command: tc <--verbose> <--json> <--dry-run> <present-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"TEST_ROOT/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
+--- stderr ---
+
+[ES-0-20]
+command: tc <-P> <--dry-run> <present-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [file] "present-file"
+--- stderr ---
+
+tc: warning: -P does not securely overwrite; the item will only be moved to Trash
+[ES-0-21]
+command: tc <-rRdx> <--dry-run> <directory>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [directory] "directory"
+--- stderr ---
+
+[ES-0-22]
+command: tc <--dry-run> <--ignore-missing> <missing-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 0 items to Trash:
+--- stderr ---
+
+[ES-0-23]
+command: tc <--dry-run> <--ignore-missing> <missing-input> <present-file>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+Would move 1 item to Trash:
+  [file] "present-file"
+--- stderr ---
+
+[ES-0-24]
+command: tc <--json> <--dry-run> <--ignore-missing> <missing-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"unknown","source":"TEST_ROOT/work/missing-input","status":"skipped"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":1,"success":true}
+--- stderr ---
+
+[ES-0-25]
+command: tc <-f> <missing-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-26]
+command: tc <--force> <missing-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-27]
+command: tc <--ignore-missing> <missing-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-28]
+command: tc <-f> <--ignore-missing> <-i> <missing-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-29]
+command: tc <-f> <--confirm=each> <missing-input>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-30]
+command: tc <-f>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-31]
+command: tc <-if>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-32]
+command: tc <-i> <-f>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-33]
+command: tc <-f> <--confirm=never>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-34]
+command: tc <-f> <--confirm=each>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-35]
+command: tc <-f> <--ignore-missing>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-36]
+command: tc <-fI>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-37]
+command: tc <-If>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-38]
+command: tc <--force> <-f>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+--- stderr ---
+
+[ES-0-39]
+command: tc <-f> <--json>
+expected_exit: 0
+actual_exit: 0
+--- stdout ---
+{"dryRun":false,"failed":0,"items":[],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
+--- stderr ---
+
+[ES-1-01]
+command: tc <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input (rejected) for "missing-input": The Trash Input does not exist.
+[ES-1-02]
+command: tc <>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input (rejected) for "": The Trash Input does not exist.
+[ES-1-03]
+command: tc <--dry-run> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input: Trash Input does not exist: "missing-input"
+[ES-1-04]
+command: tc <--json> <--dry-run> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+{"dryRun":true,"failed":1,"items":[{"destination":null,"error":{"code":"missing_input","message":"The Trash Input does not exist."},"kind":"unknown","source":"TEST_ROOT/work/missing-input","status":"failed"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":false}
+--- stderr ---
+
+tc: missing_input (rejected) for "missing-input": The Trash Input does not exist.
+[ES-1-05]
+command: tc <--dry-run> <present-file> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input: Trash Input does not exist: "missing-input"
+[ES-1-06]
+command: tc <-fi> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input (rejected) for "missing-input": The Trash Input does not exist.
+[ES-1-07]
+command: tc <--force> <--interactive> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input (rejected) for "missing-input": The Trash Input does not exist.
+[ES-1-08]
+command: tc <--ignore-missing> <-f> <-i> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input (rejected) for "missing-input": The Trash Input does not exist.
+[ES-1-09]
+command: tc <--confirm=never> <fifo-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: unsupported_input_kind (rejected) for "fifo-input": The Trash Input has an unsupported entry kind.
+[ES-1-10]
+command: tc <--non-interactive> <directory>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: confirmation_required (rejected) for "directory": Confirmation is required before the Trash Input can be moved.
+[ES-1-11]
+command: tc <--non-interactive> <first-file> <second-file>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+Moved 0 items to Trash; 2 failed.
+--- stderr ---
+
+tc: confirmation_required (rejected) for "first-file": Confirmation is required before the Trash Input can be moved.
+tc: confirmation_required (rejected) for "second-file": Confirmation is required before the Trash Input can be moved.
+[ES-1-12]
+command: tc <--json> <--non-interactive> <directory>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+{"dryRun":false,"failed":1,"items":[{"destination":null,"error":{"code":"confirmation_required","message":"Confirmation is required before the Trash Input can be moved."},"kind":"directory","source":"TEST_ROOT/work/directory","status":"failed"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":false}
+--- stderr ---
+
+tc: confirmation_required (rejected) for "directory": Confirmation is required before the Trash Input can be moved.
+[ES-1-13]
+command: tc <--quiet> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: missing_input (rejected) for "missing-input": The Trash Input does not exist.
+[ES-1-14]
+command: tc <-P> <missing-input>
+expected_exit: 1
+actual_exit: 1
+--- stdout ---
+--- stderr ---
+
+tc: warning: -P does not securely overwrite; the item will only be moved to Trash
+tc: missing_input (rejected) for "missing-input": The Trash Input does not exist.
+[ES-64-01]
+command: tc
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-02]
+command: tc <--dry-run>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-03]
+command: tc <-->
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-04]
+command: tc <--force>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-05]
+command: tc <-fi>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-06]
+command: tc <-f> <-i>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-07]
+command: tc <-f> <--ignore-missing> <--confirm=each>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-08]
+command: tc <-f> <--force>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: at least one Trash Input is required
+[ES-64-09]
+command: tc <--unknown> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: unknown option "--unknown"
+[ES-64-10]
+command: tc <-z> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: unknown option "-z"
+[ES-64-11]
+command: tc <-fz> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: unknown option "-z"
+[ES-64-12]
+command: tc <--confirm=sometimes> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: invalid confirmation mode "sometimes"
+[ES-64-13]
+command: tc <--confirm=> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: invalid confirmation mode ""
+[ES-64-14]
+command: tc <--confirm> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: unknown option "--confirm"
+[ES-64-15]
+command: tc <--confirm=conditionalOnce> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: invalid confirmation mode "conditionalOnce"
+[ES-64-16]
+command: tc <--json> <--quiet> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: conflicting options --json and --quiet
+[ES-64-17]
+command: tc <--quiet> <--json> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: conflicting options --json and --quiet
+[ES-64-18]
+command: tc <-W> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: unsupported Compatibility Option -W
+[ES-64-19]
+command: tc <-P> <-W> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: unsupported Compatibility Option -W
+[ES-64-20]
+command: tc <--strict-options> <-r> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: Compatibility Option -r is not allowed with --strict-options
+[ES-64-21]
+command: tc <-r> <--strict-options> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: Compatibility Option -r is not allowed with --strict-options
+[ES-64-22]
+command: tc <--strict-options> <-R> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: Compatibility Option -R is not allowed with --strict-options
+[ES-64-23]
+command: tc <--strict-options> <-d> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: Compatibility Option -d is not allowed with --strict-options
+[ES-64-24]
+command: tc <--strict-options> <-x> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: Compatibility Option -x is not allowed with --strict-options
+[ES-64-25]
+command: tc <--strict-options> <-P> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: Compatibility Option -P is not allowed with --strict-options
+[ES-64-26]
+command: tc <--strict-options> <-W> <present-file>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: unsupported Compatibility Option -W
+[ES-64-27]
+command: tc <-a>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: -a is only valid with --help
+[ES-64-28]
+command: tc <-zh>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: -zh is only valid with --help
+[ES-64-29]
+command: tc <--help> <--version>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: --help and --version cannot be used together
+[ES-64-30]
+command: tc <--version> <--help>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: --help and --version cannot be used together
+[ES-64-31]
+command: tc <--version> <-a>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: -a is only valid with --help
+[ES-64-32]
+command: tc <--version> <-zh>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: -zh is only valid with --help
+[ES-64-33]
+command: tc <--help> <--json> <--quiet>
+expected_exit: 64
+actual_exit: 64
+--- stdout ---
+--- stderr ---
+
+tc: conflicting options --json and --quiet

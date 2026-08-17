@@ -487,6 +487,8 @@ make test-integration   Run the guarded integration entrypoint
 make check              Run all non-destructive local gates
 make ci                 Run the CI-equivalent non-destructive gates
 make clean              Clean SwiftPM build products only
+RMP_BINARY=/absolute/path/to/rmp RMP_RESULTS_DIR=/absolute/results/path \
+  ./scripts/run-production-cli-exit-status-tests.sh Run the non-Trash production CLI exit-status suite
 ```
 
 Hooks and validation scripts never download dependencies. The explicitly invoked `make bootstrap`

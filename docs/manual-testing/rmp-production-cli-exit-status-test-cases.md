@@ -43,8 +43,34 @@ JSON 和多输入当前已经支持。因此 `--json --dry-run`、`--json --verb
 
 ## 执行脚本
 
-将下面的代码块作为一个完整脚本执行。脚本打印每个用例的 PASS/FAIL，任一退出码不匹配时最终
-退出 `1`，全部匹配时退出 `0`。
+正式测试入口是
+[`scripts/run-production-cli-exit-status-tests.sh`](../../scripts/run-production-cli-exit-status-tests.sh)。
+脚本打印每个用例的 PASS/FAIL，任一退出码不匹配时最终退出 `1`，全部匹配时退出 `0`。
+
+使用当前仓库重新构建 Release 二进制时：
+
+```console
+RMP_RESULTS_DIR=docs/manual-testing/results/rmp-production-cli-exit-status-current \
+  ./scripts/run-production-cli-exit-status-tests.sh
+```
+
+使用已经构建且与待测代码一致的 Release 二进制时：
+
+```console
+RMP_BINARY="$PWD/.build/release/rmp" \
+RMP_RESULTS_DIR=docs/manual-testing/results/rmp-production-cli-exit-status-current \
+  ./scripts/run-production-cli-exit-status-tests.sh
+```
+
+每次运行会持久化以下证据，不再只产生终端摘要：
+
+- `report.md`：运行元数据、汇总和全部 86 个用例的 expected/actual 表；
+- `cases.tsv`：机器可读的逐用例退出码与命令；
+- `responses.log`：每个用例的完整 stdout、stderr 和实际退出码；
+- `run.log`：终端 PASS/FAIL 响应；
+- `metadata.txt`：提交、二进制 SHA-256、脚本 SHA-256、版本和起止时间。
+
+下面的代码块保留测试命令矩阵供审阅；生成正式证据时必须运行仓库脚本。
 
 ```sh
 #!/bin/sh
@@ -240,7 +266,16 @@ exit 0
 
 - 汇总必须为 `SUMMARY total=86 passed=86 failed=0`。
 - 脚本自身退出码必须为 `0`。
+- `report.md`、`cases.tsv`、`responses.log`、`run.log` 和 `metadata.txt` 必须全部生成。
 - 运行期间不应出现 CLI 确认提示、Finder Automation 提示或新的废纸篓项目。
+
+## 本次运行证据
+
+2026-08-17 的无人值守运行已提交在
+[`results/rmp-production-cli-exit-status-20260817/report.md`](results/rmp-production-cli-exit-status-20260817/report.md)。
+该报告对应提交 `76aa1d5`、版本 `rmp 0.1.0`，结果为 `86/86`；同目录的
+[`responses.log`](results/rmp-production-cli-exit-status-20260817/responses.log) 保存每个用例的完整
+stdout/stderr，`cases.tsv` 保存机器可读的退出码对照。
 
 以下分支不在本生产 CLI 脚本中强制构造：真实移动成功、系统 Trash 调用失败、Moved Trash
 Warning、逐项确认拒绝/中断、root 拒绝、Protected Path 身份比较、无法取得安全身份以及无法访问的

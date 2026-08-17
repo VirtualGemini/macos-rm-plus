@@ -300,6 +300,13 @@ returns read-only verification evidence. Pure tests inject Trash spies and never
 capability. The integration runner remains separately guarded and cannot be enabled through an
 environment switch in the production executable.
 
+`make test-integration` builds the Release `tc-test` executable and invokes it without fixture
+paths under a fresh Test Safety Context run UUID. This proves the canonical executable identity,
+fixed hierarchy validation, empty Run Directory cleanup, and compile-time `TC_TESTING` boundary
+without constructing or calling a system Trash capability. `TC_TEST_BINARY` is an integration-runner
+test seam that accepts only an absolute executable path whose basename is exactly `tc-test`; it is
+never read by the production executable.
+
 `tc-test ordered-batch` is the maintainer-only real-filesystem acceptance for ordered execution. It
 creates a file, empty directory, deep directory, quoted/newline filename, missing path, and nested
 permission-denied fixture inside one authorized Run Directory. Existing fixtures are converted to

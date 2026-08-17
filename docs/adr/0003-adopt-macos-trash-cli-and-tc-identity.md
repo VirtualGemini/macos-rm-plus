@@ -17,6 +17,7 @@ retain exact legacy product names.
 | Legacy identity | Canonical identity |
 | --- | --- |
 | `macos-rm-plus` | `macos-trash-cli` |
+| `macos_rm_plus` | `macos_trash_cli` |
 | `rmp` | `tc` |
 | `rmp-test` | `tc-test` |
 | `rmp_test` | `tc_test` |
@@ -38,5 +39,6 @@ remain because they describe external concepts rather than the product identity.
 
 No legacy executable, module, alias, wrapper, or generated artifact is retained. The migration is a
 breaking but pre-release change, so the version remains v0.1.0 and `tc --version` reports
-`tc 0.1.0`. Git history is not rewritten. The GitHub repository and local checkout directory are
-renamed by the maintainer only after the active tree migration and validation are complete.
+`tc 0.1.0`. Git history is not rewritten. The maintainer has already renamed the GitHub repository;
+updating the local `origin` and checkout directory remains a maintainer-owned step after active-tree
+validation.

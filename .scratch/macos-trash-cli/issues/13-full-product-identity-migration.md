@@ -31,6 +31,7 @@ retain exact legacy product names.
 | Legacy identity | Canonical identity |
 | --- | --- |
 | `macos-rm-plus` | `macos-trash-cli` |
+| `macos_rm_plus` | `macos_trash_cli` |
 | `rmp` | `tc` |
 | `rmp-test` | `tc-test` |
 | `rmp_test` | `tc_test` |
@@ -105,8 +106,9 @@ are external concepts and are not legacy product identities.
   issue as 13, update every cross-reference, and remove the legacy tracker directory after the move.
 - Record the identity decision in ADR-0003 and make `CONTEXT.md` use `macos-trash-cli` as its context
   and `tc` as the command-level subject.
-- Do not rewrite git history. The maintainer will rename the GitHub repository and local checkout
-  directory after the active tree migration is complete; implementation agents must not move the
+- Do not rewrite git history. The maintainer has already renamed the GitHub repository and will
+  update the local `origin` to its canonical URL and rename the local checkout directory after the
+  active tree migration is complete. Implementation agents must not change that remote or move the
   live workspace root.
 
 ### Artifacts and installed surfaces
@@ -115,6 +117,8 @@ are external concepts and are not legacy product identities.
   report, log, and manual-acceptance outputs before rebuilding from the canonical tree.
 - Remove old tracked result directories rather than relabelling their evidence. Regenerate evidence
   with the canonical executables and paths.
+- Make committed evidence repository-relative or explicitly normalized so the maintainer-owned local
+  checkout basename is not persisted as a legacy product identity before the final directory rename.
 - The maintainer removes any legacy binary, shell alias, completion, package-manager entry, local
   checkout name, or external test hierarchy outside the repository after inspecting it safely.
   Repository automation must not mutate those external locations without separate authorization.
@@ -158,9 +162,10 @@ commit-range validation for the aggregate branch so a later fix cannot hide an e
 
 - [ ] A case-sensitive and case-insensitive content scan for every token in the audited mapping
   returns matches only inside the dedicated mapping sections of this issue and ADR-0003.
-- [ ] A path scan finds no legacy product identity in any active file or directory name.
-- [ ] The scans include hidden files and exclude only `.git`; generated directories are scanned
-  before cleanup to prove they are removed, then scanned again after the canonical rebuild.
+- [ ] A repository-relative descendant path scan finds no legacy product identity in any active file
+  or directory name. The maintainer-owned checkout basename is outside this scan.
+- [ ] The scans include hidden files and exclude only `.git`. A pre-clean scan inventories stale
+  generated matches; post-clean and post-rebuild scans must return no generated legacy identity.
 - [ ] Standalone external `rm` references are reviewed semantically and remain only where they mean
   the macOS command, compatibility behavior, or safe shell cleanup.
 - [ ] No broad allowlist, binary-file skip, case-folding gap, composed identifier, archived result,
@@ -170,7 +175,7 @@ commit-range validation for the aggregate branch so a later fix cannot hide an e
 
 - [ ] `swift package describe` reports package `macos-trash-cli`, production product/target `tc`,
   test product/target `tc-test`, and the canonical core, platform, test-kit, test-safety, and test
-  module names.
+  module names. Generated package-test identity uses `macos_trash_cli`.
 - [ ] Only canonical source, support, test, tracker, and manual-result directories exist; every
   migrated legacy directory and file is absent.
 - [ ] `tc --help`, both localized help surfaces, and `tc --version` use only the canonical identity;
@@ -211,7 +216,8 @@ commit-range validation for the aggregate branch so a later fix cannot hide an e
   through `tc-test`; required real-Trash and Finder checks are executed under their existing safety
   and human-approval rules.
 - [ ] New reports record canonical source binaries, commands, fixture paths, executable identities,
-  and version output. No old report is copied or textually relabelled.
+  and version output without persisting the maintainer-owned absolute checkout path. No old report
+  is copied or textually relabelled.
 - [ ] Ignored build and profile outputs contain no stale legacy product artifact after the final
   clean rebuild.
 
@@ -233,7 +239,7 @@ commit-range validation for the aggregate branch so a later fix cannot hide an e
 - Changing Trash semantics, safety protections, supported options, or brand-neutral JSON contracts.
 - Replacing or modifying macOS `/bin/rm`.
 - Automatically renaming the live workspace root, GitHub repository, or maintainer-owned external
-  installations and test evidence.
+  installations and test evidence, or automatically changing the local `origin` URL.
 
 ## Comments
 

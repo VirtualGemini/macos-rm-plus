@@ -809,8 +809,9 @@ gh workflow run integration.yml --ref main
 gh run watch
 ```
 
-The workflow runs on a fresh GitHub-hosted macOS runner. It has no release secrets. Until the guarded
-integration implementation is complete, it fails closed instead of calling the real Trash API.
+The workflow runs on a fresh GitHub-hosted macOS runner. It has no release secrets. The guarded
+integration establishes and cleans an empty `tc-test` Run Directory without accepting a fixture path
+or calling the real Trash API.
 
 ### 15.3 Using `release.yml`
 

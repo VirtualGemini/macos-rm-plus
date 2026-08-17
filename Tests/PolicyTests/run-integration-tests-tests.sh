@@ -44,4 +44,21 @@ if TC_TEST_TRACE="$TRACE_FILE" TC_TEST_BINARY="$WRONG_BINARY" TEST_RUN_ID="$RUN_
   exit 1
 fi
 
+if TC_TEST_TRACE="$TRACE_FILE" TC_TEST_BINARY=tc-test TEST_RUN_ID="$RUN_ID" \
+  "$ROOT/scripts/run-integration-tests.sh" >/dev/null 2>&1; then
+  echo 'test failure: integration runner accepted a relative executable path' >&2
+  exit 1
+fi
+
+NON_EXECUTABLE_DIR="$TEMP_DIR/non-executable"
+mkdir "$NON_EXECUTABLE_DIR"
+NON_EXECUTABLE_BINARY="$NON_EXECUTABLE_DIR/tc-test"
+cp "$FAKE_BINARY" "$NON_EXECUTABLE_BINARY"
+chmod 644 "$NON_EXECUTABLE_BINARY"
+if TC_TEST_TRACE="$TRACE_FILE" TC_TEST_BINARY="$NON_EXECUTABLE_BINARY" TEST_RUN_ID="$RUN_ID" \
+  "$ROOT/scripts/run-integration-tests.sh" >/dev/null 2>&1; then
+  echo 'test failure: integration runner accepted a non-executable file' >&2
+  exit 1
+fi
+
 echo 'Integration runner tests passed.'

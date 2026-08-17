@@ -10,10 +10,10 @@ if [ "$(id -u)" -eq 0 ]; then
   exit 1
 fi
 
-if [ -n "${RMP_BINARY:-}" ]; then
-  SOURCE_RMP=$RMP_BINARY
-  if [ "${SOURCE_RMP#/}" = "$SOURCE_RMP" ] || [ ! -x "$SOURCE_RMP" ]; then
-    echo 'FAIL setup: RMP_BINARY must be an absolute path to an executable' >&2
+if [ -n "${TC_BINARY:-}" ]; then
+  SOURCE_TC=$TC_BINARY
+  if [ "${SOURCE_TC#/}" = "$SOURCE_TC" ] || [ ! -x "$SOURCE_TC" ]; then
+    echo 'FAIL setup: TC_BINARY must be an absolute path to an executable' >&2
     exit 1
   fi
 else
@@ -21,21 +21,21 @@ else
     echo 'FAIL setup: release build failed' >&2
     exit 1
   fi
-  SOURCE_RMP="$REPO_ROOT/.build/release/rmp"
+  SOURCE_TC="$REPO_ROOT/.build/release/tc"
 fi
 
-RUN_ID=${RMP_RUN_ID:-$(date -u '+%Y%m%dT%H%M%SZ')}
-if [ -n "${RMP_RESULTS_DIR:-}" ]; then
-  RESULTS_DIR=$RMP_RESULTS_DIR
+RUN_ID=${TC_RUN_ID:-$(date -u '+%Y%m%dT%H%M%SZ')}
+if [ -n "${TC_RESULTS_DIR:-}" ]; then
+  RESULTS_DIR=$TC_RESULTS_DIR
   case "$RESULTS_DIR" in
     /*) ;;
     *) RESULTS_DIR="$REPO_ROOT/$RESULTS_DIR" ;;
   esac
 else
-  RESULTS_DIR="$REPO_ROOT/.artifacts/rmp-production-cli-exit-status/$RUN_ID"
+  RESULTS_DIR="$REPO_ROOT/.artifacts/tc-production-cli-exit-status/$RUN_ID"
 fi
 
-TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/rmp-exit-status.XXXXXX") || exit 1
+TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/tc-exit-status.XXXXXX") || exit 1
 WORK_DIR="$TEST_ROOT/work"
 BIN_DIR="$TEST_ROOT/bin"
 STDOUT_DIR="$TEST_ROOT/stdout"
@@ -47,28 +47,50 @@ RUN_LOG="$RESULTS_DIR/run.log"
 REPORT_FILE="$RESULTS_DIR/report.md"
 SCRIPT_PATH="$REPO_ROOT/scripts/run-production-cli-exit-status-tests.sh"
 
+case "$SOURCE_TC" in
+  "$REPO_ROOT"/*) SOURCE_TC_RECORD="REPO_ROOT/${SOURCE_TC#"$REPO_ROOT"/}" ;;
+  *) SOURCE_TC_RECORD=EXTERNAL_TC_BINARY ;;
+esac
+
+normalize_file() {
+  input_file=$1
+  awk -v repository_root="$REPO_ROOT" -v test_root="$TEST_ROOT" '
+    function replace_literal(text, needle, replacement, position) {
+      while (needle != "" && (position = index(text, needle)) != 0) {
+        text = substr(text, 1, position - 1) replacement \
+          substr(text, position + length(needle))
+      }
+      return text
+    }
+    {
+      line = replace_literal($0, repository_root, "REPO_ROOT")
+      print replace_literal(line, test_root, "TEST_ROOT")
+    }
+  ' "$input_file"
+}
+
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
 trap 'exit 1' HUP INT TERM
 
 mkdir -p "$WORK_DIR" "$BIN_DIR" "$STDOUT_DIR" "$STDERR_DIR" "$RESULTS_DIR" || exit 1
-install -m 755 "$SOURCE_RMP" "$BIN_DIR/rmp" || exit 1
-RMP="$BIN_DIR/rmp"
+install -m 755 "$SOURCE_TC" "$BIN_DIR/tc" || exit 1
+TC="$BIN_DIR/tc"
 
 CURRENT_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || printf 'unknown')
-BINARY_SHA256=$(shasum -a 256 "$SOURCE_RMP" 2>/dev/null | awk '{print $1}')
+BINARY_SHA256=$(shasum -a 256 "$SOURCE_TC" 2>/dev/null | awk '{print $1}')
 SCRIPT_SHA256=$(shasum -a 256 "$SCRIPT_PATH" 2>/dev/null | awk '{print $1}')
-VERSION_OUTPUT=$("$SOURCE_RMP" --version 2>&1)
+VERSION_OUTPUT=$("$SOURCE_TC" --version 2>&1)
 VERSION_EXIT=$?
 STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
 {
   printf 'run_id=%s\n' "$RUN_ID"
   printf 'started_at=%s\n' "$STARTED_AT"
-  printf 'repository=%s\n' "$REPO_ROOT"
+  printf 'repository=%s\n' REPO_ROOT
   printf 'commit=%s\n' "$CURRENT_COMMIT"
-  printf 'source_binary=%s\n' "$SOURCE_RMP"
+  printf 'source_binary=%s\n' "$SOURCE_TC_RECORD"
   printf 'binary_sha256=%s\n' "$BINARY_SHA256"
-  printf 'suite_script=%s\n' "$SCRIPT_PATH"
+  printf 'suite_script=%s\n' REPO_ROOT/scripts/run-production-cli-exit-status-tests.sh
   printf 'suite_script_sha256=%s\n' "$SCRIPT_SHA256"
   printf 'version_exit=%s\n' "$VERSION_EXIT"
   printf 'version_output=%s\n' "$VERSION_OUTPUT"
@@ -100,12 +122,12 @@ run_case() {
 
   stdout_file="$STDOUT_DIR/$case_id"
   stderr_file="$STDERR_DIR/$case_id"
-  case_command="$RMP"
+  case_command=tc
   for case_argument in "$@"; do
     case_command="$case_command <$case_argument>"
   done
 
-  "$RMP" "$@" >"$stdout_file" 2>"$stderr_file"
+  "$TC" "$@" >"$stdout_file" 2>"$stderr_file"
   actual_exit=$?
   total=$((total + 1))
 
@@ -125,18 +147,18 @@ run_case() {
     printf 'expected_exit: %s\n' "$expected_exit"
     printf 'actual_exit: %s\n' "$actual_exit"
     printf '%s\n' '--- stdout ---'
-    sed -n '1,200p' "$stdout_file"
+    normalize_file "$stdout_file" | sed -n '1,200p'
     printf '%s\n\n' '--- stderr ---'
-    sed -n '1,200p' "$stderr_file"
+    normalize_file "$stderr_file" | sed -n '1,200p'
   } >>"$RESPONSES_FILE"
 
   printf '%s %-10s expected=%s actual=%s\n' "$result" "$case_id" "$expected_exit" "$actual_exit" \
     | tee -a "$RUN_LOG"
   if [ "$result" = FAIL ]; then
     printf '%s\n' '--- stdout ---' | tee -a "$RUN_LOG"
-    sed -n '1,40p' "$stdout_file" | tee -a "$RUN_LOG"
+    normalize_file "$stdout_file" | sed -n '1,40p' | tee -a "$RUN_LOG"
     printf '%s\n' '--- stderr ---' | tee -a "$RUN_LOG"
-    sed -n '1,40p' "$stderr_file" | tee -a "$RUN_LOG"
+    normalize_file "$stderr_file" | sed -n '1,40p' | tee -a "$RUN_LOG"
   fi
 }
 
@@ -250,7 +272,7 @@ printf 'finished_at=%s\n' "$FINISHED_AT" >>"$METADATA_FILE"
 printf 'total=%s\npassed=%s\nfailed=%s\n' "$total" "$passed" "$failed" >>"$METADATA_FILE"
 
 {
-  printf '# rmp production CLI exit-status test report\n\n'
+  printf '# tc production CLI exit-status test report\n\n'
   printf -- "- Run ID: \`%s\`\n" "$RUN_ID"
   printf -- "- Commit: \`%s\`\n" "$CURRENT_COMMIT"
   printf -- "- Binary SHA-256: \`%s\`\n" "$BINARY_SHA256"

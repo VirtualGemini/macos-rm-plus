@@ -8,7 +8,7 @@ profile=$(find "$ROOT/.build" -path '*/debug/codecov/default.profdata' -type f -
 test_binary=$(find "$ROOT/.build" \
   -path '*/debug/*PackageTests.xctest/Contents/MacOS/*PackageTests' ! -path '*.dSYM/*' \
   -type f -print -quit)
-production_binary=$(find "$ROOT/.build" -path '*/debug/rmp' ! -path '*.dSYM/*' -type f -print -quit)
+production_binary=$(find "$ROOT/.build" -path '*/debug/tc' ! -path '*.dSYM/*' -type f -print -quit)
 
 if [ -z "$profile" ] || [ -z "$test_binary" ] || [ -z "$production_binary" ]; then
   echo "error: coverage data is unavailable; run 'make test-unit' first" >&2

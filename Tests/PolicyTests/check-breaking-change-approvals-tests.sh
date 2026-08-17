@@ -4,7 +4,7 @@
 set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/rmp-breaking-approval-tests.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/tc-breaking-approval-tests.XXXXXX")
 trap 'rm -rf "$TEMP_DIR"' EXIT HUP INT TERM
 
 repo="$TEMP_DIR/repo"

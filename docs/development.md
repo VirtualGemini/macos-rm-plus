@@ -1,7 +1,7 @@
 # Development Guide
 
 This document is the single source of truth for developing, testing, reviewing, committing, and
-releasing rmp. Pull requests must update it when they change the development workflow.
+releasing tc. Pull requests must update it when they change the development workflow.
 
 ## 1. Toolchain
 
@@ -14,7 +14,7 @@ releasing rmp. Pull requests must update it when they change the development wor
 - Package manager: Swift Package Manager.
 - Test framework: Swift Testing only.
 - Third-party runtime dependencies: none in v0.1. Real Trash Operations require macOS Finder and
-  user-approved Automation access from the responsible terminal or `rmp` process.
+  user-approved Automation access from the responsible terminal or `tc` process.
 
 Pinned development-tool versions are recorded in `.tool-versions.lock`:
 
@@ -55,33 +55,33 @@ unrelated test compilation errors.
 
 ```text
 Sources/
-├── RMPCore/          Pure parsing, planning, safety policy, and output models
-├── RMPPlatform/      macOS system-framework adapters
-└── rmp/              Production command-line entrypoint
+├── TrashCore/          Pure parsing, planning, safety policy, and output models
+├── TrashPlatform/      macOS system-framework adapters
+└── tc/              Production command-line entrypoint
 
 TestSupport/
-├── RMPTestKit/       Fakes, spies, and pure test support
-├── RMPTestSafety/    Safety logic compiled only into the test executable
-└── rmp-test/         Compile-time-isolated real-filesystem test entrypoint
+├── TrashTestKit/       Fakes, spies, and pure test support
+├── TrashTestSafety/    Safety logic compiled only into the test executable
+└── tc-test/         Compile-time-isolated real-filesystem test entrypoint
 
 Tests/
-├── RMPCoreTests/
-└── RMPPlatformTests/
+├── TrashCoreTests/
+└── TrashPlatformTests/
 ```
 
 The architectural decision is recorded in
 [`docs/adr/0001-separate-core-platform-and-cli.md`](adr/0001-separate-core-platform-and-cli.md).
 
-`RMPCore` must not invoke the filesystem, terminal, clock, environment, or system Trash API
-directly. Those capabilities cross explicit interfaces implemented in `RMPPlatform`.
+`TrashCore` must not invoke the filesystem, terminal, clock, environment, or system Trash API
+directly. Those capabilities cross explicit interfaces implemented in `TrashPlatform`.
 
-Interactive confirmation crosses the `ConfirmationPrompt` Interface. RMPCore decides whether a
-prompt is required and interprets raw answers; `RMPPlatform.StandardInputConfirmationPrompt` only
+Interactive confirmation crosses the `ConfirmationPrompt` Interface. TrashCore decides whether a
+prompt is required and interprets raw answers; `TrashPlatform.StandardInputConfirmationPrompt` only
 checks stdin TTY state, writes the question to stderr, and reads one line. Non-interactive and
 non-TTY paths are rejected before the adapter reads stdin.
 
-Trash Plan previews follow the same boundary: `RMPCore` receives only injected top-level entry and
-directory-identity inspection capabilities, while `RMPPlatform` supplies the read-only Foundation
+Trash Plan previews follow the same boundary: `TrashCore` receives only injected top-level entry and
+directory-identity inspection capabilities, while `TrashPlatform` supplies the read-only Foundation
 adapter. The production dry-run path has no Trash, move, overwrite, or deletion capability.
 
 CLI arguments have one authoritative parser. Information commands complete before an explicit
@@ -96,7 +96,7 @@ moves, including moved results with Trash Warnings, use `0`; operational and saf
 `1`; parser and usage failures use macOS `EX_USAGE` value `64`. Moved warnings do not trigger
 stop-on-error. The no-op rule follows independent confirmation and missing-path precedence, so a
 later confirmation option alone does not clear force-derived ignore-missing. It does not otherwise
-change rmp's Trash behavior, confirmation policy, output schema, or safety boundary; `-W` remains
+change tc's Trash behavior, confirmation policy, output schema, or safety boundary; `-W` remains
 explicitly unsupported. JSON mode still renders the no-op as a complete empty result document.
 
 Non-dry-run planning retains one ordered entry for every supplied top-level path. Missing and
@@ -158,8 +158,8 @@ not retain or upload the absolute paths it emits.
 
 - Production code prohibits `try!`, forced casts, forced unwraps, implicitly unwrapped optionals, and
   unconditional `fatalError`.
-- `RMPCore` uses typed errors.
-- Foundation `NSError` values remain inside `RMPPlatform` and are mapped to stable core error codes.
+- `TrashCore` uses typed errors.
+- Foundation `NSError` values remain inside `TrashPlatform` and are mapped to stable core error codes.
 - Finder Automation failures are classified with the SDK's named Apple Event and OSStatus constants;
   localized error-message text never controls program flow.
 - Human-readable error messages are separate from machine-readable codes.
@@ -180,7 +180,7 @@ not retain or upload the absolute paths it emits.
 - Async behavior is introduced only for a measured requirement and requires design review.
 - `MacOSTrashClient` processes approved top-level inputs synchronously. Its ordinary-entry branch
   performs one finite-timeout Finder Apple Event; its symbolic-link branch performs serial local
-  Foundation and finalizer operations. RMPCore never overlaps Trash Inputs.
+  Foundation and finalizer operations. TrashCore never overlaps Trash Inputs.
 
 ## 6. Testing standards
 
@@ -217,7 +217,7 @@ not retain or upload the absolute paths it emits.
 - Coverage includes production executables as additional `llvm-cov` objects; test-only coverage
   cannot hide newly added untested CLI code.
 - SafetyPolicy, option parsing, and test-whitelist branches may not remain untested.
-- Protected Path planning tests use fake filesystem identities. They must not launch `rmp` with a
+- Protected Path planning tests use fake filesystem identities. They must not launch `tc` with a
   system path, a real home directory, or user-data path merely to prove a safety rejection.
 
 ### 6.2 Safe default commands
@@ -234,21 +234,21 @@ These commands run pure tests only. They must never invoke the real macOS Trash 
 The complete normative requirements are in the PRD. The essential boundary is:
 
 ```text
-~/rmp-test                         Never an rmp target
-~/rmp-test/test                    Never an rmp target
-~/rmp-test/test/<run-uuid>         Never an rmp target
-~/rmp-test/test/<run-uuid>/...     The only authorized fixture area
+~/tc-test                         Never a tc target
+~/tc-test/test                    Never a tc target
+~/tc-test/test/<run-uuid>         Never a tc target
+~/tc-test/test/<run-uuid>/...     The only authorized fixture area
 ```
 
 Real-filesystem tests:
 
-- use the compile-time `RMP_TESTING` executable `rmp-test`;
+- use the compile-time `TC_TESTING` executable `tc-test`;
 - require `--test-run-id <uuid>`;
 - use `0700` directories, `0600` marker files, device/inode identity checks, and retained directory
   descriptors;
 - reject symbolic-link escapes, mount points, cross-volume paths, network volumes, and File Provider
   roots;
-- prefix fixture basenames with `rmp-test-<run-uuid>-`;
+- prefix fixture basenames with `tc-test-<run-uuid>-`;
 - run serially;
 - never receive `/`, a real home directory, the working directory, or system directories;
 - never clean the user's Trash by name or with a permanent-delete API.
@@ -256,9 +256,9 @@ Real-filesystem tests:
 Assertions should expose mistakes early, but every assertion has a non-optional `guard` or typed
 error enforcing the same boundary in optimized builds.
 
-The compile-time-isolated `rmp-test` target fails compilation unless `RMP_TESTING` is enabled and is
+The compile-time-isolated `tc-test` target fails compilation unless `TC_TESTING` is enabled and is
 the only package product and module containing the real Test Safety Context implementation. The
-separate `RMPTestKit` module exposes no real safety entry for an unflagged target to call or forge
+separate `TrashTestKit` module exposes no real safety entry for an unflagged target to call or forge
 with a matching runtime symbol. The driver establishes the Test Safety Context before
 exposing path arguments to downstream test work. It derives the loaded executable path from macOS rather than
 trusting `argv[0]`, obtains the effective user's home from the system account database, rejects root or the wrong executable identity,
@@ -280,10 +280,10 @@ their markers are prepared under random staging names and become fixed boundarie
 exclusive rename publishes the complete directory. A failed preparation removes its unpublished
 staging directory and marker so that a safety rejection normally leaves no filesystem change. If a
 filesystem error prevents that rollback, the operation fails with `test-safety.rollback-failed`,
-reports the random `.rmp-create-*` staging entry that may remain, and never silently claims cleanup
+reports the random `.tc-create-*` staging entry that may remain, and never silently claims cleanup
 succeeded.
 
-`RMPPlatform.MacOSTrashClient` is the production Trash capability. It dispatches ordinary files and
+`TrashPlatform.MacOSTrashClient` is the production Trash capability. It dispatches ordinary files and
 directories to `FinderTrashClient`, whose fixed AppleScript handler receives path text as a
 structured Apple Event argument and returns the Finder item URL. Final symbolic links use the
 Foundation and Trash Finalizer protocol accepted in ADR-0002; Finder failure never triggers that
@@ -292,7 +292,7 @@ Trash-directory mutation remain prohibited. The production execution path constr
 adapter only after parsing, root policy, output-mode, Trash Plan, and confirmation checks succeed,
 and only for an individual Trash Input approved for execution.
 Automation consent, denial, timeout, unavailable Finder, or missing file URL is reported without a
-fallback Trash API. The compile-time-isolated `rmp-test` target reaches the production symbolic-link
+fallback Trash API. The compile-time-isolated `tc-test` target reaches the production symbolic-link
 algorithm only through `WhitelistedMacOSTrashClient` and `WhitelistedTrashClient`, which accept
 opaque targets produced by their planning authorization passes,
 revalidates the complete Test Safety Context and target immediately before the system call, and
@@ -300,7 +300,7 @@ returns read-only verification evidence. Pure tests inject Trash spies and never
 capability. The integration runner remains separately guarded and cannot be enabled through an
 environment switch in the production executable.
 
-`rmp-test ordered-batch` is the maintainer-only real-filesystem acceptance for ordered execution. It
+`tc-test ordered-batch` is the maintainer-only real-filesystem acceptance for ordered execution. It
 creates a file, empty directory, deep directory, quoted/newline filename, missing path, and nested
 permission-denied fixture inside one authorized Run Directory. Existing fixtures are converted to
 opaque whitelist authorizations before CLI execution; the adapter revalidates each target and the
@@ -309,7 +309,7 @@ success, exact ordered receipts, stable missing and permission diagnostics, and 
 source states. It restores the permission fixture directory to `0700`, preserves the Run Directory
 and Trash receipts for inspection, and is excluded from default tests and CI.
 
-The compile-time-isolated `rmp-test` target has a separate capability for reproducing issue 12's
+The compile-time-isolated `tc-test` target has a separate capability for reproducing issue 12's
 symbolic-link behavior. `FoundationSymlinkTrashClient` uses
 `FileManager.trashItem(at:resultingItemURL:)`, but refuses every entry that `lstat` does not identify
 as a final symbolic link. It remains behind `WhitelistedTrashClient`, so the complete Test Safety
@@ -326,7 +326,7 @@ call. The sequence contains no sleep, shell script, `osascript` subprocess, or T
 The test-only Put Back adapter revalidates the complete Test Safety Context immediately before its
 Finder call and compares the run prefix plus available file resource identifier before and after
 restore. Static policy permits its AppleScript bridge only in
-`TestSupport/RMPTestSafety/WhitelistedPutBackClient.swift`; production cannot reference it.
+`TestSupport/TrashTestSafety/WhitelistedPutBackClient.swift`; production cannot reference it.
 
 The restore step has two variants sharing that one sequence. `put-back-race` scripts the move
 through `WhitelistedPutBackClient`; because it reads `~/.Trash` it requires the invoking terminal to
@@ -336,7 +336,7 @@ permission: it confirms the original path is empty, then waits for the maintaine
 Back command through a kqueue-backed dispatch source over the authorized Run Directory, revalidates
 the context and resource identifier, and only then fires the second Trash call. Detection is driven
 by the vnode event rather than a timer; a bounded wait slice only backstops a missed notification.
-The manual variant is the menu-level authority, since production `rmp` needs Automation but never
+The manual variant is the menu-level authority, since production `tc` needs Automation but never
 Full Disk Access. While it waits it prints the remaining window to stdout once every five seconds
 and for each of the final five, so a terminal shows a live countdown. The first tick reports the
 full declared timeout: the remaining window is rounded up, because the clock has already advanced a
@@ -386,7 +386,7 @@ production symbolic-link control, were both rejected by real evidence because ne
 human control reliable. Every production target and activation Foundation call is independently
 authorized immediately before execution. User fixtures retain the run UUID prefix;
 internal helpers must be direct Run Directory children named exactly
-`.rmp-finalizer-<canonical-lowercase-uuid>` and must remain symbolic links with their planned
+`.tc-finalizer-<canonical-lowercase-uuid>` and must remain symbolic links with their planned
 identity. The wrapper revalidates the complete Test Safety Context immediately before the real
 Finalizer restore move; a changed directory identity or marker prevents that call. Any production
 warning fails the acceptance while retaining the exact target evidence. The scenario fixes the
@@ -446,11 +446,11 @@ Finder's final Put Back destination continues to exist during human inspection. 
 that Run Directory and the exact second Trash URL; retained acceptance evidence is not recursively
 cleaned.
 
-`RMPTestKit.PutBackMetadataScanner` and its conditionally compiled command-line probe are read-only
+`TrashTestKit.PutBackMetadataScanner` and its conditionally compiled command-line probe are read-only
 investigation support. They parse caller-supplied Trash `.DS_Store` data for Finder `ptbL`/`ptbN`
 records and never call the system Trash API or rewrite metadata. The scanner has Swift Testing
-coverage over synthetic bytes. Maintainers may compile the probe from its two `RMPTestKit` source
-files with `RMP_PUT_BACK_METADATA_PROBE` enabled for a disposable-volume investigation; automating
+coverage over synthetic bytes. Maintainers may compile the probe from its two `TrashTestKit` source
+files with `TC_PUT_BACK_METADATA_PROBE` enabled for a disposable-volume investigation; automating
 the cross-volume Trash workflow remains outside the current Test Safety Context, which intentionally
 rejects mount points and cross-volume Trash Inputs.
 
@@ -487,9 +487,13 @@ make test-integration   Run the guarded integration entrypoint
 make check              Run all non-destructive local gates
 make ci                 Run the CI-equivalent non-destructive gates
 make clean              Clean SwiftPM build products only
-RMP_BINARY=/absolute/path/to/rmp RMP_RESULTS_DIR=/absolute/results/path \
+TC_BINARY=/absolute/path/to/tc TC_RESULTS_DIR=/absolute/results/path \
   ./scripts/run-production-cli-exit-status-tests.sh Run the non-Trash production CLI exit-status suite
 ```
+
+The exit-status runner normalizes the repository and temporary fixture roots to `REPO_ROOT` and
+`TEST_ROOT` in persisted evidence. Committed reports therefore identify canonical commands and
+repository-relative source binaries without recording the maintainer-owned checkout path.
 
 Hooks and validation scripts never download dependencies. The explicitly invoked `make bootstrap`
 command may download only the pinned, checksum-verified development tools recorded in
@@ -615,7 +619,7 @@ CI reads the approval ticket from the base SHA rather than the pull-request head
 author from creating or editing their own approval as part of the implementation.
 
 Before the first published release, compatibility is not preserved for unpublished Interfaces of
-non-product internal targets such as `RMPCore`. Removing or reshaping such an Interface still requires
+non-product internal targets such as `TrashCore`. Removing or reshaping such an Interface still requires
 explicit maintainer confirmation before implementation, but does not require a compatibility shim,
 `BREAKING-CHANGE` trailer, or trusted-base migration ticket. Published executable CLI contracts and
 package products remain subject to the full breaking-change gate at every stage.
@@ -650,7 +654,7 @@ Every pull request receives two independent conclusions:
 2. **Spec Review**: PRD, ticket acceptance criteria, behavior, and safety invariants.
 
 Agent review does not replace human approval for SafetyPolicy, WhitelistedTrashClient,
-WhitelistedPutBackClient, MacOSTrashClient, FinderTrashClient, `rmp-test`, Git hooks, workflows, release
+WhitelistedPutBackClient, MacOSTrashClient, FinderTrashClient, `tc-test`, Git hooks, workflows, release
 configuration, or development standards.
 
 Repository policy also enforces the test Trash boundary statically: `NSAppleScript`, Apple Event
@@ -711,7 +715,7 @@ new matrix takes effect for subsequent commits and pull requests whose trusted r
 Examples:
 
 - CLI flags, output, and exit codes affect README, help, PRD, and changelog.
-- CLI parser tests exercise the pure `RMPCore` command boundary with fake filesystem capabilities;
+- CLI parser tests exercise the pure `TrashCore` command boundary with fake filesystem capabilities;
   help and version tests must prove that no path inspection occurs.
 - safety behavior affects the PRD, tests, and changelog.
 - TestSupport, hooks, Makefile, and workflows affect this guide.
@@ -731,9 +735,11 @@ For aggregate validation, files changed exclusively by validly approved `Docs-Im
 do not trigger matrix rules; documents changed anywhere in the PR may satisfy rules triggered by
 non-exempt commits. This preserves both a real exemption path and version-level synchronization.
 The aggregate file set is calculated from the merge base to the PR head, preventing unrelated target
-branch documentation changes from satisfying the PR. Deleted documents and tests never count as
-updated evidence. All RMPCore and RMPPlatform changes trigger the safety evidence rule rather than
-relying on filenames to guess whether code is safety-sensitive.
+branch documentation changes from satisfying the PR. Renamed documents and tests count under both
+their former and canonical paths so an atomic path migration can satisfy the trusted pre-migration
+matrix. Deleted documents and tests never count as updated evidence. All TrashCore and TrashPlatform
+changes trigger the safety evidence rule rather than relying on filenames to guess whether code is
+safety-sensitive.
 
 Commit metadata is parsed with `git interpret-trailers`; trailer-like text in the message body is not
 accepted. A documentation exemption approval must target a commit that contains the exempt commit,

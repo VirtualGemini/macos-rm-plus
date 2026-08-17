@@ -6,7 +6,7 @@ set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
-pattern='(^|[;&|[:space:]])(swift[[:space:]]+run[[:space:]]+)?rmp(-test)?([[:space:]]+[^;&|]*)?[[:space:]]+/(($)|[[:space:];&|])|(^|[;&|[:space:]])rm[[:space:]]+-[^;&|]*r[^;&|]*f[^;&|]*[[:space:]]+/'
+pattern='(^|[;&|[:space:]])(swift[[:space:]]+run[[:space:]]+)?tc(-test)?([[:space:]]+[^;&|]*)?[[:space:]]+/(($)|[[:space:];&|])|(^|[;&|[:space:]])rm[[:space:]]+-[^;&|]*r[^;&|]*f[^;&|]*[[:space:]]+/'
 failed=0
 
 files=$(git ls-files --cached --others --exclude-standard \

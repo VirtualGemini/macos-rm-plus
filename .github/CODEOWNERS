@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
-Sources/RMPCore/*Safety* @VirtualGemini
-Sources/RMPPlatform/** @VirtualGemini
+Sources/TrashCore/*Safety* @VirtualGemini
+Sources/TrashPlatform/** @VirtualGemini
 TestSupport/** @VirtualGemini
 .github/workflows/** @VirtualGemini
 .githooks/** @VirtualGemini

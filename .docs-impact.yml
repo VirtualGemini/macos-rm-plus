@@ -2,11 +2,11 @@
   "rules": [
     {
       "name": "cli-contract",
-      "paths": ["Sources/rmp/**"],
+      "paths": ["Sources/tc/**"],
       "documents": [
         "README.md",
         "docs/help.md",
-        ".scratch/rmp-core/spec.md",
+        ".scratch/macos-trash-cli/spec.md",
         "CONTEXT.md",
         "CHANGELOG.md"
       ],
@@ -14,9 +14,9 @@
     },
     {
       "name": "core-behavior",
-      "paths": ["Sources/RMPCore/**"],
+      "paths": ["Sources/TrashCore/**"],
       "documents": [
-        ".scratch/rmp-core/spec.md",
+        ".scratch/macos-trash-cli/spec.md",
         "CONTEXT.md",
         "docs/development.md",
         "CHANGELOG.md"
@@ -25,26 +25,30 @@
     },
     {
       "name": "platform-behavior",
-      "paths": ["Sources/RMPPlatform/**"],
-      "documents": [".scratch/rmp-core/spec.md", "docs/development.md", "CHANGELOG.md"],
+      "paths": ["Sources/TrashPlatform/**"],
+      "documents": [
+        ".scratch/macos-trash-cli/spec.md",
+        "docs/development.md",
+        "CHANGELOG.md"
+      ],
       "require": "all"
     },
     {
       "name": "core-safety-evidence",
-      "paths": ["Sources/RMPCore/**"],
+      "paths": ["Sources/TrashCore/**"],
       "documents": [
-        ".scratch/rmp-core/spec.md",
-        "Tests/RMPCoreTests/**",
+        ".scratch/macos-trash-cli/spec.md",
+        "Tests/TrashCoreTests/**",
         "CHANGELOG.md"
       ],
       "require": "all"
     },
     {
       "name": "platform-safety-evidence",
-      "paths": ["Sources/RMPPlatform/**"],
+      "paths": ["Sources/TrashPlatform/**"],
       "documents": [
-        ".scratch/rmp-core/spec.md",
-        "Tests/RMPPlatformTests/**",
+        ".scratch/macos-trash-cli/spec.md",
+        "Tests/TrashPlatformTests/**",
         "CHANGELOG.md"
       ],
       "require": "all"

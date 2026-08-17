@@ -8,6 +8,10 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 
 ### Changed
 
+- Rename the complete product and Swift package to `macos-trash-cli`, with `tc` as the sole
+  production command and `tc-test` as the compile-time-isolated acceptance command. Rename all
+  product-specific modules, symbols, safety paths, fixtures, repository policy, tracker paths, and
+  documentation to the canonical identity; no compatibility executable or alias is retained.
 - Align public CLI exit-status values with macOS `rm`: success and moved warnings return `0`,
   operational and safety failures return `1`, and usage failures return `64`. A short `-f` that
   remains effective with no paths is a successful no-op; that rule follows the independent
@@ -73,13 +77,13 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
 - Add schema-version-1 JSON Trash Operation results for dry runs and real ordered batches, including
   aggregate success and counts, absolute sources, exact moved destinations, stable structured errors,
   skipped and partial-success outcomes, deterministic contract snapshots, and stderr-only warnings.
-  Platform error domains and numeric codes remain private, and rmp does not retain or upload the
+  Platform error domains and numeric codes remain private, and tc does not retain or upload the
   potentially sensitive absolute paths it emits. Human and JSON output share one planning-error
   classification, and JSON encoding failures never emit partial stdout.
 - Add ordered serial batch Trash Operations with default continuation, stop-on-error skipped
   results, missing-path and ignore-missing outcomes, aggregate exit codes, one-line single-success
   output, batch summaries, ordered verbose results, and quiet output that preserves diagnostics.
-- Add a maintainer-only `rmp-test ordered-batch` acceptance inside the Test Safety Context. It covers
+- Add a maintainer-only `tc-test ordered-batch` acceptance inside the Test Safety Context. It covers
   a file, empty and deep directories, a quoted/newline name, a missing path, a real permission
   failure, and partial success through pre-authorized whitelist targets without entering default
   tests or CI.
@@ -113,7 +117,7 @@ The format is based on Keep a Changelog, and the project follows Semantic Versio
   Chinese, filesystem-independent help/version commands, one authoritative parsing path, and
   CLI-only compatibility diagnostics. Explicit missing-path policy remains independent of `-i`, and
   internal confirmation policies cannot be selected through undocumented long-option values.
-- Add `rmp --dry-run` for ordered, kind-aware top-level Trash Plan previews with missing-path and
+- Add `tc --dry-run` for ordered, kind-aware top-level Trash Plan previews with missing-path and
   Protected Path safety failures, without exposing any filesystem mutation capability.
 - Initial SwiftPM, development-policy, test-safety, and CI scaffold.
 - Harden documentation and breaking-change approvals against pull-request self-modification, and add

@@ -3,7 +3,7 @@
 
 set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/rmp-swift-toolchain-tests.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/tc-swift-toolchain-tests.XXXXXX")
 trap 'rm -rf "$TEMP_DIR"' EXIT HUP INT TERM
 
 fake_swift="$TEMP_DIR/swift"

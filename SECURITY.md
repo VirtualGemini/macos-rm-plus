@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Before rmp 1.0, security fixes are provided for the latest released minor version only. After 1.0,
+Before tc 1.0, security fixes are provided for the latest released minor version only. After 1.0,
 the supported-version policy will be stated here for each release line.
 
 ## Reporting a vulnerability

@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for contributing to rmp.
+Thank you for contributing to tc.
 
 Before starting work, read the complete [Development Guide](docs/development.md). It is the single
 source of truth for toolchain setup, coding rules, tests, review, commits, documentation impact,

@@ -4,7 +4,7 @@
 set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/rmp-doc-impact-tests.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/tc-doc-impact-tests.XXXXXX")
 
 cleanup() {
   rm -rf "$TEMP_DIR"
@@ -26,7 +26,7 @@ assert_contains() {
 }
 
 repo="$TEMP_DIR/repo"
-mkdir -p "$repo/.github" "$repo/scripts/lib" "$repo/Sources/rmp"
+mkdir -p "$repo/.github" "$repo/scripts/lib" "$repo/Sources/tc"
 cp "$ROOT/.docs-impact.yml" "$repo/.docs-impact.yml"
 cp "$ROOT/.policy-files" "$repo/.policy-files"
 cp "$ROOT/scripts/check-doc-impact.sh" "$repo/scripts/check-doc-impact.sh"
@@ -43,7 +43,7 @@ printf '%s\n' '# Test README' >"$repo/README.md"
 printf '%s\n' '# Test spec' >"$repo/spec.md"
 printf '%s\n' '# Test changelog' >"$repo/CHANGELOG.md"
 printf '%s\n' '# Development' >"$repo/docs-development.md"
-printf '%s\n' '// scaffold' >"$repo/Sources/rmp/main.swift"
+printf '%s\n' '// scaffold' >"$repo/Sources/tc/main.swift"
 printf '%s\n' '@example-reviewer' >"$repo/.github/maintainers.txt"
 
 cat >"$repo/.docs-impact.yml" <<'EOF'
@@ -51,7 +51,7 @@ cat >"$repo/.docs-impact.yml" <<'EOF'
   "rules": [
     {
       "name": "cli-contract",
-      "paths": ["Sources/rmp/**"],
+      "paths": ["Sources/tc/**"],
       "documents": ["README.md", "spec.md", "CHANGELOG.md"],
       "require": "all"
     }
@@ -63,8 +63,8 @@ git -C "$repo" add .
 git -C "$repo" commit -qm "chore: create fixture"
 base=$(git -C "$repo" rev-parse HEAD)
 
-printf '%s\n' '// changed behavior' >"$repo/Sources/rmp/main.swift"
-git -C "$repo" add Sources/rmp/main.swift
+printf '%s\n' '// changed behavior' >"$repo/Sources/tc/main.swift"
+git -C "$repo" add Sources/tc/main.swift
 git -C "$repo" commit -qm "feat: change CLI behavior" \
   -m "Docs-Impact: updated"
 head=$(git -C "$repo" rev-parse HEAD)
@@ -79,12 +79,60 @@ assert_contains "$TEMP_DIR/stderr" "README.md"
 assert_contains "$TEMP_DIR/stderr" "spec.md"
 assert_contains "$TEMP_DIR/stderr" "CHANGELOG.md"
 
+rename_repo="$TEMP_DIR/rename-repo"
+mkdir -p "$rename_repo/scripts/lib" "$rename_repo/Sources/former" "$rename_repo/docs"
+cp "$ROOT/scripts/check-doc-impact.sh" "$rename_repo/scripts/check-doc-impact.sh"
+cp "$ROOT/scripts/lib/commit-message.sh" "$rename_repo/scripts/lib/commit-message.sh"
+cat >"$rename_repo/.docs-impact.yml" <<'EOF'
+{
+  "rules": [
+    {
+      "name": "renamed-contract",
+      "paths": ["Sources/former/**"],
+      "documents": ["docs/former.md"],
+      "require": "all"
+    }
+  ]
+}
+EOF
+printf '%s\n' 'scripts/check-doc-impact.sh' >"$rename_repo/.policy-files"
+printf '%s\n' '// former source' >"$rename_repo/Sources/former/main.swift"
+printf '%s\n' '# Former documentation' >"$rename_repo/docs/former.md"
+git -C "$rename_repo" init -q
+git -C "$rename_repo" config user.name "Documentation Impact Tests"
+git -C "$rename_repo" config user.email "docs-impact-tests@example.invalid"
+git -C "$rename_repo" add .
+git -C "$rename_repo" commit -qm "chore: create rename fixture"
+rename_base=$(git -C "$rename_repo" rev-parse HEAD)
+
+git -C "$rename_repo" mv Sources/former Sources/canonical
+git -C "$rename_repo" mv docs/former.md docs/canonical.md
+git -C "$rename_repo" add .
+cat >"$TEMP_DIR/rename-message" <<'EOF'
+refactor: rename documented source
+
+Docs-Impact: updated
+EOF
+if ! "$rename_repo/scripts/check-doc-impact.sh" --staged \
+  --message-file "$TEMP_DIR/rename-message" >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "staged validation did not count a renamed document under its trusted former path"
+fi
+git -C "$rename_repo" commit -qm "refactor: rename documented source" \
+  -m "Docs-Impact: updated"
+rename_head=$(git -C "$rename_repo" rev-parse HEAD)
+if ! "$rename_repo/scripts/check-doc-impact.sh" --range "$rename_base" "$rename_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "range validation did not count a renamed document under its trusted former path"
+fi
+
 bootstrap_repo="$TEMP_DIR/bootstrap-repo"
-mkdir -p "$bootstrap_repo/scripts/lib" "$bootstrap_repo/Sources/rmp"
+mkdir -p "$bootstrap_repo/scripts/lib" "$bootstrap_repo/Sources/tc"
 cp "$ROOT/scripts/check-doc-impact.sh" "$bootstrap_repo/scripts/check-doc-impact.sh"
 cp "$ROOT/scripts/lib/commit-message.sh" "$bootstrap_repo/scripts/lib/commit-message.sh"
 printf '%s\n' '# Bootstrap spec' >"$bootstrap_repo/spec.md"
-printf '%s\n' '// initial CLI' >"$bootstrap_repo/Sources/rmp/main.swift"
+printf '%s\n' '// initial CLI' >"$bootstrap_repo/Sources/tc/main.swift"
 git -C "$bootstrap_repo" init -q
 git -C "$bootstrap_repo" config user.name "Documentation Impact Tests"
 git -C "$bootstrap_repo" config user.email "docs-impact-tests@example.invalid"
@@ -92,20 +140,20 @@ git -C "$bootstrap_repo" add .
 git -C "$bootstrap_repo" commit -qm "chore: create bootstrap fixture"
 bootstrap_base=$(git -C "$bootstrap_repo" rev-parse HEAD)
 
-printf '%s\n' '// changed CLI' >"$bootstrap_repo/Sources/rmp/main.swift"
+printf '%s\n' '// changed CLI' >"$bootstrap_repo/Sources/tc/main.swift"
 cat >"$bootstrap_repo/.docs-impact.yml" <<'EOF'
 {
   "rules": [
     {
       "name": "cli-contract",
-      "paths": ["Sources/rmp/**"],
+      "paths": ["Sources/tc/**"],
       "documents": ["spec.md"],
       "require": "all"
     }
   ]
 }
 EOF
-git -C "$bootstrap_repo" add .docs-impact.yml Sources/rmp/main.swift
+git -C "$bootstrap_repo" add .docs-impact.yml Sources/tc/main.swift
 git -C "$bootstrap_repo" commit -qm "ci: initialize documentation policy" \
   -m "Docs-Impact: updated"
 bootstrap_head=$(git -C "$bootstrap_repo" rev-parse HEAD)
@@ -123,10 +171,10 @@ if ! "$bootstrap_repo/scripts/check-doc-impact.sh" --range "$bootstrap_base" "$b
 fi
 
 git -C "$bootstrap_repo" switch -q --detach "$bootstrap_base"
-printf '%s\n' '// staged CLI change' >"$bootstrap_repo/Sources/rmp/main.swift"
+printf '%s\n' '// staged CLI change' >"$bootstrap_repo/Sources/tc/main.swift"
 git -C "$bootstrap_repo" show "$bootstrap_head:.docs-impact.yml" \
   >"$bootstrap_repo/.docs-impact.yml"
-git -C "$bootstrap_repo" add .docs-impact.yml Sources/rmp/main.swift
+git -C "$bootstrap_repo" add .docs-impact.yml Sources/tc/main.swift
 cat >"$TEMP_DIR/bootstrap-message" <<'EOF'
 ci: initialize documentation policy
 
@@ -141,8 +189,8 @@ fi
 git -C "$bootstrap_repo" commit -qm "ci: initialize staged documentation policy" \
   -m "Docs-Impact: updated"
 initialized_head=$(git -C "$bootstrap_repo" rev-parse HEAD)
-printf '%s\n' '// later CLI change' >"$bootstrap_repo/Sources/rmp/main.swift"
-git -C "$bootstrap_repo" add Sources/rmp/main.swift
+printf '%s\n' '// later CLI change' >"$bootstrap_repo/Sources/tc/main.swift"
+git -C "$bootstrap_repo" add Sources/tc/main.swift
 git -C "$bootstrap_repo" commit -qm "feat: change CLI after policy initialization" \
   -m "Docs-Impact: updated"
 post_initialization_head=$(git -C "$bootstrap_repo" rev-parse HEAD)
@@ -160,8 +208,8 @@ fi
 assert_contains "$TEMP_DIR/stderr" "documentation rule 'cli-contract'"
 
 git -C "$bootstrap_repo" switch -q --detach "$initialized_head"
-printf '%s\n' '// later staged CLI change' >"$bootstrap_repo/Sources/rmp/main.swift"
-git -C "$bootstrap_repo" add Sources/rmp/main.swift
+printf '%s\n' '// later staged CLI change' >"$bootstrap_repo/Sources/tc/main.swift"
+git -C "$bootstrap_repo" add Sources/tc/main.swift
 cat >"$TEMP_DIR/post-initialization-message" <<'EOF'
 feat: change CLI after policy initialization
 
@@ -195,7 +243,7 @@ assert_contains "$TEMP_DIR/stderr" "cannot use Docs-Impact: none"
 git -C "$repo" switch -q --detach "$head"
 
 deletion_base=$head
-git -C "$repo" rm -q Sources/rmp/main.swift
+git -C "$repo" rm -q Sources/tc/main.swift
 git -C "$repo" commit -qm "refactor: remove CLI entrypoint" \
   -m "Docs-Impact: updated"
 deletion_head=$(git -C "$repo" rev-parse HEAD)
@@ -317,10 +365,10 @@ DOCS_IMPACT_PR_AUTHOR=example-author DOCS_IMPACT_COMMIT_AUTHOR=example-author \
   "$repo/scripts/check-doc-impact-approvals.sh" "$approval_base" "$approval_head"
 
 trusted_base=$(git -C "$repo" rev-parse HEAD)
-mkdir -p "$repo/Sources/rmp"
-printf '%s\n' '// restored CLI' >"$repo/Sources/rmp/main.swift"
+mkdir -p "$repo/Sources/tc"
+printf '%s\n' '// restored CLI' >"$repo/Sources/tc/main.swift"
 printf '%s\n' '{"rules":[]}' >"$repo/.docs-impact.yml"
-git -C "$repo" add .docs-impact.yml Sources/rmp/main.swift
+git -C "$repo" add .docs-impact.yml Sources/tc/main.swift
 git -C "$repo" commit -qm "ci: weaken documentation policy" \
   -m "Docs-Impact: updated"
 untrusted_head=$(git -C "$repo" rev-parse HEAD)
@@ -332,7 +380,7 @@ fi
 assert_contains "$TEMP_DIR/stderr" "documentation rule 'cli-contract'"
 
 none_repo="$TEMP_DIR/none-repo"
-mkdir -p "$none_repo/scripts/lib" "$none_repo/Sources/rmp"
+mkdir -p "$none_repo/scripts/lib" "$none_repo/Sources/tc"
 cp "$repo/scripts/check-doc-impact.sh" "$none_repo/scripts/check-doc-impact.sh"
 cp "$repo/scripts/lib/commit-message.sh" "$none_repo/scripts/lib/commit-message.sh"
 cp "$repo/.policy-files" "$none_repo/.policy-files"
@@ -342,7 +390,7 @@ cat >"$none_repo/.docs-impact.yml" <<'EOF'
   "rules": [
     {
       "name": "cli-contract",
-      "paths": ["Sources/rmp/**"],
+      "paths": ["Sources/tc/**"],
       "documents": ["README.md"],
       "require": "all"
     }
@@ -350,15 +398,15 @@ cat >"$none_repo/.docs-impact.yml" <<'EOF'
 }
 EOF
 printf '%s\n' '# README' >"$none_repo/README.md"
-printf '%s\n' '// initial' >"$none_repo/Sources/rmp/main.swift"
+printf '%s\n' '// initial' >"$none_repo/Sources/tc/main.swift"
 git -C "$none_repo" init -q
 git -C "$none_repo" config user.name "Documentation Impact Tests"
 git -C "$none_repo" config user.email "docs-impact-tests@example.invalid"
 git -C "$none_repo" add .
 git -C "$none_repo" commit -qm "chore: create none fixture"
 none_base=$(git -C "$none_repo" rev-parse HEAD)
-printf '%s\n' '// internal refactor' >"$none_repo/Sources/rmp/main.swift"
-git -C "$none_repo" add Sources/rmp/main.swift
+printf '%s\n' '// internal refactor' >"$none_repo/Sources/tc/main.swift"
+git -C "$none_repo" add Sources/tc/main.swift
 git -C "$none_repo" commit -qm "refactor: preserve CLI behavior" \
   -m "Docs-Impact: none
 Docs-Impact-Reason: public behavior is unchanged

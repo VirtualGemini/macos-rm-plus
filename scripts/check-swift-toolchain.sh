@@ -8,7 +8,7 @@ SWIFT=${SWIFT:-swift}
 SWIFT_SDK=${SWIFT_SDK:-$(xcrun --sdk macosx --show-sdk-path)}
 FRAMEWORKS="$DEVELOPER_DIR/Library/Developer/Frameworks"
 DEVELOPER_LIB="$DEVELOPER_DIR/Library/Developer/usr/lib"
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/rmp-swift-toolchain.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/tc-swift-toolchain.XXXXXX")
 trap 'rm -rf "$TEMP_DIR"' EXIT HUP INT TERM
 
 probe_package="$TEMP_DIR/probe"

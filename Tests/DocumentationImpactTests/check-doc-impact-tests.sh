@@ -79,6 +79,68 @@ assert_contains "$TEMP_DIR/stderr" "README.md"
 assert_contains "$TEMP_DIR/stderr" "spec.md"
 assert_contains "$TEMP_DIR/stderr" "CHANGELOG.md"
 
+rename_repo="$TEMP_DIR/rename-repo"
+mkdir -p "$rename_repo/scripts/lib" "$rename_repo/Sources/former" "$rename_repo/docs"
+cp "$ROOT/scripts/check-doc-impact.sh" "$rename_repo/scripts/check-doc-impact.sh"
+cp "$ROOT/scripts/lib/commit-message.sh" "$rename_repo/scripts/lib/commit-message.sh"
+cat >"$rename_repo/.docs-impact.yml" <<'EOF'
+{
+  "rules": [
+    {
+      "name": "renamed-contract",
+      "paths": ["Sources/former/**"],
+      "documents": ["docs/former.md", "docs/companion.md"],
+      "require": "all"
+    }
+  ]
+}
+EOF
+printf '%s\n' 'scripts/check-doc-impact.sh' >"$rename_repo/.policy-files"
+printf '%s\n' '// former source' >"$rename_repo/Sources/former/main.swift"
+printf '%s\n' '# Former documentation' >"$rename_repo/docs/former.md"
+printf '%s\n' '# Companion documentation' >"$rename_repo/docs/companion.md"
+git -C "$rename_repo" init -q
+git -C "$rename_repo" config user.name "Documentation Impact Tests"
+git -C "$rename_repo" config user.email "docs-impact-tests@example.invalid"
+git -C "$rename_repo" add .
+git -C "$rename_repo" commit -qm "chore: create rename fixture"
+rename_base=$(git -C "$rename_repo" rev-parse HEAD)
+
+git -C "$rename_repo" mv Sources/former Sources/canonical
+git -C "$rename_repo" mv docs/former.md docs/canonical.md
+git -C "$rename_repo" add .
+cat >"$TEMP_DIR/rename-message" <<'EOF'
+refactor: rename documented source
+
+Docs-Impact: updated
+EOF
+if "$rename_repo/scripts/check-doc-impact.sh" --staged \
+  --message-file "$TEMP_DIR/rename-message" >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "staged validation ignored a renamed trigger with incomplete documentation"
+fi
+assert_contains "$TEMP_DIR/stderr" "docs/companion.md"
+
+git -C "$rename_repo" mv docs/companion.md docs/canonical-companion.md
+git -C "$rename_repo" add .
+if ! "$rename_repo/scripts/check-doc-impact.sh" --staged \
+  --message-file "$TEMP_DIR/rename-message" >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "staged validation did not count a renamed document under its trusted former path"
+fi
+git -C "$rename_repo" commit -qm "refactor: rename documented source" \
+  -m "Docs-Impact: updated"
+rename_head=$(git -C "$rename_repo" rev-parse HEAD)
+if ! "$rename_repo/scripts/check-doc-impact.sh" --commit "$rename_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "commit validation did not count renamed paths under their trusted former names"
+fi
+if ! "$rename_repo/scripts/check-doc-impact.sh" --range "$rename_base" "$rename_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "range validation did not count a renamed document under its trusted former path"
+fi
+
 bootstrap_repo="$TEMP_DIR/bootstrap-repo"
 mkdir -p "$bootstrap_repo/scripts/lib" "$bootstrap_repo/Sources/rmp"
 cp "$ROOT/scripts/check-doc-impact.sh" "$bootstrap_repo/scripts/check-doc-impact.sh"

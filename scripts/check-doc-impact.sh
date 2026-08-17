@@ -47,6 +47,22 @@ message=
 trigger_files=
 document_files=
 
+changed_paths() {
+  awk -F '\t' '
+    $1 ~ /^R/ { print $2; print $3; next }
+    $1 ~ /^C/ { print $3; next }
+    { print $2 }
+  '
+}
+
+changed_document_paths() {
+  awk -F '\t' '
+    $1 ~ /^R/ { print $2; print $3; next }
+    $1 ~ /^C/ { print $3; next }
+    $1 != "D" { print $2 }
+  '
+}
+
 matches_pattern() {
   candidate=$1
   pattern=$2
@@ -74,9 +90,23 @@ commit_changed_files() {
   commit=$1
   parent=$(git rev-parse "$commit^1" 2>/dev/null || true)
   if [ -n "$parent" ]; then
-    git diff --name-only --diff-filter=ACMRD "$parent" "$commit"
+    git diff --name-status --find-renames --diff-filter=ACMRD "$parent" "$commit" \
+      | changed_paths
   else
-    git diff-tree --root --no-commit-id --name-only --diff-filter=ACMRD -r "$commit"
+    git diff-tree --root --no-commit-id --name-status --find-renames \
+      --diff-filter=ACMRD -r "$commit" | changed_paths
+  fi
+}
+
+commit_document_files() {
+  commit=$1
+  parent=$(git rev-parse "$commit^1" 2>/dev/null || true)
+  if [ -n "$parent" ]; then
+    git diff --name-status --find-renames --diff-filter=ACMRD "$parent" "$commit" \
+      | changed_document_paths
+  else
+    git diff-tree --root --no-commit-id --name-status --find-renames \
+      --diff-filter=ACMRD -r "$commit" | changed_document_paths
   fi
 }
 
@@ -85,8 +115,10 @@ case "${1-}" in
     if [ "$#" -ne 3 ] || [ "$2" != "--message-file" ]; then
       usage
     fi
-    changed_files=$(git diff --cached --name-only --diff-filter=ACMRD)
-    document_files=$(git diff --cached --name-only --diff-filter=AM)
+    changed_files=$(git diff --cached --name-status --find-renames --diff-filter=ACMRD \
+      | changed_paths)
+    document_files=$(git diff --cached --name-status --find-renames --diff-filter=ACMRD \
+      | changed_document_paths)
     trigger_files=$changed_files
     message=$(cat "$3")
     if ! use_configuration_from_ref HEAD; then
@@ -98,12 +130,7 @@ case "${1-}" in
       usage
     fi
     changed_files=$(commit_changed_files "$2")
-    parent_for_docs=$(git rev-parse "$2^1" 2>/dev/null || true)
-    if [ -n "$parent_for_docs" ]; then
-      document_files=$(git diff --name-only --diff-filter=AM "$parent_for_docs" "$2")
-    else
-      document_files=$(git diff-tree --root --no-commit-id --name-only --diff-filter=AM -r "$2")
-    fi
+    document_files=$(commit_document_files "$2")
     trigger_files=$changed_files
     message=$(git show -s --format=%B "$2")
     parent=$(git rev-parse "$2^" 2>/dev/null || true)
@@ -119,8 +146,10 @@ case "${1-}" in
     if ! use_configuration_from_ref "$2"; then
       exit 0
     fi
-    changed_files=$(git diff --name-only --diff-filter=ACMRD "$merge_base" "$3")
-    document_files=$(git diff --name-only --diff-filter=AM "$merge_base" "$3")
+    changed_files=$(git diff --name-status --find-renames --diff-filter=ACMRD \
+      "$merge_base" "$3" | changed_paths)
+    document_files=$(git diff --name-status --find-renames --diff-filter=ACMRD \
+      "$merge_base" "$3" | changed_document_paths)
     for commit in $(git rev-list --reverse "$merge_base..$3"); do
       commit_message=$(git show -s --format=%B "$commit")
       commit_impact=$(message_trailer "$commit_message" Docs-Impact)

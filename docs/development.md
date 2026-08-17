@@ -731,9 +731,11 @@ For aggregate validation, files changed exclusively by validly approved `Docs-Im
 do not trigger matrix rules; documents changed anywhere in the PR may satisfy rules triggered by
 non-exempt commits. This preserves both a real exemption path and version-level synchronization.
 The aggregate file set is calculated from the merge base to the PR head, preventing unrelated target
-branch documentation changes from satisfying the PR. Deleted documents and tests never count as
-updated evidence. All RMPCore and RMPPlatform changes trigger the safety evidence rule rather than
-relying on filenames to guess whether code is safety-sensitive.
+branch documentation changes from satisfying the PR. Renamed documents and tests count under both
+their former and canonical paths so an atomic path migration can satisfy the trusted pre-migration
+matrix. Deleted documents and tests never count as updated evidence. All RMPCore and RMPPlatform
+changes trigger the safety evidence rule rather than relying on filenames to guess whether code is
+safety-sensitive.
 
 Commit metadata is parsed with `git interpret-trailers`; trailer-like text in the message body is not
 accepted. A documentation exemption approval must target a commit that contains the exempt commit,

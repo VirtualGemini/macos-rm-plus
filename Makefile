@@ -71,6 +71,7 @@ test-policy:
 	Tests/PolicyTests/check-breaking-change-approvals-tests.sh
 	Tests/PolicyTests/check-policy-ownership-tests.sh
 	Tests/PolicyTests/check-policy-changes-tests.sh
+	Tests/PolicyTests/evidence-path-normalization-tests.sh
 	Tests/PolicyTests/check-tool-versions-tests.sh
 	Tests/PolicyTests/check-swift-toolchain-tests.sh
 	Tests/PolicyTests/check-system-trash-boundary-tests.sh

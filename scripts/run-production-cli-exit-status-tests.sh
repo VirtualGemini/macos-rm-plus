@@ -4,6 +4,7 @@
 set -u
 
 REPO_ROOT=$(CDPATH='' cd -- "${REPO_ROOT:-.}" && pwd) || exit 1
+. "$REPO_ROOT/scripts/lib/evidence-paths.sh"
 
 if [ "$(id -u)" -eq 0 ]; then
   echo 'FAIL setup: run this suite as a non-root macOS user' >&2
@@ -47,6 +48,7 @@ RESPONSES_FILE="$RESULTS_DIR/responses.log"
 RUN_LOG="$RESULTS_DIR/run.log"
 REPORT_FILE="$RESULTS_DIR/report.md"
 SCRIPT_PATH="$REPO_ROOT/scripts/run-production-cli-exit-status-tests.sh"
+NORMALIZATION_SCRIPT_PATH="$REPO_ROOT/scripts/lib/evidence-paths.sh"
 
 case "$SOURCE_TC" in
   "$REPO_ROOT"/*) SOURCE_TC_RECORD="REPO_ROOT/${SOURCE_TC#"$REPO_ROOT"/}" ;;
@@ -54,23 +56,7 @@ case "$SOURCE_TC" in
 esac
 
 normalize_file() {
-  input_file=$1
-  awk -v repository_root="$REPO_ROOT" \
-    -v test_root="$TEST_ROOT" \
-    -v canonical_test_root="$TEST_ROOT_CANONICAL" '
-    function replace_literal(text, needle, replacement, position) {
-      while (needle != "" && (position = index(text, needle)) != 0) {
-        text = substr(text, 1, position - 1) replacement \
-          substr(text, position + length(needle))
-      }
-      return text
-    }
-    {
-      line = replace_literal($0, repository_root, "REPO_ROOT")
-      line = replace_literal(line, canonical_test_root, "TEST_ROOT")
-      print replace_literal(line, test_root, "TEST_ROOT")
-    }
-  ' "$input_file"
+  normalize_evidence_file "$1" "$REPO_ROOT" "$TEST_ROOT" "$TEST_ROOT_CANONICAL"
 }
 
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
@@ -83,6 +69,7 @@ TC="$BIN_DIR/tc"
 CURRENT_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || printf 'unknown')
 BINARY_SHA256=$(shasum -a 256 "$SOURCE_TC" 2>/dev/null | awk '{print $1}')
 SCRIPT_SHA256=$(shasum -a 256 "$SCRIPT_PATH" 2>/dev/null | awk '{print $1}')
+NORMALIZATION_SCRIPT_SHA256=$(shasum -a 256 "$NORMALIZATION_SCRIPT_PATH" 2>/dev/null | awk '{print $1}')
 VERSION_OUTPUT=$("$SOURCE_TC" --version 2>&1)
 VERSION_EXIT=$?
 STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
@@ -96,6 +83,8 @@ STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
   printf 'binary_sha256=%s\n' "$BINARY_SHA256"
   printf 'suite_script=%s\n' REPO_ROOT/scripts/run-production-cli-exit-status-tests.sh
   printf 'suite_script_sha256=%s\n' "$SCRIPT_SHA256"
+  printf 'normalization_script=%s\n' REPO_ROOT/scripts/lib/evidence-paths.sh
+  printf 'normalization_script_sha256=%s\n' "$NORMALIZATION_SCRIPT_SHA256"
   printf 'version_exit=%s\n' "$VERSION_EXIT"
   printf 'version_output=%s\n' "$VERSION_OUTPUT"
   printf 'trash_api=not_requested_by_this_suite\n'

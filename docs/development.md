@@ -495,6 +495,8 @@ The exit-status runner normalizes the repository root plus both the logical and 
 forms of its temporary fixture root to `REPO_ROOT` and `TEST_ROOT` in persisted evidence. Committed
 reports therefore identify canonical commands and repository-relative source binaries without
 recording the maintainer-owned checkout path or host-specific temporary-directory aliases.
+`Tests/PolicyTests/evidence-path-normalization-tests.sh` fixes a symbolic-link fixture across those
+two path forms and verifies that neither host path survives normalization.
 
 Hooks and validation scripts never download dependencies. The explicitly invoked `make bootstrap`
 command may download only the pinned, checksum-verified development tools recorded in

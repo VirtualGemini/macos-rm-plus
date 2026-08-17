@@ -68,7 +68,7 @@ TC_RESULTS_DIR=docs/manual-testing/results/tc-production-cli-exit-status-current
 - `cases.tsv`：机器可读的逐用例退出码与命令；
 - `responses.log`：每个用例的完整 stdout、stderr 和实际退出码；
 - `run.log`：终端 PASS/FAIL 响应；
-- `metadata.txt`：提交、二进制 SHA-256、脚本 SHA-256、版本和起止时间。
+- `metadata.txt`：提交、二进制 SHA-256、runner 与 normalization helper 的 SHA-256、版本和起止时间。
 
 提交这些证据前，脚本会把仓库绝对路径以及临时 fixture 根目录的逻辑路径和物理路径分别规范化为
 `REPO_ROOT` 与 `TEST_ROOT`，并把仓库内的构建产物记录为

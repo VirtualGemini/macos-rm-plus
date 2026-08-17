@@ -1,5 +1,5 @@
 [ES-0-01]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -34,7 +34,7 @@ Run 'rmp --help -a' for Compatibility Option details.
 --- stderr ---
 
 [ES-0-02]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help> <-a>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help> <-a>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -53,7 +53,7 @@ Unsupported:
 --- stderr ---
 
 [ES-0-03]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help> <-zh>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help> <-zh>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -87,7 +87,7 @@ actual_exit: 0
 --- stderr ---
 
 [ES-0-04]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help> <-a> <-zh>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help> <-a> <-zh>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -106,7 +106,7 @@ rmp 兼容选项
 --- stderr ---
 
 [ES-0-05]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--version>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--version>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -114,7 +114,7 @@ rmp 0.1.0
 --- stderr ---
 
 [ES-0-06]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help> <missing-information-path>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help> <missing-information-path>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -149,7 +149,7 @@ Run 'rmp --help -a' for Compatibility Option details.
 --- stderr ---
 
 [ES-0-07]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--version> <missing-information-path>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--version> <missing-information-path>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -157,7 +157,7 @@ rmp 0.1.0
 --- stderr ---
 
 [ES-0-08]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help> <-P>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help> <-P>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -193,7 +193,7 @@ Run 'rmp --help -a' for Compatibility Option details.
 
 rmp: warning: -P does not securely overwrite; the item will only be moved to Trash
 [ES-0-09]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--version> <-P>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--version> <-P>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -202,7 +202,7 @@ rmp 0.1.0
 
 rmp: warning: -P does not securely overwrite; the item will only be moved to Trash
 [ES-0-10]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <present-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -211,7 +211,7 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-11]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <directory>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <directory>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -220,7 +220,7 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-12]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <symbolic-link>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <symbolic-link>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -229,7 +229,7 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-13]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <broken-symbolic-link>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <broken-symbolic-link>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -238,7 +238,7 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-14]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <fifo-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <fifo-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -247,7 +247,7 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-15]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <first-file> <directory> <second-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <first-file> <directory> <second-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -258,7 +258,7 @@ Would move 3 items to Trash:
 --- stderr ---
 
 [ES-0-16]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--quiet> <--dry-run> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--quiet> <--dry-run> <present-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -267,31 +267,31 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-17]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--json> <--dry-run> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--json> <--dry-run> <present-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
-{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.pmJIw9/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.1bZLq2/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
 --- stderr ---
 
 [ES-0-18]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--json> <--verbose> <--dry-run> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--json> <--verbose> <--dry-run> <present-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
-{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.pmJIw9/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.1bZLq2/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
 --- stderr ---
 
 [ES-0-19]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--verbose> <--json> <--dry-run> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--verbose> <--json> <--dry-run> <present-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
-{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.pmJIw9/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"file","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.1bZLq2/work/present-file","status":"planned"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":true}
 --- stderr ---
 
 [ES-0-20]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-P> <--dry-run> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-P> <--dry-run> <present-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -301,7 +301,7 @@ Would move 1 item to Trash:
 
 rmp: warning: -P does not securely overwrite; the item will only be moved to Trash
 [ES-0-21]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-rRdx> <--dry-run> <directory>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-rRdx> <--dry-run> <directory>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -310,7 +310,7 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-22]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <--ignore-missing> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <--ignore-missing> <missing-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -318,7 +318,7 @@ Would move 0 items to Trash:
 --- stderr ---
 
 [ES-0-23]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <--ignore-missing> <missing-input> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <--ignore-missing> <missing-input> <present-file>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -327,113 +327,113 @@ Would move 1 item to Trash:
 --- stderr ---
 
 [ES-0-24]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--json> <--dry-run> <--ignore-missing> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--json> <--dry-run> <--ignore-missing> <missing-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
-{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"unknown","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.pmJIw9/work/missing-input","status":"skipped"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":1,"success":true}
+{"dryRun":true,"failed":0,"items":[{"destination":null,"error":null,"kind":"unknown","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.1bZLq2/work/missing-input","status":"skipped"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":1,"success":true}
 --- stderr ---
 
 [ES-0-25]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <missing-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-26]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--force> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--force> <missing-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-27]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--ignore-missing> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--ignore-missing> <missing-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-28]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--ignore-missing> <-i> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--ignore-missing> <-i> <missing-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-29]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--confirm=each> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--confirm=each> <missing-input>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-30]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-31]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-if>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-if>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-32]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-i> <-f>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-i> <-f>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-33]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--confirm=never>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--confirm=never>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-34]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--confirm=each>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--confirm=each>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-35]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--ignore-missing>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--ignore-missing>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-36]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-fI>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-fI>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-37]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-If>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-If>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-38]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--force> <-f>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--force> <-f>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
 --- stderr ---
 
 [ES-0-39]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--json>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--json>
 expected_exit: 0
 actual_exit: 0
 --- stdout ---
@@ -441,7 +441,7 @@ actual_exit: 0
 --- stderr ---
 
 [ES-1-01]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -449,7 +449,7 @@ actual_exit: 1
 
 rmp: missing_input (rejected) for "missing-input": The Trash Input does not exist.
 [ES-1-02]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -457,7 +457,7 @@ actual_exit: 1
 
 rmp: missing_input (rejected) for "": The Trash Input does not exist.
 [ES-1-03]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -465,16 +465,16 @@ actual_exit: 1
 
 rmp: missing_input: Trash Input does not exist: "missing-input"
 [ES-1-04]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--json> <--dry-run> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--json> <--dry-run> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
-{"dryRun":true,"failed":1,"items":[{"destination":null,"error":{"code":"missing_input","message":"The Trash Input does not exist."},"kind":"unknown","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.pmJIw9/work/missing-input","status":"failed"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":false}
+{"dryRun":true,"failed":1,"items":[{"destination":null,"error":{"code":"missing_input","message":"The Trash Input does not exist."},"kind":"unknown","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.1bZLq2/work/missing-input","status":"failed"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":false}
 --- stderr ---
 
 rmp: missing_input (rejected) for "missing-input": The Trash Input does not exist.
 [ES-1-05]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run> <present-file> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run> <present-file> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -482,7 +482,7 @@ actual_exit: 1
 
 rmp: missing_input: Trash Input does not exist: "missing-input"
 [ES-1-06]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-fi> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-fi> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -490,7 +490,7 @@ actual_exit: 1
 
 rmp: missing_input (rejected) for "missing-input": The Trash Input does not exist.
 [ES-1-07]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--force> <--interactive> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--force> <--interactive> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -498,7 +498,7 @@ actual_exit: 1
 
 rmp: missing_input (rejected) for "missing-input": The Trash Input does not exist.
 [ES-1-08]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--ignore-missing> <-f> <-i> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--ignore-missing> <-f> <-i> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -506,7 +506,7 @@ actual_exit: 1
 
 rmp: missing_input (rejected) for "missing-input": The Trash Input does not exist.
 [ES-1-09]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--confirm=never> <fifo-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--confirm=never> <fifo-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -514,7 +514,7 @@ actual_exit: 1
 
 rmp: unsupported_input_kind (rejected) for "fifo-input": The Trash Input has an unsupported entry kind.
 [ES-1-10]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--non-interactive> <directory>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--non-interactive> <directory>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -522,7 +522,7 @@ actual_exit: 1
 
 rmp: confirmation_required (rejected) for "directory": Confirmation is required before the Trash Input can be moved.
 [ES-1-11]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--non-interactive> <first-file> <second-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--non-interactive> <first-file> <second-file>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -532,16 +532,16 @@ Moved 0 items to Trash; 2 failed.
 rmp: confirmation_required (rejected) for "first-file": Confirmation is required before the Trash Input can be moved.
 rmp: confirmation_required (rejected) for "second-file": Confirmation is required before the Trash Input can be moved.
 [ES-1-12]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--json> <--non-interactive> <directory>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--json> <--non-interactive> <directory>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
-{"dryRun":false,"failed":1,"items":[{"destination":null,"error":{"code":"confirmation_required","message":"Confirmation is required before the Trash Input can be moved."},"kind":"directory","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.pmJIw9/work/directory","status":"failed"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":false}
+{"dryRun":false,"failed":1,"items":[{"destination":null,"error":{"code":"confirmation_required","message":"Confirmation is required before the Trash Input can be moved."},"kind":"directory","source":"/private/var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T/rmp-exit-status.1bZLq2/work/directory","status":"failed"}],"moved":0,"operation":"trash","schemaVersion":1,"skipped":0,"success":false}
 --- stderr ---
 
 rmp: confirmation_required (rejected) for "directory": Confirmation is required before the Trash Input can be moved.
 [ES-1-13]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--quiet> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--quiet> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -549,7 +549,7 @@ actual_exit: 1
 
 rmp: missing_input (rejected) for "missing-input": The Trash Input does not exist.
 [ES-1-14]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-P> <missing-input>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-P> <missing-input>
 expected_exit: 1
 actual_exit: 1
 --- stdout ---
@@ -558,7 +558,7 @@ actual_exit: 1
 rmp: warning: -P does not securely overwrite; the item will only be moved to Trash
 rmp: missing_input (rejected) for "missing-input": The Trash Input does not exist.
 [ES-64-01]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -566,7 +566,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-02]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--dry-run>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--dry-run>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -574,7 +574,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-03]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-->
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-->
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -582,7 +582,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-04]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--force>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--force>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -590,7 +590,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-05]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-fi>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-fi>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -598,7 +598,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-06]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <-i>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <-i>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -606,7 +606,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-07]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--ignore-missing> <--confirm=each>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--ignore-missing> <--confirm=each>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -614,7 +614,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-08]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-f> <--force>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-f> <--force>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -622,7 +622,7 @@ actual_exit: 64
 
 rmp: at least one Trash Input is required
 [ES-64-09]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--unknown> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--unknown> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -630,7 +630,7 @@ actual_exit: 64
 
 rmp: unknown option "--unknown"
 [ES-64-10]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-z> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-z> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -638,7 +638,7 @@ actual_exit: 64
 
 rmp: unknown option "-z"
 [ES-64-11]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-fz> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-fz> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -646,7 +646,7 @@ actual_exit: 64
 
 rmp: unknown option "-z"
 [ES-64-12]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--confirm=sometimes> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--confirm=sometimes> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -654,7 +654,7 @@ actual_exit: 64
 
 rmp: invalid confirmation mode "sometimes"
 [ES-64-13]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--confirm=> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--confirm=> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -662,7 +662,7 @@ actual_exit: 64
 
 rmp: invalid confirmation mode ""
 [ES-64-14]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--confirm> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--confirm> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -670,7 +670,7 @@ actual_exit: 64
 
 rmp: unknown option "--confirm"
 [ES-64-15]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--confirm=conditionalOnce> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--confirm=conditionalOnce> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -678,7 +678,7 @@ actual_exit: 64
 
 rmp: invalid confirmation mode "conditionalOnce"
 [ES-64-16]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--json> <--quiet> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--json> <--quiet> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -686,7 +686,7 @@ actual_exit: 64
 
 rmp: conflicting options --json and --quiet
 [ES-64-17]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--quiet> <--json> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--quiet> <--json> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -694,7 +694,7 @@ actual_exit: 64
 
 rmp: conflicting options --json and --quiet
 [ES-64-18]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-W> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-W> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -702,7 +702,7 @@ actual_exit: 64
 
 rmp: unsupported Compatibility Option -W
 [ES-64-19]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-P> <-W> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-P> <-W> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -710,7 +710,7 @@ actual_exit: 64
 
 rmp: unsupported Compatibility Option -W
 [ES-64-20]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--strict-options> <-r> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--strict-options> <-r> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -718,7 +718,7 @@ actual_exit: 64
 
 rmp: Compatibility Option -r is not allowed with --strict-options
 [ES-64-21]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-r> <--strict-options> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-r> <--strict-options> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -726,7 +726,7 @@ actual_exit: 64
 
 rmp: Compatibility Option -r is not allowed with --strict-options
 [ES-64-22]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--strict-options> <-R> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--strict-options> <-R> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -734,7 +734,7 @@ actual_exit: 64
 
 rmp: Compatibility Option -R is not allowed with --strict-options
 [ES-64-23]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--strict-options> <-d> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--strict-options> <-d> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -742,7 +742,7 @@ actual_exit: 64
 
 rmp: Compatibility Option -d is not allowed with --strict-options
 [ES-64-24]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--strict-options> <-x> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--strict-options> <-x> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -750,7 +750,7 @@ actual_exit: 64
 
 rmp: Compatibility Option -x is not allowed with --strict-options
 [ES-64-25]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--strict-options> <-P> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--strict-options> <-P> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -758,7 +758,7 @@ actual_exit: 64
 
 rmp: Compatibility Option -P is not allowed with --strict-options
 [ES-64-26]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--strict-options> <-W> <present-file>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--strict-options> <-W> <present-file>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -766,7 +766,7 @@ actual_exit: 64
 
 rmp: unsupported Compatibility Option -W
 [ES-64-27]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-a>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-a>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -774,7 +774,7 @@ actual_exit: 64
 
 rmp: -a is only valid with --help
 [ES-64-28]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <-zh>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <-zh>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -782,7 +782,7 @@ actual_exit: 64
 
 rmp: -zh is only valid with --help
 [ES-64-29]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help> <--version>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help> <--version>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -790,7 +790,7 @@ actual_exit: 64
 
 rmp: --help and --version cannot be used together
 [ES-64-30]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--version> <--help>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--version> <--help>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -798,7 +798,7 @@ actual_exit: 64
 
 rmp: --help and --version cannot be used together
 [ES-64-31]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--version> <-a>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--version> <-a>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -806,7 +806,7 @@ actual_exit: 64
 
 rmp: -a is only valid with --help
 [ES-64-32]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--version> <-zh>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--version> <-zh>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---
@@ -814,7 +814,7 @@ actual_exit: 64
 
 rmp: -zh is only valid with --help
 [ES-64-33]
-command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.pmJIw9/bin/rmp <--help> <--json> <--quiet>
+command: /var/folders/l2/09xgvwr91sv001yj_ydqr6sh0000gn/T//rmp-exit-status.1bZLq2/bin/rmp <--help> <--json> <--quiet>
 expected_exit: 64
 actual_exit: 64
 --- stdout ---

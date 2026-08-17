@@ -271,9 +271,9 @@ exit 0
 
 ## 本次运行证据
 
-2026-08-17 的无人值守运行已提交在
+2026-08-17 的最终无人值守运行已提交在
 [`results/rmp-production-cli-exit-status-20260817/report.md`](results/rmp-production-cli-exit-status-20260817/report.md)。
-该报告对应提交 `76aa1d5`、版本 `rmp 0.1.0`，结果为 `86/86`；同目录的
+该报告对应提交 `eeeeb14`、版本 `rmp 0.1.0`，结果为 `86/86`；同目录的
 [`responses.log`](results/rmp-production-cli-exit-status-20260817/responses.log) 保存每个用例的完整
 stdout/stderr，`cases.tsv` 保存机器可读的退出码对照。
 

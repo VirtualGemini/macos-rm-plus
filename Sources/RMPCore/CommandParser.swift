@@ -2,6 +2,7 @@
 
 enum ParsedCommand: Equatable, Sendable {
   case operation(TrashOperationRequest)
+  case noOperation(output: OutputMode, dryRun: Bool)
   case help(HelpPage)
   case version
 }
@@ -62,6 +63,12 @@ enum CommandParser {
     var warnings: [CompatibilityWarning] = []
     var sawJSON = false
     var sawQuiet = false
+    var shortForceControlsConfirmation = false
+    var shortForceControlsMissingPath = false
+
+    var compatibilityForceActive: Bool {
+      shortForceControlsConfirmation || shortForceControlsMissingPath
+    }
   }
 
   static func parse(arguments: [String]) throws(CommandParsingError) -> ParsedInvocation {
@@ -110,7 +117,12 @@ enum CommandParser {
   private static func operationCommand(
     from state: State
   ) throws(CommandParsingError) -> ParsedCommand {
-    guard !state.paths.isEmpty else { throw .noInputs }
+    if state.paths.isEmpty {
+      if state.compatibilityForceActive {
+        return .noOperation(output: state.output, dryRun: state.dryRun)
+      }
+      throw .noInputs
+    }
 
     return .operation(
       TrashOperationRequest(
@@ -155,6 +167,7 @@ enum CommandParser {
         throw .invalidConfirmationMode(value)
       }
       state.confirmation = mode
+      state.shortForceControlsConfirmation = false
       return
     }
     if applyLongPolicyOption(option, state: &state) { return }
@@ -165,9 +178,16 @@ enum CommandParser {
 
   private static func applyLongPolicyOption(_ option: String, state: inout State) -> Bool {
     switch option {
-    case "--force": applyForce(to: &state); return true
+    case "--force":
+      applyForce(to: &state)
+      state.shortForceControlsConfirmation = false
+      state.shortForceControlsMissingPath = false
+      return true
     case "--interactive": applyInteractive(to: &state); return true
-    case "--ignore-missing": state.missingPathPolicy = .ignoreExplicitly; return true
+    case "--ignore-missing":
+      state.missingPathPolicy = .ignoreExplicitly
+      state.shortForceControlsMissingPath = false
+      return true
     case "--dry-run": state.dryRun = true; return true
     case "--non-interactive": state.nonInteractive = true; return true
     default: return false
@@ -222,9 +242,14 @@ enum CommandParser {
     _ character: Character, state: inout State
   ) throws(CommandParsingError) {
     switch character {
-    case "f": applyForce(to: &state)
+    case "f":
+      applyForce(to: &state)
+      state.shortForceControlsConfirmation = true
+      state.shortForceControlsMissingPath = true
     case "i": applyInteractive(to: &state)
-    case "I": state.confirmation = .conditionalOnce
+    case "I":
+      state.confirmation = .conditionalOnce
+      state.shortForceControlsConfirmation = false
     case "v":
       if !state.sawJSON { state.output = .verbose }
     default: try parseCompatibilityCharacter(character, state: &state)
@@ -252,8 +277,10 @@ enum CommandParser {
 
   private static func applyInteractive(to state: inout State) {
     state.confirmation = .each
+    state.shortForceControlsConfirmation = false
     if state.missingPathPolicy == .ignoreFromForce {
       state.missingPathPolicy = .fail
+      state.shortForceControlsMissingPath = false
     }
   }
 

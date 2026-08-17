@@ -37,12 +37,12 @@ func informationCommandsRetainCompatibilityDiagnostics() {
   #expect(warning.standardError.contains("warning: -P does not securely overwrite"))
 
   let strict = application.run(arguments: ["--version", "--strict-options", "-r"])
-  #expect(strict.exitCode == 2)
+  #expect(strict.exitCode == 64)
   #expect(strict.standardOutput.isEmpty)
   #expect(strict.standardError.contains("-r is not allowed with --strict-options"))
 
   let conflictingOutput = application.run(arguments: ["--help", "--json", "--quiet"])
-  #expect(conflictingOutput.exitCode == 2)
+  #expect(conflictingOutput.exitCode == 64)
   #expect(conflictingOutput.standardOutput.isEmpty)
   #expect(conflictingOutput.standardError.contains("conflicting options --json and --quiet"))
 }
@@ -52,7 +52,7 @@ func emptyInvocationIsUsageError() {
   let result = CLIApplication(makeFileSystem: { CountingTrashPlanningFileSystem() }).run(
     arguments: [])
 
-  #expect(result.exitCode == 2)
+  #expect(result.exitCode == 64)
   #expect(result.standardOutput.isEmpty)
   #expect(result.standardError == "rmp: at least one Trash Input is required\n")
 }

@@ -56,13 +56,31 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
       return .init(
         standardOutput: InformationRenderer.render(page),
         standardError: renderWarnings(invocation.warnings),
-        exitCode: 0
+        exitCode: ExitStatus.success.rawValue
       )
     case .version:
       return .init(
         standardOutput: InformationRenderer.version,
         standardError: renderWarnings(invocation.warnings),
-        exitCode: 0
+        exitCode: ExitStatus.success.rawValue
+      )
+    case let .noOperation(output, dryRun):
+      if output == .json {
+        let result = JSONTrashRenderer().render(
+          results: [],
+          dryRun: dryRun,
+          currentDirectoryPath: makeCurrentDirectoryPath()
+        )
+        return .init(
+          standardOutput: result.standardOutput,
+          standardError: renderWarnings(invocation.warnings) + result.standardError,
+          exitCode: result.exitCode
+        )
+      }
+      return .init(
+        standardOutput: "",
+        standardError: renderWarnings(invocation.warnings),
+        exitCode: ExitStatus.success.rawValue
       )
     case let .operation(request):
       return runOperation(request, warnings: invocation.warnings)
@@ -85,7 +103,7 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
           code: .rootExecution,
           message: "Trash Operations cannot run as root.",
           currentDirectoryPath: makeCurrentDirectoryPath(),
-          exitCode: 3
+          exitCode: ExitStatus.failure.rawValue
         )
         return .init(
           standardOutput: result.standardOutput,
@@ -96,7 +114,7 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
       return .init(
         standardOutput: "",
         standardError: renderWarnings(warnings) + message,
-        exitCode: 3
+        exitCode: ExitStatus.failure.rawValue
       )
     }
     if request.dryRun {
@@ -112,7 +130,7 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
         standardOutput: "",
         standardError:
           renderWarnings(warnings) + "rmp: only --dry-run execution is available in this build\n",
-        exitCode: 2
+        exitCode: ExitStatus.failure.rawValue
       )
     }
     let result = TrashOperationApplication(
@@ -158,6 +176,10 @@ public struct CLIApplication<FileSystem: TrashPlanningFileSystem> {
     case let .helpModifierRequiresHelp(option):
       message = "rmp: \(option) is only valid with --help\n"
     }
-    return CommandResult(standardOutput: "", standardError: message, exitCode: 2)
+    return CommandResult(
+      standardOutput: "",
+      standardError: message,
+      exitCode: ExitStatus.usage.rawValue
+    )
   }
 }

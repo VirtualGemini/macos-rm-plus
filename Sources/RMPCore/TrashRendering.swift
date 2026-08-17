@@ -24,7 +24,9 @@ struct TrashResultRenderer {
       return CommandResult(
         standardOutput: standardOutput,
         standardError: warningOutput,
-        exitCode: result.requiresFailureExit ? 1 : 0
+        exitCode: result.requiresFailureExit
+          ? ExitStatus.failure.rawValue
+          : ExitStatus.success.rawValue
       )
     case .skipped:
       let explanation =
@@ -40,7 +42,11 @@ struct TrashResultRenderer {
         output == .verbose
         ? "Skipped \(pathRenderer.renderPath(result.sourcePath)) \(explanation).\n"
         : ""
-      return CommandResult(standardOutput: standardOutput, standardError: "", exitCode: 0)
+      return CommandResult(
+        standardOutput: standardOutput,
+        standardError: "",
+        exitCode: ExitStatus.success.rawValue
+      )
     case .rejected, .notMoved, .stateUncertain:
       let error = result.error ?? unclassifiedFailure
       let source = pathRenderer.renderPath(result.sourcePath)
@@ -50,7 +56,7 @@ struct TrashResultRenderer {
       return CommandResult(
         standardOutput: "",
         standardError: message,
-        exitCode: 1
+        exitCode: ExitStatus.failure.rawValue
       )
     }
   }
@@ -65,7 +71,10 @@ struct TrashResultRenderer {
     }
     let itemResults = results.map { render($0, output: output) }
     let standardError = itemResults.map(\.standardError).joined()
-    let exitCode: Int32 = results.contains(where: \.requiresFailureExit) ? 1 : 0
+    let exitCode: Int32 =
+      results.contains(where: \.requiresFailureExit)
+      ? ExitStatus.failure.rawValue
+      : ExitStatus.success.rawValue
     let standardOutput: String
     if output == .standard, results.count > 1 {
       standardOutput = renderSummary(results)

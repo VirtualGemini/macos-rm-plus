@@ -166,7 +166,7 @@ func verboseDoesNotAlterJSONSchema() {
   #expect(standard.exitCode == verbose.exitCode)
 }
 
-@Test("A moved item with a Trash Warning keeps its receipt and reports aggregate failure")
+@Test("A moved item with a Trash Warning keeps its receipt and successful status")
 func jsonMovedWarningKeepsExactDestination() throws {
   let destination = "/Users/test/.Trash/shortcut"
   let receipt = TrashMoveReceipt(
@@ -184,7 +184,7 @@ func jsonMovedWarningKeepsExactDestination() throws {
   let items = try #require(document["items"] as? [[String: Any]])
   let item = try #require(items.first)
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(document["success"] as? Bool == false)
   #expect(document["moved"] as? Int == 1)
   #expect(document["failed"] as? Int == 0)
@@ -245,7 +245,7 @@ func jsonOperationExitCategoriesRemainStable() throws {
     makeFileSystem: { FakeTrashPlanningFileSystem(entries: [:]) }
   ).run(arguments: ["--json", "--quiet", "report.txt"])
 
-  #expect(usage.exitCode == 2)
+  #expect(usage.exitCode == 64)
   #expect(usage.standardOutput.isEmpty)
   #expect(usage.standardError.contains("conflicting options"))
 
@@ -258,7 +258,7 @@ func jsonOperationExitCategoriesRemainStable() throws {
   let rootDocument = try jsonObject(root.standardOutput)
   let rootItems = try #require(rootDocument["items"] as? [[String: Any]])
 
-  #expect(root.exitCode == 3)
+  #expect(root.exitCode == 1)
   #expect(rootDocument["success"] as? Bool == false)
   #expect(rootItems.first?["source"] as? String == "/work/report.txt")
   #expect(
@@ -282,7 +282,7 @@ func jsonPlanningFailuresKeepStandardOutputValid() throws {
   let protectedDocument = try jsonObject(protected.standardOutput)
   let protectedItems = try #require(protectedDocument["items"] as? [[String: Any]])
 
-  #expect(protected.exitCode == 3)
+  #expect(protected.exitCode == 1)
   #expect(protectedItems.first?["status"] as? String == "failed")
   #expect(
     protectedItems.first?["error"] as? [String: String] == [
@@ -297,7 +297,7 @@ func jsonPlanningFailuresKeepStandardOutputValid() throws {
   let unavailableDocument = try jsonObject(unavailable.standardOutput)
   let unavailableItems = try #require(unavailableDocument["items"] as? [[String: Any]])
 
-  #expect(unavailable.exitCode == 3)
+  #expect(unavailable.exitCode == 1)
   #expect(
     unavailableItems.first?["error"] as? [String: String] == [
       "code": "safety_identity_unavailable",
@@ -330,7 +330,7 @@ func jsonEncodingFailuresDoNotEmitPartialOutput() {
       currentDirectoryPath: "/work"
     )
 
-    #expect(result.exitCode == 2)
+    #expect(result.exitCode == 1)
     #expect(result.standardOutput.isEmpty)
     #expect(result.standardError.contains("json_encoding_failed"))
   }

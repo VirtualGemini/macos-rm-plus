@@ -72,7 +72,7 @@ func batchSummaryCountsWarningsSeparately() {
 
   let result = application.run(arguments: ["--confirm=never", "first", "second"])
 
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(result.standardOutput == "Moved 2 items to Trash; 0 failed; 1 warning.\n")
   #expect(result.standardError.contains("symlink_put_back_not_guaranteed"))
 }
@@ -186,7 +186,7 @@ func perInputConfirmationStopRecordsSkippedInputs() {
 
   #expect(probes.receivedTrashPaths.isEmpty)
   #expect(prompt.receivedPrompts == ["Move [file] \"first\" to Trash? [y/N] "])
-  #expect(result.exitCode == 1)
+  #expect(result.exitCode == 0)
   #expect(result.standardError.contains("confirmation_declined"))
   #expect(result.standardError.contains("\"first\""))
   #expect(
@@ -334,7 +334,7 @@ func strictSecureOverwriteRejectionShortCircuitsCapabilities() {
 
     let result = application.run(arguments: arguments)
 
-    #expect(result.exitCode == 2)
+    #expect(result.exitCode == 64)
     #expect(result.standardOutput.isEmpty)
     #expect(
       result.standardError

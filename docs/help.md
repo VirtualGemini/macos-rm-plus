@@ -21,8 +21,10 @@ top-level inputs and directories and never inspect directory contents or calcula
 Prompts are written to stderr. After surrounding whitespace is ignored, only case-insensitive `y` or
 `yes` approves an input. Empty, `n`, or `no` responses decline; other text is invalid; and end of
 input is interrupted. These outcomes report `confirmation_declined`,
-`confirmation_invalid_response`, or `confirmation_interrupted`, respectively, with exit code 1 and
-no unapproved Trash call. Invalid per-input responses continue like a rejection; interrupted input
+`confirmation_invalid_response`, or `confirmation_interrupted`, respectively, with no unapproved
+Trash call. For per-input confirmation, these responses do not change the successful exit code;
+batch confirmation refusal remains an operational failure. Invalid per-input responses continue like a
+rejection; interrupted input
 stops further prompts because no later approval can be read. `--non-interactive`, a non-TTY stdin,
 or an unavailable prompt capability reports `confirmation_required` without reading input or
 blocking.
@@ -33,8 +35,9 @@ fallback, and an owned finalizer preserves Put Back without following the link t
 reports the system-returned exact URL. Failure never triggers permanent deletion,
 `NSWorkspace.recycle`, direct Trash-directory access, or overwrite.
 By default, an item failure does not prevent later inputs from being processed; `--stop-on-error`
-records all later inputs as skipped. Missing inputs fail unless `--ignore-missing` is active, in
-which case their error output and exit-status effect are suppressed.
+records all later inputs as skipped. A moved result with a Trash Warning is successful and does not
+trigger that stop. Missing inputs fail unless `--ignore-missing` is active, in which case their
+error output and exit-status effect are suppressed.
 
 One standard-mode success writes exactly one escaped line containing the user-provided source and
 the exact Trash receipt destination. A standard-mode batch writes one aggregate summary instead of
@@ -59,7 +62,8 @@ target, makes the target the first Foundation Trash call, then uses a successful
 finalizer call to activate Put Back. It does not run a target-before-move Trash preflight because
 that call was shown to consume the metadata transition needed by the target.
 Normal completion is silent and leaves no helper behind. `symlink_put_back_not_guaranteed` or
-`finalizer_cleanup_failed` reports a moved result with its exact destination on stderr and exits 1.
+`finalizer_cleanup_failed` reports a moved result with its exact destination on stderr without
+changing the successful exit code.
 If a failed finalizer call no longer has its exact source identity, rmp stops without using the
 backup and reports `finalizer_state_uncertain`, preserving the best available Put Back state.
 If the user link has not moved but a prepared finalizer cannot be identity-verified and removed, the
@@ -85,11 +89,14 @@ either help surface. `rmp --version` prints `rmp 0.1.0`. These information comma
 Input, do not construct the platform filesystem adapter, and do not inspect filesystem or Trash
 capabilities.
 
-Required missing paths and operational failures return exit code 1. Usage errors and unsupported
-options return exit code 2. Protected Paths return exit code 3 without presenting a plan. Protected Paths include filesystem
+Required missing paths, operational failures, and Protected Path refusals return exit code 1. A
+short `-f` that remains effective with no paths is a successful empty operation; other empty
+invocations are usage errors. Usage errors and unsupported options return exit code 64 without
+presenting a plan. In JSON mode, the successful empty operation is represented by a complete empty
+schema-version-1 document. Protected Paths include filesystem
 root, the current working directory, the user's home directory, their identity-equivalent path
 expressions, and explicit parent-directory expressions such as `..`. Effective root execution also
-returns exit code 3 before planning or Trash capability construction. `-f`, `--confirm=never`, and
+returns exit code 1 before planning or Trash capability construction. `-f`, `--confirm=never`, and
 `--non-interactive` cannot bypass root or Protected Path policy. A failed system Trash call reports a
 stable code plus `not_moved` when the original identity remains, or `state_uncertain` when the final
 state cannot be established reliably.

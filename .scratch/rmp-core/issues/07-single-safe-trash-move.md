@@ -12,6 +12,6 @@
 - [x] System Trash failure never invokes permanent deletion, direct `~/.Trash` manipulation, overwrite, automatic move-back, or any other compensating filesystem mutation.
 - [x] When the original entry can be confirmed unchanged, failure is reported as `not_moved`; when the final state cannot be established reliably, it is reported as `state_uncertain` and never misrepresented as success or rollback.
 - [x] Every failure exposes a stable machine-readable error code and a clear human explanation that identifies the affected source path without requiring the user to interpret a Foundation error.
-- [x] Effective root execution is rejected with exit code 3 before an actual move, and force, non-interactive, or never-confirm options cannot bypass root or Protected Path policy.
+- [x] Effective root execution is rejected with exit code 1 before an actual move, and force, non-interactive, or never-confirm options cannot bypass root or Protected Path policy.
 - [x] A symlink to a Protected Path moves only the symlink entry, including when broken, and never moves or resolves the link destination for execution.
 - [x] Tests prove that Trash API failure leaves no rmp-controlled path to permanent removal and that all real-filesystem fixtures remain inside the authorized Run Directory.

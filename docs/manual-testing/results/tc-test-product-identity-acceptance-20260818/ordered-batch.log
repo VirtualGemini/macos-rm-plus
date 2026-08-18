@@ -1,4 +1,11 @@
-command: TEST_RUN_ID=7744e082-3528-4371-9778-f5c50a52fc53 make test-ordered-batch
+record-format=normalized-operator-summary
+source=live terminal output
+normalization=trusted home test container to TEST_CONTAINER; home Trash to HOME_TRASH
+
+[invocation]
+TEST_RUN_ID=7744e082-3528-4371-9778-f5c50a52fc53 make test-ordered-batch
+
+[observed-output]
 ordered-batch acceptance=passed
 run-directory=TEST_CONTAINER/test/7744e082-3528-4371-9778-f5c50a52fc53
 moved-source=TEST_CONTAINER/test/7744e082-3528-4371-9778-f5c50a52fc53/tc-test-7744e082-3528-4371-9778-f5c50a52fc53-batch-file destination=HOME_TRASH/tc-test-7744e082-3528-4371-9778-f5c50a52fc53-batch-file
@@ -7,6 +14,9 @@ moved-source=TEST_CONTAINER/test/7744e082-3528-4371-9778-f5c50a52fc53/tc-test-77
 moved-source=TEST_CONTAINER/test/7744e082-3528-4371-9778-f5c50a52fc53/tc-test-7744e082-3528-4371-9778-f5c50a52fc53-batch name with \"quotes\" and\na newline destination=HOME_TRASH/tc-test-7744e082-3528-4371-9778-f5c50a52fc53-batch name with \"quotes\" and\na newline
 expected-missing=TEST_CONTAINER/test/7744e082-3528-4371-9778-f5c50a52fc53/tc-test-7744e082-3528-4371-9778-f5c50a52fc53-batch-missing
 expected-permission-failure=TEST_CONTAINER/test/7744e082-3528-4371-9778-f5c50a52fc53/tc-test-7744e082-3528-4371-9778-f5c50a52fc53-batch-permission-parent/tc-test-7744e082-3528-4371-9778-f5c50a52fc53-batch-permission-denied
+
+[derived-result]
+process-exit=0
 trash-backend=finder
 automated-cleanup=not-performed
-status=pass
+result=pass

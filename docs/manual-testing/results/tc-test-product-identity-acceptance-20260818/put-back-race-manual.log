@@ -1,17 +1,42 @@
-command: TEST_RUN_ID=de458165-7389-40ea-aa80-2b45b86112f6 CYCLES=1 FIXTURE=file make test-put-back-race-manual
+record-format=normalized-combined-terminal-transcript-plus-operator-observation
+normalization=trusted home test container to TEST_CONTAINER; home Trash to HOME_TRASH
+
+[normalized-combined-terminal-transcript]
+swift run -Xswiftc -warnings-as-errors tc-test put-back-race-manual \
+		--settle-seconds "0" --cycles "1" \
+		--fixture "file" --test-run-id "f19d4de7-63a6-44f7-9b2c-99050d0f5082"
+[0/1] Planning build
+Building for debugging...
+[0/3] Write swift-version--1AB21518FC5DEDBE.txt
+Build of product 'tc-test' complete! (0.46s)
+first-trash-complete
+trash-item=tc-test-f19d4de7-63a6-44f7-9b2c-99050d0f5082-put-back-race-file
+Open Finder, select that item in Trash, and choose Put Back.
+tc-test re-trashes it the moment it returns; waiting up to 180s.
+waiting-for-put-back=180s
 tc-test build=TC_TESTING
-run=de458165-7389-40ea-aa80-2b45b86112f6
+run=f19d4de7-63a6-44f7-9b2c-99050d0f5082
 scenario=put-back-race-manual
 fixture=file
 trash-backend=finder
+
 status=complete
-first-trash=HOME_TRASH/tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
-restored=TEST_CONTAINER/test/de458165-7389-40ea-aa80-2b45b86112f6/tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
+first-trash=HOME_TRASH/tc-test-f19d4de7-63a6-44f7-9b2c-99050d0f5082-put-back-race-file
+restored=TEST_CONTAINER/test/f19d4de7-63a6-44f7-9b2c-99050d0f5082/tc-test-f19d4de7-63a6-44f7-9b2c-99050d0f5082-put-back-race-file
 settle-seconds=0.0
-second-trash=HOME_TRASH/tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
+second-trash=HOME_TRASH/tc-test-f19d4de7-63a6-44f7-9b2c-99050d0f5082-put-back-race-file
 foundation-finalizer=disabled
-run-directory=TEST_CONTAINER/test/de458165-7389-40ea-aa80-2b45b86112f6
-manual-target=tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
+
+run-directory=TEST_CONTAINER/test/f19d4de7-63a6-44f7-9b2c-99050d0f5082
+manual-check=Open Trash now and verify Put Back is offered for manual-target below; no wait is needed.
+manual-target=tc-test-f19d4de7-63a6-44f7-9b2c-99050d0f5082-put-back-race-file
 restore-method=maintainer-finder-put-back-command
+[operator-observation]
+initial-trash-item-put-back=performed
+manual-target-put-back-menu=available
+observation-timing=immediate-after-command-completion
+
+[derived-result]
+process-exit=0
 automated-cleanup=not-performed
 result=pass

@@ -13,7 +13,9 @@ version_output=tc-test build=TC_TESTING
 swift_version=Apple Swift 6.3.3
 sdk_version=26.5
 path_normalization=TEST_CONTAINER and HOME_TRASH
+evidence_capture=three normalized operator summaries and two normalized complete combined terminal transcripts
 integration_trash_api=not_requested
 real_trash_backends=Finder and Foundation symbolic-link
-human_action=maintainer Finder Put Back for the two recorded manual targets
+human_put_back=maintainer Finder Put Back for the initial file item and symbolic-link Finder control
+final_menu_observation=Put Back available for the final file and symbolic-link manual targets
 automated_trash_cleanup=not_performed

@@ -1,9 +1,21 @@
-command: TEST_RUN_ID=666629a8-1d0e-4024-a31c-56cae74a8ee4 make test-integration
+record-format=normalized-operator-summary
+source=live terminal output plus post-run filesystem inspection
+normalization=trusted home test container to TEST_CONTAINER
+
+[invocation]
+TEST_RUN_ID=666629a8-1d0e-4024-a31c-56cae74a8ee4 make test-integration
+
+[observed-output]
 tc-test build=TC_TESTING run=666629a8-1d0e-4024-a31c-56cae74a8ee4 ready
+
+[post-run-inspection]
 fixed-container-mode=0700
 fixed-container-marker-mode=0600
 authorized-root-mode=0700
 authorized-root-marker-mode=0600
 run-directory=cleaned
 trash-api=not-requested
-status=pass
+
+[derived-result]
+process-exit=0
+result=pass

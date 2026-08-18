@@ -89,7 +89,7 @@ cat >"$rename_repo/.docs-impact.yml" <<'EOF'
     {
       "name": "renamed-contract",
       "paths": ["Sources/former/**"],
-      "documents": ["docs/former.md"],
+      "documents": ["docs/former.md", "docs/companion.md"],
       "require": "all"
     }
   ]
@@ -98,6 +98,7 @@ EOF
 printf '%s\n' 'scripts/check-doc-impact.sh' >"$rename_repo/.policy-files"
 printf '%s\n' '// former source' >"$rename_repo/Sources/former/main.swift"
 printf '%s\n' '# Former documentation' >"$rename_repo/docs/former.md"
+printf '%s\n' '# Companion documentation' >"$rename_repo/docs/companion.md"
 git -C "$rename_repo" init -q
 git -C "$rename_repo" config user.name "Documentation Impact Tests"
 git -C "$rename_repo" config user.email "docs-impact-tests@example.invalid"
@@ -113,6 +114,14 @@ refactor: rename documented source
 
 Docs-Impact: updated
 EOF
+if "$rename_repo/scripts/check-doc-impact.sh" --staged \
+  --message-file "$TEMP_DIR/rename-message" >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  fail "staged validation ignored a renamed trigger with incomplete documentation"
+fi
+assert_contains "$TEMP_DIR/stderr" "docs/companion.md"
+
+git -C "$rename_repo" mv docs/companion.md docs/canonical-companion.md
+git -C "$rename_repo" add .
 if ! "$rename_repo/scripts/check-doc-impact.sh" --staged \
   --message-file "$TEMP_DIR/rename-message" >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
   cat "$TEMP_DIR/stderr" >&2
@@ -121,6 +130,11 @@ fi
 git -C "$rename_repo" commit -qm "refactor: rename documented source" \
   -m "Docs-Impact: updated"
 rename_head=$(git -C "$rename_repo" rev-parse HEAD)
+if ! "$rename_repo/scripts/check-doc-impact.sh" --commit "$rename_head" \
+  >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
+  cat "$TEMP_DIR/stderr" >&2
+  fail "commit validation did not count renamed paths under their trusted former names"
+fi
 if ! "$rename_repo/scripts/check-doc-impact.sh" --range "$rename_base" "$rename_head" \
   >"$TEMP_DIR/stdout" 2>"$TEMP_DIR/stderr"; then
   cat "$TEMP_DIR/stderr" >&2

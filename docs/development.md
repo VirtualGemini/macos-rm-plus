@@ -751,7 +751,8 @@ branch documentation changes from satisfying the PR. Renamed documents and tests
 their former and canonical paths so an atomic path migration can satisfy the trusted pre-migration
 matrix. Deleted documents and tests never count as updated evidence. All TrashCore and TrashPlatform
 changes trigger the safety evidence rule rather than relying on filenames to guess whether code is
-safety-sensitive.
+safety-sensitive. Policy tests enforce the same rename accounting for staged changes, individual
+commits, and aggregate ranges, including rules that require multiple companion documents.
 
 Commit metadata is parsed with `git interpret-trailers`; trailer-like text in the message body is not
 accepted. A documentation exemption approval must target a commit that contains the exempt commit,

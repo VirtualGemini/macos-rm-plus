@@ -1,0 +1,17 @@
+run_id=20260817T114304Z
+started_at=2026-08-17T11:43:04Z
+repository=REPO_ROOT
+commit=dbb6b85b50edcd98caa587180aed5c0ec2557025
+source_binary=REPO_ROOT/.build/release/tc
+binary_sha256=82b2981db21c3585205392e6693749d39f5a54658352b6ecada4929f77d7d339
+suite_script=REPO_ROOT/scripts/run-production-cli-exit-status-tests.sh
+suite_script_sha256=cd16600d19b3c58f32201c39cc910630ff8140585e40277680df0ea66d4a6655
+normalization_script=REPO_ROOT/scripts/lib/evidence-paths.sh
+normalization_script_sha256=52af4ab37739ac8deb87c5c4a0ac2242272b1939c8b970aaed3868c1ba05ffc9
+version_exit=0
+version_output=tc 0.1.0
+trash_api=not_requested_by_this_suite
+finished_at=2026-08-17T11:43:05Z
+total=86
+passed=86
+failed=0

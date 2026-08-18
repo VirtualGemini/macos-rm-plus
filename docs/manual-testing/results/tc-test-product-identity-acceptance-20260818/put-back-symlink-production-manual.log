@@ -1,0 +1,50 @@
+record-format=normalized-combined-terminal-transcript-plus-operator-observation
+normalization=trusted home test container to TEST_CONTAINER; home Trash to HOME_TRASH
+
+[normalized-combined-terminal-transcript]
+swift run -Xswiftc -warnings-as-errors tc-test put-back-symlink-production-manual \
+		--cycles "1" --fixture "symbolic-link" \
+		--finalizer-fault "none" \
+		--test-run-id "338d91e6-542f-46ba-b973-4b2f9d680089"
+[0/1] Planning build
+Building for debugging...
+[0/3] Write swift-version--1AB21518FC5DEDBE.txt
+Build of product 'tc-test' complete! (0.46s)
+first-trash-complete
+trash-item=tc-test-338d91e6-542f-46ba-b973-4b2f9d680089-put-back-race-symbolic-link-finder-control
+Open Finder, select that item in Trash, and choose Put Back.
+After Put Back is observed, tc-test immediately trashes the production symbolic-link target. Check that target in Trash immediately; do not wait.
+waiting-for-put-back=180s
+waiting-for-put-back=175s
+waiting-for-put-back=170s
+waiting-for-put-back=165s
+waiting-for-put-back=160s
+waiting-for-put-back=155s
+tc-test build=TC_TESTING
+run=338d91e6-542f-46ba-b973-4b2f9d680089
+scenario=put-back-symlink-production-manual
+fixture=symbolic-link
+trash-backend=foundation-symlink
+control-fixture=file
+control-trash-backend=finder
+status=complete
+first-trash=HOME_TRASH/tc-test-338d91e6-542f-46ba-b973-4b2f9d680089-put-back-race-symbolic-link-finder-control
+restored=TEST_CONTAINER/test/338d91e6-542f-46ba-b973-4b2f9d680089/tc-test-338d91e6-542f-46ba-b973-4b2f9d680089-put-back-race-symbolic-link-finder-control
+settle-seconds=0.0
+second-trash=HOME_TRASH/tc-test-338d91e6-542f-46ba-b973-4b2f9d680089-put-back-race-symbolic-link
+foundation-finalizer=production-cleaned
+injected-finalizer-fault=none
+trash-warning=none
+run-directory=TEST_CONTAINER/test/338d91e6-542f-46ba-b973-4b2f9d680089
+manual-check=Open Trash now and verify Put Back is offered for manual-target below; no wait is needed.
+manual-target=tc-test-338d91e6-542f-46ba-b973-4b2f9d680089-put-back-race-symbolic-link
+restore-method=maintainer-finder-put-back-command
+[operator-observation]
+finder-control-put-back=performed
+manual-target-put-back-menu=available
+observation-timing=immediate-after-command-completion
+
+[derived-result]
+process-exit=0
+automated-cleanup=not-performed
+result=pass

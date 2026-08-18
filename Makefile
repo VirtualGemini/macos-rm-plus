@@ -71,6 +71,8 @@ test-policy:
 	Tests/PolicyTests/check-breaking-change-approvals-tests.sh
 	Tests/PolicyTests/check-policy-ownership-tests.sh
 	Tests/PolicyTests/check-policy-changes-tests.sh
+	Tests/PolicyTests/evidence-path-normalization-tests.sh
+	Tests/PolicyTests/run-integration-tests-tests.sh
 	Tests/PolicyTests/check-tool-versions-tests.sh
 	Tests/PolicyTests/check-swift-toolchain-tests.sh
 	Tests/PolicyTests/check-system-trash-boundary-tests.sh
@@ -82,7 +84,7 @@ test-integration:
 	./scripts/run-integration-tests.sh
 
 test-put-back-race:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race --test-run-id "$(TEST_RUN_ID)"
+	swift run $(SWIFT_WARNING_FLAGS) tc-test put-back-race --test-run-id "$(TEST_RUN_ID)"
 
 SETTLE_SECONDS ?= 0
 
@@ -94,38 +96,38 @@ FINALIZER_NAME ?= hidden
 PREFLIGHT ?= disabled
 
 test-put-back-race-manual:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-race-manual \
+	swift run $(SWIFT_WARNING_FLAGS) tc-test put-back-race-manual \
 		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
 		--fixture "$(FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
 
 test-put-back-symlink-delay-manual:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-delay-manual \
+	swift run $(SWIFT_WARNING_FLAGS) tc-test put-back-symlink-delay-manual \
 		--settle-seconds "$(SETTLE_SECONDS)" --cycles "$(CYCLES)" \
 		--fixture "$(SYMLINK_FIXTURE)" --test-run-id "$(TEST_RUN_ID)"
 
 test-put-back-symlink-finalizer-manual:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-finalizer-manual \
+	swift run $(SWIFT_WARNING_FLAGS) tc-test put-back-symlink-finalizer-manual \
 		--cycles "$(CYCLES)" --fixture "$(SYMLINK_FIXTURE)" \
 		--test-run-id "$(TEST_RUN_ID)"
 
 test-put-back-symlink-production-manual:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-production-manual \
+	swift run $(SWIFT_WARNING_FLAGS) tc-test put-back-symlink-production-manual \
 		--cycles "$(CYCLES)" --fixture "$(SYMLINK_FIXTURE)" \
 		--finalizer-fault "$(FINALIZER_FAULT)" \
 		--test-run-id "$(TEST_RUN_ID)"
 
 test-put-back-symlink-production-probe:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test put-back-symlink-production-probe \
+	swift run $(SWIFT_WARNING_FLAGS) tc-test put-back-symlink-production-probe \
 		--fixture "$(SYMLINK_FIXTURE)" --finalizer-name "$(FINALIZER_NAME)" \
 		--preflight "$(PREFLIGHT)" \
 		--test-run-id "$(TEST_RUN_ID)"
 
 test-duplicate-trash-name:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test duplicate-trash-name \
+	swift run $(SWIFT_WARNING_FLAGS) tc-test duplicate-trash-name \
 		--test-run-id "$(TEST_RUN_ID)"
 
 test-ordered-batch:
-	swift run $(SWIFT_WARNING_FLAGS) rmp-test ordered-batch \
+	swift run $(SWIFT_WARNING_FLAGS) tc-test ordered-batch \
 		--test-run-id "$(TEST_RUN_ID)"
 
 check-spdx:

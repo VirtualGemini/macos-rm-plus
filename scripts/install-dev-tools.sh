@@ -5,7 +5,7 @@ set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 TOOLS_BIN="$ROOT/.build/tools/bin"
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/rmp-tools.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/tc-tools.XXXXXX")
 . "$ROOT/scripts/lib/tool-versions.sh"
 
 cleanup() {

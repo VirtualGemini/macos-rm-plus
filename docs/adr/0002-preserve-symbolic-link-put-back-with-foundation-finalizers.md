@@ -80,7 +80,7 @@ internal target and finalizer Foundation call passes through the Test Safety Con
 whitelist, and its restore wrapper revalidates that context immediately before the real move. The
 test executable can inject a single first-activation failure either before the
 Foundation call or after the real whitelisted call has moved the Finalizer. These modes verify backup
-recovery and the moved-before-error stop rule without exposing fault controls in production `rmp`.
+recovery and the moved-before-error stop rule without exposing fault controls in production `tc`.
 
 ## Rejected alternatives
 

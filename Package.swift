@@ -4,36 +4,36 @@
 import PackageDescription
 
 let package = Package(
-  name: "macos-rm-plus",
+  name: "macos-trash-cli",
   platforms: [.macOS(.v13)],
   products: [
-    .executable(name: "rmp", targets: ["rmp"]),
-    .executable(name: "rmp-test", targets: ["rmp-test"]),
+    .executable(name: "tc", targets: ["tc"]),
+    .executable(name: "tc-test", targets: ["tc-test"]),
   ],
   dependencies: [
     .package(url: "https://github.com/realm/SwiftLint.git", exact: "0.65.0")
   ],
   targets: [
-    .target(name: "RMPCore"),
-    .target(name: "RMPPlatform", dependencies: ["RMPCore"]),
-    .executableTarget(name: "rmp", dependencies: ["RMPCore", "RMPPlatform"]),
+    .target(name: "TrashCore"),
+    .target(name: "TrashPlatform", dependencies: ["TrashCore"]),
+    .executableTarget(name: "tc", dependencies: ["TrashCore", "TrashPlatform"]),
     .target(
-      name: "RMPTestKit",
-      dependencies: ["RMPCore", "RMPPlatform"],
-      path: "TestSupport/RMPTestKit"
+      name: "TrashTestKit",
+      dependencies: ["TrashCore", "TrashPlatform"],
+      path: "TestSupport/TrashTestKit"
     ),
     .executableTarget(
-      name: "rmp-test",
-      dependencies: ["RMPCore", "RMPPlatform"],
+      name: "tc-test",
+      dependencies: ["TrashCore", "TrashPlatform"],
       path: "TestSupport",
-      exclude: ["RMPTestKit"],
-      sources: ["RMPTestSafety", "rmp-test"],
-      swiftSettings: [.define("RMP_TESTING")]
+      exclude: ["TrashTestKit"],
+      sources: ["TrashTestSafety", "tc-test"],
+      swiftSettings: [.define("TC_TESTING")]
     ),
-    .testTarget(name: "RMPCoreTests", dependencies: ["RMPCore"]),
+    .testTarget(name: "TrashCoreTests", dependencies: ["TrashCore"]),
     .testTarget(
-      name: "RMPPlatformTests",
-      dependencies: ["RMPPlatform", "RMPTestKit", "rmp-test"]
+      name: "TrashPlatformTests",
+      dependencies: ["TrashPlatform", "TrashTestKit", "tc-test"]
     ),
   ],
   swiftLanguageModes: [.v6]

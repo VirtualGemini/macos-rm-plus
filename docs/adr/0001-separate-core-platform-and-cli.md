@@ -1,10 +1,10 @@
 # Separate core policy, macOS adapters, and CLI entrypoints
 
-The project separates pure command parsing, planning, safety policy, and output models into `RMPCore`; macOS system-framework integrations into `RMPPlatform`; and executable wiring into `rmp`. Test doubles and pure test support live in `RMPTestKit`.
+The project separates pure command parsing, planning, safety policy, and output models into `TrashCore`; macOS system-framework integrations into `TrashPlatform`; and executable wiring into `tc`. Test doubles and pure test support live in `TrashTestKit`.
 
-The real Test Safety Context implementation and its process entry belong to the compile-time-isolated `rmp-test` executable module. That module is built only with `RMP_TESTING`; unflagged targets cannot import a separate safety library or invoke its real entry. This keeps test safety authorization attached to the executable that owns the eventual whitelisted Trash capability, while allowing safety behavior to be tested through internal seams with `@testable import rmp_test`.
+The real Test Safety Context implementation and its process entry belong to the compile-time-isolated `tc-test` executable module. That module is built only with `TC_TESTING`; unflagged targets cannot import a separate safety library or invoke its real entry. This keeps test safety authorization attached to the executable that owns the eventual whitelisted Trash capability, while allowing safety behavior to be tested through internal seams with `@testable import tc_test`.
 
-Within `RMPCore`, command handling is layered through narrow module Interfaces:
+Within `TrashCore`, command handling is layered through narrow module Interfaces:
 
 - `CLIApplication` is the only public command Interface. It accepts raw arguments, performs global
   validation, renders information commands and CLI diagnostics, and dispatches native Trash
@@ -28,10 +28,10 @@ commands reject root before filesystem construction, plan all inputs before prom
 the Trash capability only for approved inputs. Production supplies the current directory through a
 separate read-only closure so a root-rejected JSON operation can still report absolute sources
 without constructing the filesystem adapter.
-`RMPPlatform.StandardInputConfirmationPrompt` checks stdin TTY state, writes prompts to stderr, and
-maps terminal lines or interruption into raw confirmation responses; approval remains pure RMPCore
-policy. `RMPPlatform.MacOSTrashClient` owns production type dispatch and
-`RMPPlatform.FinderTrashClient` contains the Finder Automation Trash call, while the
+`TrashPlatform.StandardInputConfirmationPrompt` checks stdin TTY state, writes prompts to stderr, and
+maps terminal lines or interruption into raw confirmation responses; approval remains pure TrashCore
+policy. `TrashPlatform.MacOSTrashClient` owns production type dispatch and
+`TrashPlatform.FinderTrashClient` contains the Finder Automation Trash call, while the
 compile-time-isolated test executable reaches it only through `WhitelistedTrashClient`.
 Compatibility diagnostics remain beside the parsed command in the CLI envelope rather than entering
 a Trash Operation request or Trash Plan.
@@ -40,7 +40,7 @@ Human output is rendered once from the complete ordered result set. Standard mod
 escaped result for a single success or one aggregate summary for a batch; verbose prints every
 top-level result, and quiet suppresses normal output without suppressing diagnostics.
 JSON rendering consumes the same immutable plan or result set and writes one deterministic
-schema-version-1 document to stdout. It exposes stable RMPCore error codes rather than platform error
+schema-version-1 document to stdout. It exposes stable TrashCore error codes rather than platform error
 domains or numeric codes; compatibility warnings and human diagnostics stay on stderr.
 
 `FinderTrashClient` invokes one fixed AppleScript handler with the approved source path supplied as a
@@ -52,9 +52,9 @@ denial, timeout, and availability failures to stable core codes, and never falls
 
 `MacOSTrashClient` dispatches final symbolic links to the Foundation Trash Finalizer protocol in
 ADR-0002 and delegates every other supported entry to Finder. It preserves exact moved receipts and
-stable post-move warnings without exposing platform details to RMPCore.
+stable post-move warnings without exposing platform details to TrashCore.
 
-The compile-time-isolated `rmp-test` module owns one separate, test-only Finder Put Back adapter for
+The compile-time-isolated `tc-test` module owns one separate, test-only Finder Put Back adapter for
 issue 12 acceptance. It can move only the exact UUID-prefixed URL returned by the whitelisted Trash
 adapter back to the same revalidated Run Directory, verifies the available resource identifier, and
 is unreachable from production wiring. The rapid acceptance orchestration and its fake adapter share

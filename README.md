@@ -1,17 +1,17 @@
-# macos-rm-plus
+# macos-trash-cli
 
-`macos-rm-plus` is a macOS command-line tool. The core command is `rmp`.
+`macos-trash-cli` is a macOS command-line tool. The core command is `tc`.
 It will move files and directories to the system Trash instead of permanently deleting them.
 
 The current operational slice supports safe Trash Plan previews, deterministic confirmation, and
 approved top-level Trash moves through the complete v0.1-compatible command-line parser:
 
 ```sh
-rmp -Rfv --dry-run report.txt build
-rmp --dry-run -- -leading-hyphen
-rmp report.txt
-rmp --confirm=once build report.txt
-rmp --json --non-interactive --confirm=never report.txt build
+tc -Rfv --dry-run report.txt build
+tc --dry-run -- -leading-hyphen
+tc report.txt
+tc --confirm=once build report.txt
+tc --json --non-interactive --confirm=never report.txt build
 ```
 
 Dry-run mode inspects only the supplied top-level entries, reports each entry kind in input order,
@@ -22,8 +22,8 @@ also rejected. Safety rejections return exit code 1.
 The parser accepts native confirmation, missing-path, output, automation, and batch-control options.
 Familiar `-r`, `-R`, `-d`, and `-x` Compatibility Options are accepted with no effect because
 directories are moved as top-level items. `-P` warns that no secure overwrite occurs, `-W` is
-rejected, and `--strict-options` rejects all no-effect Compatibility Options. Run `rmp --help` for
-concise native help, `rmp --help -a` for the compatibility matrix, and add `-zh` for Chinese help.
+rejected, and `--strict-options` rejects all no-effect Compatibility Options. Run `tc --help` for
+concise native help, `tc --help -a` for the compatibility matrix, and add `-zh` for Chinese help.
 Help and version commands complete without constructing the platform filesystem adapter or inspecting
 Trash Inputs.
 
@@ -39,11 +39,11 @@ errors.
 `--json` writes exactly one schema-version-1 document to stdout for a preview or real Trash
 Operation. It includes aggregate success and counts plus one ordered `planned`, `moved`, `failed`, or
 `skipped` item for every top-level input. Each item carries an absolute source, its inspected kind,
-the exact system-returned destination when moved, and a nullable error containing an rmp stable code
+the exact system-returned destination when moved, and a nullable error containing a tc stable code
 and human-readable message. Compatibility warnings and operational diagnostics remain on stderr;
 `--verbose` does not change the JSON schema, and `--quiet` conflicts with `--json`. Machine consumers
-must depend only on rmp error codes, not message text or Foundation error details. JSON output can
-contain sensitive absolute paths; rmp neither retains nor uploads path history.
+must depend only on tc error codes, not message text or Foundation error details. JSON output can
+contain sensitive absolute paths; tc neither retains nor uploads path history.
 
 Smart confirmation moves one ordinary file or link without prompting and asks once for multiple
 top-level inputs or any directory. `never` never prompts, `once` asks once, and `each` asks before
@@ -67,24 +67,24 @@ manipulation. Failures report `not_moved` only when the original entry identity 
 unchanged; otherwise they report `state_uncertain`.
 
 The first real Trash Operation may show a macOS Automation prompt allowing the invoking terminal or
-`rmp` to control Finder. An accepted permission is normally reused for that sender-to-Finder pair.
-If permission is required, denied, reset, or used from another terminal host, `rmp` fails closed with
+`tc` to control Finder. An accepted permission is normally reused for that sender-to-Finder pair.
+If permission is required, denied, reset, or used from another terminal host, `tc` fails closed with
 an actionable stable error instead of silently using a less reliable Trash API.
 
 Finder owns the private metadata behind “Put Back.” Ordinary entries therefore use Finder directly.
-Finder refuses symbolic links, so rmp prepares two owned hidden symbolic-link finalizers, moves the
+Finder refuses symbolic links, so tc prepares two owned hidden symbolic-link finalizers, moves the
 user link through Foundation as the first Foundation Trash call, then performs one successful
 Foundation finalizer call and cleans up the exact identity outside Trash. Normal success leaves no
 finalizer residue. A target-before-move Trash preflight is deliberately omitted because real Finder
 checks showed that it consumes the metadata transition needed by the following user link. If every
-prepared activation fails, or an activated finalizer cannot be cleaned up, rmp preserves the target
+prepared activation fails, or an activated finalizer cannot be cleaned up, tc preserves the target
 destination and emits a stable warning without changing the successful exit code. A failed finalizer call is retried only when
-the exact helper is still verified at its source; if it moved before throwing, rmp stops with
+the exact helper is still verified at its source; if it moved before throwing, tc stops with
 `finalizer_state_uncertain` instead of shifting the metadata again. If the target has not moved but
-a prepared helper can no longer be safely cleaned up, rmp reports `finalizer_cleanup_failed` as a
+a prepared helper can no longer be safely cleaned up, tc reports `finalizer_cleanup_failed` as a
 failed Trash Result and classifies the source from its verified post-call identity. The evidence and
 release acceptance remain tracked in
-[issue 12](.scratch/rmp-core/issues/12-put-back-metadata-race.md).
+[issue 12](.scratch/macos-trash-cli/issues/12-put-back-metadata-race.md).
 
 Exit Status Compatibility changes numeric results and has one rm-compatible empty-invocation rule:
 a short `-f` that remains effective with no paths is a successful no-op. A later confirmation option
@@ -96,7 +96,7 @@ items. `-W` remains explicitly unsupported.
 
 ## Project status
 
-- Product requirements: [`.scratch/rmp-core/spec.md`](.scratch/rmp-core/spec.md)
+- Product requirements: [`.scratch/macos-trash-cli/spec.md`](.scratch/macos-trash-cli/spec.md)
 - Development guide: [`docs/development.md`](docs/development.md)
 - Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Security policy: [`SECURITY.md`](SECURITY.md)

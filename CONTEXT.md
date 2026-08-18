@@ -1,15 +1,16 @@
-# rmp
+# macos-trash-cli
 
-rmp provides a recoverable command-line alternative to permanent file removal on macOS. Its language distinguishes user intent, safety policy, planned work, and system trash outcomes.
+The `tc` command provides a recoverable alternative to permanent file removal on macOS. Its
+language distinguishes user intent, safety policy, planned work, and system Trash outcomes.
 
 ## Language
 
 **Trash Operation**:
-One complete rmp invocation and its aggregate outcome.
+One complete tc invocation and its aggregate outcome.
 _Avoid_: Delete operation, removal job
 
 **Trash Plan**:
-The immutable, input-ordered description of the top-level work rmp intends to perform before any
+The immutable, input-ordered description of the top-level work tc intends to perform before any
 item is moved. It retains ready inputs plus missing and inaccessible planning outcomes so execution
 can produce exactly one Trash Result for every supplied path.
 _Avoid_: Removal plan, delete plan
@@ -21,7 +22,7 @@ describing directory contents.
 _Avoid_: Delete target, removal target
 
 **Protected Path**:
-A path that safety policy forbids rmp from moving to Trash regardless of confirmation or force options.
+A path that safety policy forbids tc from moving to Trash regardless of confirmation or force options.
 _Avoid_: Dangerous path, blocked file
 
 **Confirmation Prompt**:
@@ -39,13 +40,13 @@ _Avoid_: Legacy flag, ignored flag
 **Exit Status Compatibility**:
 The contract that an invocation expressible using supported macOS `rm` options other than `-W` and
 path operands produces the same numeric exit status under equivalent filesystem and confirmation
-outcomes. Native rmp extensions are outside command-for-command comparison, but their usage failures
+outcomes. Native tc extensions are outside command-for-command comparison, but their usage failures
 use the macOS usage status; `-W` remains explicitly unsupported because whiteout undeletion is not a
 Trash Operation.
 Exit Status Compatibility standardizes numeric meanings and the documented short-`-f` empty
 invocation. The empty invocation follows independent field precedence: overriding only confirmation
 does not remove force-derived ignore-missing, while overriding both effects does. It does not
-require rmp to reproduce macOS `rm` deletion behavior, confirmation flow, other option effects,
+require tc to reproduce macOS `rm` deletion behavior, confirmation flow, other option effects,
 diagnostics, or output; JSON mode still emits its complete empty result document for this no-op.
 The public values are `0` for success, `1` for operational or safety failure, and `64` for usage
 failure.
@@ -73,14 +74,14 @@ _Avoid_: Delete result, removal response
 The schema-version-1 machine representation of one Trash Operation. It contains aggregate success
 and counts plus one input-ordered item for every top-level Trash Input. JSON maps internal
 `rejected`, `not_moved`, and `state_uncertain` outcomes to the external `failed` state while retaining
-the stable rmp error code and human-readable message. Sources are absolute and moved destinations are
+the stable tc error code and human-readable message. Sources are absolute and moved destinations are
 the exact system-returned paths. Platform error domains and numeric codes are not part of this
 contract. Planning errors use the same typed classification in human and JSON rendering; an encoding
 failure leaves stdout empty instead of exposing a partial document.
 _Avoid_: JSON response, platform error result
 
 **Trash Finalizer**:
-An rmp-owned, UUID-named broken symbolic link used only after a user symbolic link enters Trash. A
+A tc-owned, UUID-named broken symbolic link used only after a user symbolic link enters Trash. A
 successful Foundation Trash call on the finalizer activates Put Back for the preceding user item;
 the exact returned finalizer is then restored, identity-checked, and removed outside Trash.
 _Avoid_: Temporary file, dummy file

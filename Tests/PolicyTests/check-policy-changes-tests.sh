@@ -3,7 +3,7 @@
 
 set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
-TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/rmp-policy-change-tests.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/tc-policy-change-tests.XXXXXX")
 trap 'rm -rf "$TEMP_DIR"' EXIT HUP INT TERM
 repo="$TEMP_DIR/repo"
 mkdir -p "$repo/scripts/lib" "$repo/.github"

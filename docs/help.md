@@ -1,10 +1,10 @@
-# rmp Help Contract
+# tc Help Contract
 
 The supported operational forms are:
 
 ```text
-rmp [OPTIONS] [--] <PATH>...
-rmp [OPTIONS] --dry-run [--] <PATH>...
+tc [OPTIONS] [--] <PATH>...
+tc [OPTIONS] --dry-run [--] <PATH>...
 ```
 
 `--` permits a Trash Input whose path begins with a hyphen. A successful preview writes the complete
@@ -47,24 +47,24 @@ schema-version-1 document to stdout for a preview or real operation. The documen
 success and counts plus one ordered item for every top-level input. Item states are `planned`,
 `moved`, `failed`, or `skipped`; each item contains an absolute source, nullable exact destination,
 kind, and nullable structured error. Compatibility warnings and operational diagnostics remain on
-stderr. JSON exposes only rmp's stable error code and human-readable message, never a Foundation
+stderr. JSON exposes only tc's stable error code and human-readable message, never a Foundation
 error domain or numeric code. Consumers must depend on the stable code rather than parsing message
-text. Absolute paths in JSON may be sensitive; rmp does not retain or upload path history.
+text. Absolute paths in JSON may be sensitive; tc does not retain or upload path history.
 
 The first real Trash Operation may show a macOS Automation prompt allowing the invoking terminal or
-`rmp` to control Finder. Accepted permission is normally reused for that sender-to-Finder pair but
+`tc` to control Finder. Accepted permission is normally reused for that sender-to-Finder pair but
 can be revoked, reset, or requested separately by another terminal application. Consent-required,
 denied, unavailable-Finder, and timeout outcomes fail closed with stable error codes.
 
 Finder owns the private metadata used by “Put Back.” Finder handles ordinary entries directly but
-refuses symbolic links. For links, rmp prepares two same-directory finalizers before moving the
+refuses symbolic links. For links, tc prepares two same-directory finalizers before moving the
 target, makes the target the first Foundation Trash call, then uses a successful Foundation
 finalizer call to activate Put Back. It does not run a target-before-move Trash preflight because
 that call was shown to consume the metadata transition needed by the target.
 Normal completion is silent and leaves no helper behind. `symlink_put_back_not_guaranteed` or
 `finalizer_cleanup_failed` reports a moved result with its exact destination on stderr without
 changing the successful exit code.
-If a failed finalizer call no longer has its exact source identity, rmp stops without using the
+If a failed finalizer call no longer has its exact source identity, tc stops without using the
 backup and reports `finalizer_state_uncertain`, preserving the best available Put Back state.
 If the user link has not moved but a prepared finalizer cannot be identity-verified and removed, the
 operation instead fails with `finalizer_cleanup_failed`; its `not_moved` or `state_uncertain`
@@ -83,9 +83,9 @@ a stderr warning that secure overwrite is not performed. That warning is indepen
 code. `-W` is unsupported. `--strict-options` rejects every no-effect Compatibility Option,
 including `-P`, before filesystem inspection, confirmation, or Trash capability construction.
 
-`rmp --help` prints concise native help, while `rmp --help -a` groups compatibility behavior into
+`tc --help` prints concise native help, while `tc --help -a` groups compatibility behavior into
 accepted-with-no-effect, accepted-with-warning, and unsupported sections. `-zh` selects Chinese for
-either help surface. `rmp --version` prints `rmp 0.1.0`. These information commands require no Trash
+either help surface. `tc --version` prints `tc 0.1.0`. These information commands require no Trash
 Input, do not construct the platform filesystem adapter, and do not inspect filesystem or Trash
 capabilities.
 

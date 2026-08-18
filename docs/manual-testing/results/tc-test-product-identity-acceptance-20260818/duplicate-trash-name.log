@@ -1,0 +1,13 @@
+command: TEST_RUN_ID=5026aac7-e026-4962-a648-31b3c794055c make test-duplicate-trash-name
+tc-test build=TC_TESTING
+run=5026aac7-e026-4962-a648-31b3c794055c
+scenario=duplicate-trash-name
+status=complete
+source=TEST_CONTAINER/test/5026aac7-e026-4962-a648-31b3c794055c/tc-test-5026aac7-e026-4962-a648-31b3c794055c-duplicate-trash-name
+first-trash=HOME_TRASH/tc-test-5026aac7-e026-4962-a648-31b3c794055c-duplicate-trash-name
+second-trash=HOME_TRASH/tc-test-5026aac7-e026-4962-a648-31b3c794055c-duplicate-trash-name 10.21.50
+renamed=true
+run-directory=TEST_CONTAINER/test/5026aac7-e026-4962-a648-31b3c794055c
+trash-backend=finder
+automated-cleanup=not-performed
+result=pass

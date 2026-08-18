@@ -1,0 +1,17 @@
+command: TEST_RUN_ID=de458165-7389-40ea-aa80-2b45b86112f6 CYCLES=1 FIXTURE=file make test-put-back-race-manual
+tc-test build=TC_TESTING
+run=de458165-7389-40ea-aa80-2b45b86112f6
+scenario=put-back-race-manual
+fixture=file
+trash-backend=finder
+status=complete
+first-trash=HOME_TRASH/tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
+restored=TEST_CONTAINER/test/de458165-7389-40ea-aa80-2b45b86112f6/tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
+settle-seconds=0.0
+second-trash=HOME_TRASH/tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
+foundation-finalizer=disabled
+run-directory=TEST_CONTAINER/test/de458165-7389-40ea-aa80-2b45b86112f6
+manual-target=tc-test-de458165-7389-40ea-aa80-2b45b86112f6-put-back-race-file
+restore-method=maintainer-finder-put-back-command
+automated-cleanup=not-performed
+result=pass

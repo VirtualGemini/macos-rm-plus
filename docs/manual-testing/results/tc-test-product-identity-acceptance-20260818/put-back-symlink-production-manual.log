@@ -1,0 +1,21 @@
+command: TEST_RUN_ID=683156a4-be47-4f26-92dd-f62269e7292c CYCLES=1 SYMLINK_FIXTURE=symbolic-link FINALIZER_FAULT=none make test-put-back-symlink-production-manual
+tc-test build=TC_TESTING
+run=683156a4-be47-4f26-92dd-f62269e7292c
+scenario=put-back-symlink-production-manual
+fixture=symbolic-link
+trash-backend=foundation-symlink
+control-fixture=file
+control-trash-backend=finder
+status=complete
+first-trash=HOME_TRASH/tc-test-683156a4-be47-4f26-92dd-f62269e7292c-put-back-race-symbolic-link-finder-control
+restored=TEST_CONTAINER/test/683156a4-be47-4f26-92dd-f62269e7292c/tc-test-683156a4-be47-4f26-92dd-f62269e7292c-put-back-race-symbolic-link-finder-control
+settle-seconds=0.0
+second-trash=HOME_TRASH/tc-test-683156a4-be47-4f26-92dd-f62269e7292c-put-back-race-symbolic-link
+foundation-finalizer=production-cleaned
+injected-finalizer-fault=none
+trash-warning=none
+run-directory=TEST_CONTAINER/test/683156a4-be47-4f26-92dd-f62269e7292c
+manual-target=tc-test-683156a4-be47-4f26-92dd-f62269e7292c-put-back-race-symbolic-link
+restore-method=maintainer-finder-put-back-command
+automated-cleanup=not-performed
+result=pass

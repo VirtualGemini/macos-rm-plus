@@ -1,0 +1,19 @@
+run_date=2026-08-18
+repository=REPO_ROOT
+commit=43d396e01b18162037f2e620cd9967ffce08dd4c
+release_test_binary=REPO_ROOT/.build/release/tc-test
+release_test_binary_sha256=d814194e26d779c77bfb636da13b858abf8e0c4048fc12ceb3a155c82f0144ed
+debug_test_binary=REPO_ROOT/.build/debug/tc-test
+debug_test_binary_sha256=68954f75a50e78ad208c7d767f3891be0d52a0ceb331467d51e19837f77b9077
+integration_script=REPO_ROOT/scripts/run-integration-tests.sh
+integration_script_sha256=5a8754d6775c21ea9d66edd72d7d41c560339a9774dd6dbd1bf507f335134cdc
+makefile=REPO_ROOT/Makefile
+makefile_sha256=c1d89b8066ed97c5050df2aabeea9e59952be35ccff690c43a5a3a7e9a1655e2
+version_output=tc-test build=TC_TESTING
+swift_version=Apple Swift 6.3.3
+sdk_version=26.5
+path_normalization=TEST_CONTAINER and HOME_TRASH
+integration_trash_api=not_requested
+real_trash_backends=Finder and Foundation symbolic-link
+human_action=maintainer Finder Put Back for the two recorded manual targets
+automated_trash_cleanup=not_performed

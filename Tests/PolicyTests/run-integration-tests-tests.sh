@@ -59,6 +59,10 @@ assert_binary_rejected "$WRONG_BINARY" 'a noncanonical executable identity'
 
 assert_binary_rejected tc-test 'a relative executable path'
 
+DIRECTORY_BINARY="$TEMP_DIR/directory/tc-test"
+mkdir -p "$DIRECTORY_BINARY"
+assert_binary_rejected "$DIRECTORY_BINARY" 'a directory with the canonical executable identity'
+
 NON_EXECUTABLE_DIR="$TEMP_DIR/non-executable"
 mkdir "$NON_EXECUTABLE_DIR"
 NON_EXECUTABLE_BINARY="$NON_EXECUTABLE_DIR/tc-test"

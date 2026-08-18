@@ -8,6 +8,7 @@ ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 if [ -n "${TC_TEST_BINARY:-}" ]; then
   SOURCE_TC_TEST=$TC_TEST_BINARY
   if [ "${SOURCE_TC_TEST#/}" = "$SOURCE_TC_TEST" ] \
+    || [ ! -f "$SOURCE_TC_TEST" ] \
     || [ ! -x "$SOURCE_TC_TEST" ] \
     || [ "$(basename -- "$SOURCE_TC_TEST")" != tc-test ]; then
     echo 'error: TC_TEST_BINARY must be an absolute executable path named tc-test' >&2

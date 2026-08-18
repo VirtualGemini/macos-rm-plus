@@ -306,8 +306,8 @@ fixed hierarchy validation, empty Run Directory cleanup, and compile-time `TC_TE
 without constructing or calling a system Trash capability. `TC_TEST_BINARY` is an integration-runner
 test seam that accepts only an absolute executable path whose basename is exactly `tc-test`; it is
 never read by the production executable. Its policy test asserts the runner's exact validation
-diagnostic for relative paths, non-executable files, and noncanonical basenames so an operating-system
-execution failure cannot masquerade as whitelist enforcement.
+diagnostic for relative paths, directories, non-executable files, and noncanonical basenames so an
+operating-system execution failure cannot masquerade as whitelist enforcement.
 
 `tc-test ordered-batch` is the maintainer-only real-filesystem acceptance for ordered execution. It
 creates a file, empty directory, deep directory, quoted/newline filename, missing path, and nested
